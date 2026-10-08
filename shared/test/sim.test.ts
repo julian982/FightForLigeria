@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   loadMap, newGame, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater,
   placeBuilding, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
-  START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES,
+  START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRON, shotClear, fireArrow,
 } from '../src/index';
 
 const DT = 1 / 60;
@@ -187,6 +187,19 @@ describe('archers de l\'IA', () => {
     loadMap('amboise'); newGame();
     const a0 = spawnUnit(0, 'archer', { x: 1000, y: 600 }), a1 = spawnUnit(1, 'archer', { x: 1400, y: 600 });
     expect(rangeOf(a1).range).toBeGreaterThan(rangeOf(a0).range * 1.3);
+  });
+});
+
+describe('gisements', () => {
+  it('les flèches passent au-dessus de la pierre et du fer', () => {
+    loadMap('amboise'); newGame();
+    const st = STONES[0];
+    expect(shotClear(st.x - 150, st.y, st.x + 150, st.y, null)).toBe(true);
+    expect(shotClear(IRON.x - 150, IRON.y, IRON.x + 150, IRON.y, null)).toBe(true);
+    fireArrow(0, st.x - 120, st.y, 0, 1);
+    const a = G.arrows[G.arrows.length - 1];
+    run(.4);
+    expect(a.x).toBeGreaterThan(st.x + st.r);
   });
 });
 

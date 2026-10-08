@@ -123,6 +123,7 @@ export function shotClear(x0, y0, x1, y1, target) {
   const d = dist(x0, y0, x1, y1), n = Math.ceil(d / 8);
   for (let i = 1; i < n; i++) { const t = i / n, x = x0 + (x1 - x0) * t, y = y0 + (y1 - y0) * t;
     if (target && target.kind === 'building' && inRect(x, y, { bx: target.bx, by: target.by, bw: target.bw, bh: target.bh })) return true;
-    const o = solidAt(x, y, 0); if (o && o !== target && o !== RIVER) return false }
+    // l'eau et les gisements (pierre, fer) sont bas : ils ne bloquent pas les tirs
+    const o = solidAt(x, y, 0); if (o && o !== target && o !== RIVER && !ROCKS.includes(o)) return false }
   return true;
 }

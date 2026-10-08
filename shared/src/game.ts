@@ -334,7 +334,7 @@ export function update(dt) {
       if (b.team !== a.team && b.type !== 'keep' && a.x > b.bx && a.x < b.bx + b.bw && a.y > b.by && a.y < b.by + b.bh) { const dm = Math.ceil(a.dmg * .4); if (a.lord) lordHit(a, dm); hit(b, dm, a.lord); a.dead = true; break }
       if (b.blocks.some(q => inRect(a.x, a.y, q))) { a.dead = true; a.stick = .5; break } }
     if (!a.dead && treesNear(a.x, a.y, t => Math.abs(t.x - a.x) < TREE_R && Math.abs(t.y - a.y) < TREE_R && dist(a.x, a.y, t.x, t.y) < TREE_R)) { a.dead = true; a.stick = .55 }
-    if (!a.dead) { for (const st of ROCKS) if (dist(a.x, a.y, st.x, st.y) < st.r * .9) { a.dead = true; a.stick = .15; break } }
+    // les gisements de pierre et de fer sont au ras du sol : les flèches passent au-dessus
     // une flèche arrêtée par un obstacle reste plantée quelques secondes
     if (a.dead && a.stick !== undefined) G.fx.push({ k: 'stuck', x: a.x - a.vx * .012, y: a.y - a.vy * .012, a: Math.atan2(a.vy, a.vx), h: a.stick, team: a.team, lord: a.lord, t: 0, life: 3 });
     else if (!a.dead && (a.d >= a.md || a.x < 0 || a.y < 0 || a.x > W || a.y > H)) { a.dead = true; G.fx.push({ k: 'stuck', x: a.x, y: a.y, a: Math.atan2(a.vy, a.vx), team: a.team, lord: a.lord, t: 0, life: 3 }) }
