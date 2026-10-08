@@ -32,7 +32,7 @@ Clavier et souris requis.
 - **Ressources** : bois, pierre (tuffeau), blé, fer. Les ouvriers sortent seuls du donjon et rapportent tout au stock. Sans blé, ils travaillent deux fois moins vite.
 - **Fer** : un seul gisement, au centre de la carte, à égale distance des deux joueurs. La mine est le seul bâtiment qui se pose hors de ton territoire.
 - **Ouvrier tué** : le bâtiment s'arrête (icône rouge) et un remplaçant sort du donjon 20 s plus tard.
-- **Collisions** : arbres, bâtiments et rochers bloquent les unités et les flèches. La Loire bloque les unités, pas les flèches.
+- **Collisions** : arbres, bâtiments et rochers bloquent les unités et les flèches. Les rivières bloquent les unités (sauf sur les ponts), pas les flèches.
 - **Couleur du royaume** : 8 couleurs au choix sur l'accueil, appliquées aux soldats, bâtiments, drapeaux et flèches.
 
 ### Bâtiments
@@ -55,6 +55,18 @@ Clavier et souris requis.
 | Archer | 1 arc | 55 | 9 | Tire à distance, ne tire que si la voie est dégagée |
 | Lancier | 1 lance | 120 | 13 | Corps à corps, plus rapide |
 | Spadassin | 1 épée | 420 | 34 | Unité d'élite, flèches −50 %, vaut environ 4 lanciers |
+
+## Cartes
+
+Trois cartes symétriques, au choix sur la page Jouer. Les donjons, le tuffeau et le fer sont toujours aux mêmes places.
+
+| Carte | Particularité |
+|---|---|
+| Rives d'Amboise | La Loire au sud, forêts sur les flancs, plaine ouverte au centre |
+| Confluence du Cher | Le Cher coupe la carte en deux ; trois passages, le fer sur une île centrale |
+| Forêt de Chinon | Forêt dense avec clairières, la Vienne au sud, plus de relief |
+
+En classé, la carte sera tirée au sort parmi les trois.
 
 ## Classement (en préparation)
 

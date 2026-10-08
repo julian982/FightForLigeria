@@ -102,6 +102,15 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
 .unit p{margin:0;font-size:13px;color:var(--muted);line-height:1.4}
 .unit.elite{border-color:var(--gold)}
 .home-foot{margin:0;font-size:13px;color:var(--muted)}
+.mapsel{padding:12px;border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:8px;background:var(--wood)}
+.maps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mapcard{font:inherit;color:var(--text);background:var(--wood2);border:1px solid var(--rule);border-radius:3px;padding:6px;display:flex;flex-direction:column;gap:6px;cursor:pointer;text-align:left;min-width:0}
+.mapcard canvas{width:100%;height:auto;aspect-ratio:3/2;border-radius:2px;display:block}
+.mapcard span{font-size:13px;font-weight:700;line-height:1.2}
+.mapcard:hover{border-color:#7a6545}
+.mapcard[aria-checked="true"]{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+.mapcard:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.map-desc{margin:0;font-size:13px;color:var(--muted);line-height:1.4;min-height:2.8em}
 .topnav{display:flex;align-items:center;justify-content:space-between;gap:12px 24px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--rule);margin-bottom:-12px}
 .brand{font-family:var(--f-display);font-size:20px;color:var(--gold);text-decoration:none;letter-spacing:.02em}
 .brand b{font-weight:400;color:var(--text)}
@@ -196,9 +205,10 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
         </div>
         <p id="nogl" hidden>Le moteur 3D n'a pas pu se charger. Vérifie ta connexion puis recharge la page.</p>
         <section class="lobbies" aria-label="Parties">
-          <div class="lobbies-head"><h2>Parties</h2><span>1 carte · Val de Loire</span></div>
+          <div class="lobbies-head"><h2>Parties</h2><span>3 cartes</span></div>
+          <div class="mapsel"><div class="maps" id="maps" role="radiogroup" aria-label="Carte"></div><p class="map-desc" id="mapDesc"></p></div>
           <div class="lobby">
-            <div><div class="t">Partie rapide</div><div class="s">Toi contre l'IA · 1v1</div></div>
+            <div><div class="t">Partie rapide</div><div class="s" id="quickSub">Toi contre l'IA · 1v1</div></div>
             <div class="m">1 / 2</div>
             <button class="go" id="start" type="button">Jouer</button>
           </div>
@@ -267,7 +277,7 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
           </div>
           <div class="placements" aria-label="Parties de placement jouées : 0 sur 5"><i></i><i></i><i></i><i></i><i></i></div>
           <p id="meText">Joue 5 parties classées en 1v1 pour être placé. Tu démarres à <b>1000 Elo</b>, soit <b>Bois I</b>, puis ton rang monte ou descend selon tes résultats.</p>
-          <p class="g-note">Les parties classées ouvriront avec le jeu en ligne. Tes rangs 1v1 et 2v2 sont indépendants.</p>
+          <p class="g-note">Les parties classées ouvriront avec le jeu en ligne. Tes rangs 1v1 et 2v2 sont indépendants. En classé, la carte est tirée au sort parmi les trois.</p>
         </div>
         <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
           <div class="ladder" id="ladder"></div>
@@ -295,7 +305,7 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
             <dt><kbd>Molette</kbd></dt><dd>Zoomer ou dézoomer.</dd>
             <dt><kbd>A</kbd> <kbd>E</kbd></dt><dd>Tourner la caméra autour de ton seigneur (Q et E en clavier QWERTY). Tu peux aussi maintenir le clic molette et glisser.</dd>
           </dl>
-          <p class="g-note">Tu marches moins vite pendant que tu bandes l'arc. Les arbres, les bâtiments et les rochers arrêtent les flèches. La Loire borde le sud de la carte : on ne la traverse pas, mais les flèches passent au-dessus.</p>
+          <p class="g-note">Tu marches moins vite pendant que tu bandes l'arc. Les arbres, les bâtiments et les rochers arrêtent les flèches. Les rivières (Loire, Cher, Vienne) ne se traversent qu'aux ponts, mais les flèches passent au-dessus.</p>
         </article>
         <article class="g">
           <h3>Ton domaine</h3>
@@ -519,17 +529,69 @@ const STONES=[{x:580,y:1010,r:80},{x:W-580,y:1010,r:80}];
 // gisement de fer unique, à égale distance des deux donjons
 const IRON={x:W/2,y:840,r:75,iron:true};
 const ROCKS=[...STONES,IRON];
-// la Loire borde le sud de la carte : infranchissable à pied, les flèches passent au-dessus
-const riverY=x=>1470+25*Math.sin(x/230)+14*Math.sin(x/97+1);
 const RIVER={river:true};
-// relief très doux : collines larges, aplanies autour des donjons, des bords et de la Loire
-function relief(x,z){
-  const h=.26*Math.sin(x*.17+.6)*Math.cos(z*.21)+.16*Math.sin(x*.09-z*.13+1.3)+.08*Math.sin(x*.31+z*.27);
-  const f=(d,a,b)=>Math.max(0,Math.min(1,(d-a)/(b-a))),px=x*T,pz=z*T;
-  return (h+.5)*.55*f(Math.min(dist(px,pz,300,780),dist(px,pz,W-300,780)),140,320)*f(Math.min(x,60-x,z),0,2.5)*f(riverY(px)-pz,30,160);
+const BRIDGE_Y=.17;
+const clamp01=v=>Math.max(0,Math.min(1,v));
+// ---- Les cartes : toutes symétriques, donjons et gisements aux mêmes places ----
+const MAPS={
+  amboise:{name:"Rives d'Amboise",desc:"La Loire borde le sud, des forêts sur les flancs, le fer au milieu de la plaine. Une carte ouverte et équilibrée.",
+    seed:42,treeSeed:1337,amp:.55,
+    south:x=>1470+25*Math.sin(x/230)+14*Math.sin(x/97+1),
+    path:x=>800+Math.sin(x/260)*70*Math.sin(clamp01((x-300)/(W-600))*Math.PI),
+    clusters:[[150,260,120,18],[520,470,80,10],[130,1180,110,16],[470,1420,120,16],[880,720,120,18],[820,250,100,14],[900,1190,110,14],[1130,430,80,8],[1130,1270,80,8]],
+    scatter:0,clearings:[],vines:[[1200,190],[1200,1080]],sand:[[620,1545,3.2],[1280,1565,4],[1930,1535,2.6]],bridges:[],
+    grass:[0x5f8f3e,0x689c45,0x5a8a3a,0x71a54b,0x638f40]},
+  cher:{name:'Confluence du Cher',desc:"Le Cher coupe la carte en deux avant de rejoindre la Loire. Trois passages seulement, et le fer au cœur d'une île que chacun voudra tenir.",
+    seed:7,treeSeed:2024,amp:.45,cher:true,
+    south:x=>1500+18*Math.cos((x-W/2)/260)+10*Math.cos((x-W/2)/90),
+    path:x=>780+60*Math.sin(clamp01((x-300)/(W-600))*Math.PI),
+    clusters:[[150,250,120,18],[520,430,90,12],[140,1160,110,16],[470,1320,100,12],[840,560,100,14],[800,210,100,14],[860,1130,110,14],[1040,1010,40,5],[1050,520,45,6]],
+    scatter:0,clearings:[],vines:[[640,170],[W-640,170]],sand:[[700,1565,3],[1700,1565,3]],
+    bridges:[{x:1130,y:256,w:140,h:84},{x:972,y:798,w:92,h:84},{x:W-972-92,y:798,w:92,h:84},{x:1130,y:1190,w:140,h:84}],
+    grass:[0x5c8e3d,0x66994a,0x588a3a,0x6fa34c,0x619242]},
+  chinon:{name:'Forêt de Chinon',desc:"Une forêt dense percée de clairières, la Vienne au sud. Le bois abonde, mais on voit mal venir l'ennemi et les flèches s'arrêtent dans les arbres.",
+    seed:13,treeSeed:777,amp:.7,
+    south:x=>1530+16*Math.cos((x-W/2)/200)+9*Math.cos((x-W/2)/70),
+    path:x=>{const t=clamp01((x-300)/(W-600));return 790+70*Math.sin(t*Math.PI)*Math.cos(t*Math.PI*4)},
+    clusters:[[150,250,140,22],[520,450,110,16],[140,1170,130,20],[480,1380,120,16],[860,640,140,22],[820,240,130,20],[880,1180,130,20],[1120,420,90,12],[1120,1240,90,12]],
+    scatter:420,clearings:[[1200,840,190],[700,980,100],[W-700,980,100],[560,640,110],[W-560,640,110]],vines:[[1200,200]],sand:[[900,1585,2.4],[1500,1585,2.4]],bridges:[],
+    grass:[0x4f8036,0x5a8b3c,0x4a7832,0x63964a,0x55873a]},
+};
+let MAP=MAPS.amboise,MAPID=null;
+// le Cher : un lit vertical au centre, qui se sépare autour de l'île du fer
+function cherWater(x,y){const d=Math.hypot(x-IRON.x,y-IRON.y);if(d<150)return false;if(d<215)return true;return Math.abs(x-W/2)<50+7*Math.sin(y/120)}
+function rawWater(x,y){return y>MAP.south(x)||(MAP.cher===true&&cherWater(x,y))}
+function inBridge(x,y){for(const b of MAP.bridges)if(x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)return true;return false}
+const walkWater=(x,y)=>rawWater(x,y)&&!inBridge(x,y);
+const wHit=(x,y,r)=>walkWater(x,y)||walkWater(x+r,y)||walkWater(x-r,y)||walkWater(x,y+r)||walkWater(x,y-r);
+// ---- relief + distance à l'eau, précalculés sur une grille de 20 px ----
+const GXV=121,GZV=81,HC=20,hgrid=new Float32Array(GXV*GZV),dgrid=new Float32Array(GXV*GZV);
+function buildTerrain(){
+  for(let iz=0;iz<GZV;iz++)for(let ix=0;ix<GXV;ix++)dgrid[iz*GXV+ix]=rawWater(ix*HC,iz*HC)?0:1e9;
+  const D1=HC,D2=HC*1.4142;
+  for(let iz=0;iz<GZV;iz++)for(let ix=0;ix<GXV;ix++){const i=iz*GXV+ix;let v=dgrid[i];
+    if(ix>0)v=Math.min(v,dgrid[i-1]+D1);
+    if(iz>0){v=Math.min(v,dgrid[i-GXV]+D1);if(ix>0)v=Math.min(v,dgrid[i-GXV-1]+D2);if(ix<GXV-1)v=Math.min(v,dgrid[i-GXV+1]+D2)}
+    dgrid[i]=v}
+  for(let iz=GZV-1;iz>=0;iz--)for(let ix=GXV-1;ix>=0;ix--){const i=iz*GXV+ix;let v=dgrid[i];
+    if(ix<GXV-1)v=Math.min(v,dgrid[i+1]+D1);
+    if(iz<GZV-1){v=Math.min(v,dgrid[i+GXV]+D1);if(ix<GXV-1)v=Math.min(v,dgrid[i+GXV+1]+D2);if(ix>0)v=Math.min(v,dgrid[i+GXV-1]+D2)}
+    dgrid[i]=v}
+  const f=(d,a,b)=>clamp01((d-a)/(b-a));
+  for(let iz=0;iz<GZV;iz++)for(let ix=0;ix<GXV;ix++){const i=iz*GXV+ix,px=ix*HC,pz=iz*HC,x=px*S,z=pz*S,dw=dgrid[i];
+    if(dw===0){hgrid[i]=-.25;continue}
+    const n=(Math.sin(x*1.7+z*.9)*.5+.5)*.05+(Math.sin(x*.37-z*.71)*.5+.5)*.06;
+    const h=.26*Math.sin(x*.17+.6)*Math.cos(z*.21)+.16*Math.sin(x*.09-z*.13+1.3)+.08*Math.sin(x*.31+z*.27);
+    const k=f(Math.min(Math.hypot(px-300,pz-780),Math.hypot(px-W+300,pz-780)),140,320)*f(Math.min(x,60-x,z),0,2.5)*f(dw,30,160);
+    hgrid[i]=dw<=HC*1.01?.02:.03+n*(dw<40?.4:1)+(h+.5)*MAP.amp*k}
 }
-const gh=(px,py)=>relief(px*S,py*S);
-function drape(geo,lift=0){const p=geo.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,p.getY(i)+relief(p.getX(i),p.getZ(i))+lift);p.needsUpdate=true;geo.computeVertexNormals();return geo}
+const wDist=(px,py)=>dgrid[Math.max(0,Math.min(GZV-1,Math.round(py/HC)))*GXV+Math.max(0,Math.min(GXV-1,Math.round(px/HC)))];
+function gh(px,py){
+  if(MAP.bridges.length&&inBridge(px,py))return BRIDGE_Y;
+  const fx=Math.max(0,Math.min(GXV-1.001,px/HC)),fz=Math.max(0,Math.min(GZV-1.001,py/HC)),ix=fx|0,iz=fz|0,tx=fx-ix,tz=fz-iz,i=iz*GXV+ix;
+  return (hgrid[i]*(1-tx)+hgrid[i+1]*tx)*(1-tz)+(hgrid[i+GXV]*(1-tx)+hgrid[i+GXV+1]*tx)*tz;
+}
+function drape(geo,lift=0){const p=geo.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,p.getY(i)+gh(p.getX(i)*T,p.getZ(i)*T)+lift);p.needsUpdate=true;geo.computeVertexNormals();return geo}
 
 const dist=(a,b,c,d)=>Math.hypot(c-a,d-b);
 const dE=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -537,7 +599,6 @@ function rng(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t
 function rectDist(px,py,b){const dx=Math.max(b.bx-px,0,px-(b.bx+b.bw)),dy=Math.max(b.by-py,0,py-(b.by+b.bh));return Math.hypot(dx,dy)}
 function rectClamp(px,py,b){return{x:Math.max(b.bx,Math.min(px,b.bx+b.bw)),y:Math.max(b.by,Math.min(py,b.by+b.bh))}}
 function costStr(c){return Object.entries(c).map(([k,v])=>v+' '+RESN[k]).join(' · ')}
-const pathY=x=>800+Math.sin(x/260)*70*Math.sin(Math.max(0,Math.min(1,(x-300)/(W-600)))*Math.PI);
 
 // ================= Moteur 3D =================
 const cv=$('game'), ov=$('ov'), octx=ov.getContext('2d');
@@ -598,37 +659,41 @@ const B=(w,h,d)=>new THREE.BoxGeometry(w,h,d), C=(rt,rb,h,s,o)=>new THREE.Cylind
 // ---- Sol, bordure, gisements, décor ----
 const terrRing=[];let groundMesh=null;
 function buildWorld(){
-  const r=rng(42);
-  const hgt=(x,z)=>(Math.sin(x*1.7+z*.9)*.5+.5)*.05+(Math.sin(x*.37-z*.71)*.5+.5)*.06;
-  const pg=new THREE.PlaneGeometry(60,40,60,40);pg.rotateX(-Math.PI/2);pg.translate(30,0,20);
-  const pa=pg.attributes.position;for(let i=0;i<pa.count;i++){const vx=pa.getX(i),vz=pa.getZ(i),dr=vz*T-riverY(vx*T);pa.setY(i,dr>-8?-.22:(dr>-30?hgt(vx,vz)*.4:hgt(vx,vz))+relief(vx,vz))}
+  const r=rng(MAP.seed);
+  const pg=new THREE.PlaneGeometry(60,40,120,80);pg.rotateX(-Math.PI/2);pg.translate(30,0,20);
+  const pa=pg.attributes.position;for(let i=0;i<pa.count;i++){const ix=Math.round(pa.getX(i)*2),iz=Math.round(pa.getZ(i)*2);pa.setY(i,hgrid[iz*GXV+ix])}
   const g=pg.toNonIndexed();g.computeVertexNormals();
-  const p=g.attributes.position.array,col=[],c=new THREE.Color();
-  const grass=[0x5f8f3e,0x689c45,0x5a8a3a,0x71a54b,0x638f40];
+  const p=g.attributes.position.array,col=[],c=new THREE.Color(),grass=MAP.grass;
   for(let i=0;i<p.length;i+=9){
-    const cx=(p[i]+p[i+3]+p[i+6])/3*T,cz=(p[i+2]+p[i+5]+p[i+8])/3*T;
+    const cx=(p[i]+p[i+3]+p[i+6])/3*T,cz=(p[i+2]+p[i+5]+p[i+8])/3*T,cy=(p[i+1]+p[i+4]+p[i+7])/3;
     let hex=grass[r()*grass.length|0];
-    if(cx>260&&cx<W-260&&Math.abs(cz-pathY(cx))<24)hex=r()<.5?0x9b7a4e:0x8d6e45;
+    if(cx>260&&cx<W-260&&Math.abs(cz-MAP.path(cx))<24)hex=r()<.5?0x9b7a4e:0x8d6e45;
     for(const s of STONES){const d=dist(cx,cz,s.x,s.y);if(d<s.r*1.05)hex=r()<.5?0xcfc3a3:0xc2b695;else if(d<s.r*1.3&&r()<.5)hex=0x7d8a5e}
     {const d=dist(cx,cz,IRON.x,IRON.y);if(d<IRON.r*1.05)hex=r()<.5?0x5e4a40:0x6b4f3e;else if(d<IRON.r*1.35&&r()<.5)hex=0x7a6a48}
     for(const kx of [300,W-300]){if(dist(cx,cz,kx,780)<95)hex=r()<.5?0x8f7a58:0x857050}
-    {const ry=riverY(cx);if(cz>ry-28)hex=cz>ry+10?0x55664c:(r()<.5?0xd9c99a:0xcdbb8a)}
+    if(cy<-.05)hex=0x55664c;else if(wDist(cx,cz)<34)hex=r()<.5?0xd9c99a:0xcdbb8a;
     c.set(hex);const v=.94+r()*.1;
     for(let k=0;k<3;k++)col.push(c.r*v,c.g*v,c.b*v);
   }
   g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
   const ground=new THREE.Mesh(g,VC);ground.receiveShadow=true;world.add(ground);groundMesh=ground;
-  // la Loire : eau, reflets, bancs de sable
-  {const pos=[];for(let x=0;x<W;x+=40){const x1=x+40,y0=riverY(x),y1=riverY(x1);pos.push(x*S,0,y0*S,x*S,0,H*S,x1*S,0,y1*S,x1*S,0,y1*S,x*S,0,H*S,x1*S,0,H*S)}
-    const wg=new THREE.BufferGeometry();wg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));wg.computeVertexNormals();
-    const water=new THREE.Mesh(wg,new THREE.MeshStandardMaterial({color:0x4b86ad,roughness:.3,metalness:.1,transparent:true,opacity:.93,side:THREE.DoubleSide,flatShading:true}));
-    water.position.y=.0;water.receiveShadow=true;world.add(water);
-    const rip=[];for(let i=0;i<70;i++){const x=r()*W,y=riverY(x)+20+r()*(H-riverY(x)-30);rip.push([B(.3+r()*.6,.01,.035).translate(x*S,.02,y*S),0x9cc7e0])}
-    const rm=new THREE.Mesh(merge(rip),new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:.55}));world.add(rm);
-    for(const [x,y,l] of [[620,1545,3.2],[1280,1565,4],[1930,1535,2.6]]){const sb=new THREE.DodecahedronGeometry(.5,0);sb.scale(l,.12,1);world.add(mk(sb,M(0xe3d3a0),x*S,.06,y*S))}
+  // rivières : une nappe d'eau, des reflets, des bancs de sable
+  {const wp=new THREE.PlaneGeometry(60,40,1,1);wp.rotateX(-Math.PI/2);wp.translate(30,0,20);
+    const water=new THREE.Mesh(wp,new THREE.MeshStandardMaterial({color:0x4b86ad,roughness:.3,metalness:.1,transparent:true,opacity:.93,flatShading:true}));
+    water.receiveShadow=true;world.add(water);
+    const rip=[];for(let i=0;i<500&&rip.length<90;i++){const x=r()*W,y=r()*H;if(walkWater(x,y)&&wDist(x+30,y)===0&&wDist(x-30,y)===0)rip.push([B(.3+r()*.6,.01,.035).translate(x*S,.02,y*S),0x9cc7e0])}
+    if(rip.length)world.add(new THREE.Mesh(merge(rip),new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:.55})));
+    for(const [x,y,l] of MAP.sand){const sb=new THREE.DodecahedronGeometry(.5,0);sb.scale(l,.12,1);world.add(mk(sb,M(0xe3d3a0),x*S,.06,y*S))}
+  }
+  // ponts de tuffeau au tablier de bois
+  for(const b of MAP.bridges){const cx=(b.x+b.w/2)*S,cz=(b.y+b.h/2)*S,w=b.w*S,d=b.h*S;
+    world.add(boxM(w+.2,.09,d,TM('planks',5,1),cx,BRIDGE_Y-.09,cz));
+    for(const sd of [-1,1]){world.add(boxM(w+.2,.18,.1,TM('stone',4,1),cx,BRIDGE_Y,cz+sd*(d/2-.05)));
+      for(const t of [-.5,0,.5])world.add(boxM(.14,.08,.14,M(0xd9ceb3),cx+t*w,BRIDGE_Y+.18,cz+sd*(d/2-.05)))}
+    for(const t of [-.25,.25])world.add(cylM(.16,.2,.45,7,TM('stone',1,1),cx+t*w,-.4,cz));
   }
   // vignes de Touraine
-  {const v=[];for(const [vx,vy] of [[1200,190],[1200,1080]])for(let row=0;row<5;row++)for(let i=0;i<9;i++){const x=vx-130+i*32,y=vy-40+row*20;
+  if(MAP.vines.length){const v=[];for(const [vx,vy] of MAP.vines)for(let row=0;row<5;row++)for(let i=0;i<9;i++){const x=vx-130+i*32,y=vy-40+row*20;
       v.push([B(.02,.22,.02).translate(x*S,.11,y*S),0x6b4a28],[I(.075).translate(x*S,.22,y*S),r()<.5?0x4e7f34:0x5f8f3e]);if(r()<.25)v.push([I(.03).translate(x*S+.05,.18,y*S),0x5a2a5a])}
     const vm=mk(drape(merge(v)),VC);vm.castShadow=false;world.add(vm);}
   // bordure de diorama
@@ -655,9 +720,9 @@ function buildWorld(){
   for(let i=0;i<420;i++){
     const x=r()*W,y=r()*H;
     if(dist(x,y,300,780)<TERR+20||dist(x,y,W-300,780)<TERR+20)continue;
-    if(x>260&&x<W-260&&Math.abs(y-pathY(x))<40)continue;
+    if(x>260&&x<W-260&&Math.abs(y-MAP.path(x))<40)continue;
     if(ROCKS.some(s=>dist(x,y,s.x,s.y)<s.r+20))continue;
-    if(y>riverY(x)-30)continue;
+    if(wDist(x,y)<30||inBridge(x,y))continue;
     const k=r();
     if(k<.45){const s=.14+r()*.16;deco.push([I(s).translate(x*S,s*.6,y*S),[0x4e7f34,0x5b8c3b,0x456f2e][r()*3|0]]);if(r()<.5)deco.push([I(s*.7).translate(x*S+s,s*.4,y*S+s*.4),0x6a9a42])}
     else if(k<.75){const s=.07+r()*.08;deco.push([new THREE.DodecahedronGeometry(s,0).translate(x*S,s*.3,y*S),0x9a968c])}
@@ -876,19 +941,30 @@ const keys={}, mouse={sx:0,sy:0,wx:0,wy:0,in:false}, aim={charging:false,start:0
 const camT=new THREE.Vector3(7.5,0,19.5);
 
 function genTrees(){
-  const r=rng(1337),half=[];
-  const clusters=[[150,260,120,18],[520,470,80,10],[130,1180,110,16],[470,1420,120,16],[880,720,120,18],[820,250,100,14],[900,1190,110,14],[1130,430,80,8],[1130,1270,80,8]];
-  for(const [cx,cy,rad,n] of clusters)for(let i=0;i<n*2;i++){
-    const a=r()*Math.PI*2,d=Math.sqrt(r())*rad,x=cx+Math.cos(a)*d,y=cy+Math.sin(a)*d;
-    if(x<20||y<20||y>H-20||x>W/2-30)continue;
-    if(dist(x,y,300,780)<200)continue;
-    if(ROCKS.some(s=>dist(x,y,s.x,s.y)<s.r+24))continue;
-    if(y>riverY(x)-40)continue;
-    if(half.some(t=>dist(t.x,t.y,x,y)<27))continue;
-    half.push({x,y,r:13+r()*4,wood:5,sh:r(),v:r()<.5?0:r()<.7?1:2});
-  }
+  const r=rng(MAP.treeSeed),half=[],Mp=MAP;
+  const ok=(x,y)=>{
+    if(x<20||y<20||y>H-20||x>W/2-30)return false;
+    if(dist(x,y,300,780)<(Mp.scatter?300:200))return false;
+    if(ROCKS.some(s=>dist(x,y,s.x,s.y)<s.r+24))return false;
+    if(wDist(x,y)<40||inBridge(x,y))return false;
+    if(Mp.clearings.some(([cx,cy,cr])=>dist(x,y,cx,cy)<cr))return false;
+    if(Mp.vines.some(([vx,vy])=>Math.abs(x-vx)<160&&Math.abs(y-vy)<70))return false;
+    if(Mp.scatter&&x>260&&Math.abs(y-Mp.path(x))<45)return false;
+    for(const t of half)if(Math.abs(t.x-x)<27&&Math.abs(t.y-y)<27&&dist(t.x,t.y,x,y)<27)return false;
+    return true;
+  };
+  const add=(x,y)=>half.push({x,y,r:13+r()*4,wood:5,sh:r(),v:r()<.5?0:r()<.7?1:2});
+  for(const [cx,cy,rad,n] of Mp.clusters)for(let i=0;i<n*2;i++){const a=r()*Math.PI*2,d=Math.sqrt(r())*rad,x=cx+Math.cos(a)*d,y=cy+Math.sin(a)*d;if(ok(x,y))add(x,y)}
+  for(let i=0;i<Mp.scatter;i++){const x=r()*W/2,y=r()*H;if(ok(x,y))add(x,y)}
   const out=[];for(const t of half){out.push(t);out.push({...t,x:W-t.x,sh:(t.sh+.37)%1})}
   return out;
+}
+// charge une carte : relief, monde 3D, minicarte
+function setMap(id){
+  if(!MAPS[id])id='amboise';
+  MAP=MAPS[id];MAPID=id;buildTerrain();
+  while(world.children.length){const o=world.children[world.children.length-1];world.remove(o);o.traverse(n=>{if(n.geometry)n.geometry.dispose()})}
+  buildWorld();makeMiniBase();navDirty=true;
 }
 function newGame(){
   while(dyn.children.length)dyn.remove(dyn.children[0]);
@@ -935,7 +1011,7 @@ function canPlace(team,type,tx,ty){
   const d=DEF[type];
   if(tx<0||ty<0||tx+d.w>GW||ty+d.h>GH)return 'Hors de la carte';
   const x=tx*T,y=ty*T,w=d.w*T,h=d.h*T,cx=x+w/2,cy=y+h/2;
-  if(y+h>Math.min(riverY(x),riverY(cx),riverY(x+w))-16)return 'Trop près de la Loire';
+  for(let sx=x-16;sx<=x+w+16;sx+=20)for(let sy=y-16;sy<=y+h+16;sy+=20)if(rawWater(sx,sy))return 'Trop près de l\'eau';
   const k=G.teams[team].keep;
   if(type!=='mine'&&dist(cx,cy,k.x,k.y)>TERR)return 'Hors de ton territoire';
   for(const b of G.buildings)if(!b.dead&&x<b.bx+b.bw&&x+w>b.bx&&y<b.by+b.bh&&y+h>b.by)return 'Emplacement occupé';
@@ -966,7 +1042,7 @@ function solidAt(x,y,inf=0){
   for(const b of G.buildings){if(b.dead)continue;for(const q of b.blocks)if(inRect(x,y,q)||(inf>0&&rectDist(x,y,q)<inf))return b}
   const R=TREE_R+inf,tt=treesNear(x,y,t=>Math.abs(t.x-x)<R&&Math.abs(t.y-y)<R&&dist(x,y,t.x,t.y)<R);if(tt)return tt;
   for(const st of ROCKS)if(dist(x,y,st.x,st.y)<st.r*.9+inf)return st;
-  if(y>riverY(x)-inf-4)return RIVER;
+  if(wHit(x,y,inf+4))return RIVER;
   return null;
 }
 function buildNav(){
@@ -979,7 +1055,7 @@ function buildNav(){
   for(const b of G.buildings){if(b.dead)continue;for(const q of b.blocks)mark(q.bx,q.by,q.bx+q.bw,q.by+q.bh,(x,y)=>inRect(x,y,q)||rectDist(x,y,q)<inf)}
   for(const t of trees)if(t.wood>0)mark(t.x-TREE_R,t.y-TREE_R,t.x+TREE_R,t.y+TREE_R,(x,y)=>dist(x,y,t.x,t.y)<TREE_R+inf);
   for(const st of ROCKS){const R=st.r*.9;mark(st.x-R,st.y-R,st.x+R,st.y+R,(x,y)=>dist(x,y,st.x,st.y)<R+inf)}
-  for(let cx=0;cx<NW;cx++){const px=cx*NC+NC/2,t=riverY(px)-inf-4;for(let cy=Math.max(0,Math.floor(t/NC));cy<NH;cy++)if(cy*NC+NC/2>t)navGrid[cy*NW+cx]=1}
+  for(let cy=0;cy<NH;cy++)for(let cx=0;cx<NW;cx++){const i=cy*NW+cx;if(!navGrid[i]&&wHit(cx*NC+NC/2,cy*NC+NC/2,inf+4))navGrid[i]=1}
   navDirty=false;navVer++;
 }
 const cellOf=(x,y)=>Math.max(0,Math.min(NH-1,Math.floor(y/NC)))*NW+Math.max(0,Math.min(NW-1,Math.floor(x/NC)));
@@ -1030,7 +1106,9 @@ function pushOut(e){
     for(const st of ROCKS)pushCirc(e,st.x,st.y,st.r*.9+r);
     for(const b of G.buildings){if(b.dead||Math.abs(b.x-e.x)>b.bw/2+r+2||Math.abs(b.y-e.y)>b.bh/2+r+2)continue;for(const q of b.blocks)pushRect(e,q,r)}
   }
-  const ry=riverY(e.x)-r;if(e.y>ry)e.y=ry;
+  // l'eau : on revient à la dernière position sûre, en glissant sur un axe si possible
+  if(wHit(e.x,e.y,r)){if(e.sx!==undefined){if(!wHit(e.sx,e.y,r))e.x=e.sx;else if(!wHit(e.x,e.sy,r))e.y=e.sy;else{e.x=e.sx;e.y=e.sy}}}
+  else{e.sx=e.x;e.sy=e.y}
   clampWorld(e);
 }
 // déplacement avec contournement des obstacles
@@ -1429,11 +1507,20 @@ function drawOverlay(){
     octx.fillStyle='rgba(255,233,168,.1)';octx.fillRect(x,y,w,h);octx.strokeStyle='rgba(255,233,168,.85)';octx.lineWidth=1;octx.setLineDash([4,4]);octx.strokeRect(x+.5,y+.5,w,h);octx.setLineDash([])}
 }
 const mm=$('mini'),mctx=mm.getContext('2d'),miniBase=document.createElement('canvas');
-function makeMiniBase(){miniBase.width=192;miniBase.height=128;const g=miniBase.getContext('2d'),s=192/W;g.fillStyle='#4f7d35';g.fillRect(0,0,192,128);
-  g.strokeStyle='#8d6e45';g.lineWidth=3;g.beginPath();for(let x=300;x<=W-300;x+=40){const y=pathY(x);x===300?g.moveTo(x*s,y*s):g.lineTo(x*s,y*s)}g.stroke();
-  g.fillStyle='#4b86ad';g.beginPath();g.moveTo(0,128);for(let x=0;x<=W;x+=40)g.lineTo(x*s,riverY(x)*s);g.lineTo(192,128);g.closePath();g.fill();
+function drawMapBase(g,cw,ch,treeList){
+  const s=cw/W,img=g.createImageData(cw,ch),d=img.data;
+  for(let py=0;py<ch;py++)for(let px=0;px<cw;px++){const x=(px+.5)/s,y=(py+.5)/s,i=(py*cw+px)*4;
+    const c=inBridge(x,y)&&rawWater(x,y)?[150,108,64]:rawWater(x,y)?[75,134,173]:wDist(x,y)<30?[205,190,140]:[79,125,53];
+    d[i]=c[0];d[i+1]=c[1];d[i+2]=c[2];d[i+3]=255}
+  g.putImageData(img,0,0);
+  g.strokeStyle='#8d6e45';g.lineWidth=Math.max(1.5,cw/64);g.beginPath();
+  for(let x=300;x<=W-300;x+=40){const y=MAP.path(x);if(rawWater(x,y)&&!inBridge(x,y)){g.stroke();g.beginPath();continue}g.lineTo(x*s,y*s)}g.stroke();
   g.fillStyle='#e0d6bb';for(const st of STONES){g.beginPath();g.arc(st.x*s,st.y*s,st.r*s,0,7);g.fill()}
-  g.fillStyle='#b8622e';g.beginPath();g.arc(IRON.x*s,IRON.y*s,IRON.r*s,0,7);g.fill()}
+  g.fillStyle='#b8622e';g.beginPath();g.arc(IRON.x*s,IRON.y*s,IRON.r*s,0,7);g.fill();
+  if(treeList){g.fillStyle='#24421d';const z=Math.max(1.5,cw/110);for(const t of treeList)g.fillRect(t.x*s-z/2,t.y*s-z/2,z,z);
+    g.fillStyle='#e3d6b5';g.strokeStyle='#3a2f22';g.lineWidth=1;for(const kx of [300,W-300]){g.fillRect(kx*s-4,780*s-4,8,8);g.strokeRect(kx*s-4,780*s-4,8,8)}}
+}
+function makeMiniBase(){miniBase.width=192;miniBase.height=128;drawMapBase(miniBase.getContext('2d'),192,128,null)}
 function renderMini(){
   const s=192/W;mctx.drawImage(miniBase,0,0);
   mctx.fillStyle='#24421d';for(const t of trees)mctx.fillRect(t.x*s-1,t.y*s-1,2,2);
@@ -1481,7 +1568,7 @@ function endGame(win){
   refreshHud();setTimeout(()=>{$('end').hidden=false;$('again').focus()},900);
 }
 function showHome(on){$('home').hidden=!on;$('play').hidden=on;if(on&&window.__showView)window.__showView(window.__homeView||'jouer');else document.title='FightForLigeria · partie'}
-function start(){showHome(false);applyColors();newGame();running=true;$('end').hidden=true;resize();refreshHud();toast('Pose une cabane de bûcheron près des arbres (touche 1)')}
+function start(){showHome(false);applyColors();if(MAPID!==selMap)setMap(selMap);newGame();running=true;$('end').hidden=true;resize();refreshHud();toast('Pose une cabane de bûcheron près des arbres (touche 1)')}
 function goHome(){running=false;aim.charging=false;placing=null;box=null;$('end').hidden=true;showHome(true);$('start').focus()}
 $('start').addEventListener('click',start);
 $('again').addEventListener('click',start);
@@ -1552,7 +1639,25 @@ addEventListener('keyup',e=>{keys[e.code]=false});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;releaseShot()});
 
 // ================= Boucle =================
-applyColors();buildWorld();makeMiniBase();newGame();refreshHud();
+// sélection de la carte (vignettes dessinées depuis les vraies données de chaque carte)
+let selMap='amboise';try{const v=localStorage.getItem('ffl.map');if(MAPS[v])selMap=v}catch(e){}
+{const box=$('maps'),ids=Object.keys(MAPS);
+  for(const [i,id] of ids.entries()){
+    MAP=MAPS[id];buildTerrain();const tl=genTrees();
+    const b=document.createElement('button');b.type='button';b.className='mapcard';b.dataset.id=id;b.setAttribute('role','radio');
+    const cvs=document.createElement('canvas');cvs.width=150;cvs.height=100;drawMapBase(cvs.getContext('2d'),150,100,tl);
+    const nm=document.createElement('span');nm.textContent=MAPS[id].name;b.append(cvs,nm);
+    b.addEventListener('click',()=>pickMap(id));
+    b.addEventListener('keydown',e=>{const d={ArrowRight:1,ArrowDown:1,ArrowLeft:-1,ArrowUp:-1}[e.key];if(d){e.preventDefault();pickMap(ids[(i+d+ids.length)%ids.length],true)}});
+    box.appendChild(b)}
+}
+function pickMap(id,focus){
+  selMap=id;for(const b of $('maps').children){const on=b.dataset.id===id;b.setAttribute('aria-checked',on);b.tabIndex=on?0:-1;if(on&&focus)b.focus()}
+  $('mapDesc').textContent=MAPS[id].desc;$('quickSub').textContent="Toi contre l'IA · 1v1 · "+MAPS[id].name;
+  try{localStorage.setItem('ffl.map',id)}catch(e){}
+}
+pickMap(selMap);
+applyColors();setMap(selMap);newGame();refreshHud();
 let last=performance.now(),hudT=0,miniT=0;
 function frame(now){
   const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
@@ -1565,7 +1670,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__fief={get G(){return G},pushOut,update,start,findSpot,addBuilding,pay,afford,spawnUnit,syncScene,frame:()=>frame(performance.now())};
+window.__fief={get G(){return G},get trees(){return trees},setMap,pickMap,pushOut,update,start,findSpot,addBuilding,pay,afford,spawnUnit,syncScene,frame:()=>frame(performance.now())};
 })();
 </script>
 </body>
