@@ -4,6 +4,8 @@ Jeu de stratégie médiévale en temps réel dans le navigateur, en 3D isométri
 
 ## Lancer le jeu
 
+L'accueil a trois pages : **Jouer** (couleur du royaume et parties), **Classement** et **Comment jouer**.
+
 Ouvre `index.html` dans un navigateur récent. Il n'y a rien à installer ni à compiler. Three.js et les polices se chargent depuis un CDN, il faut donc une connexion internet.
 
 Clavier et souris requis.

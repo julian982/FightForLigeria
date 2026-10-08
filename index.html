@@ -102,6 +102,18 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
 .unit p{margin:0;font-size:13px;color:var(--muted);line-height:1.4}
 .unit.elite{border-color:var(--gold)}
 .home-foot{margin:0;font-size:13px;color:var(--muted)}
+.topnav{display:flex;align-items:center;justify-content:space-between;gap:12px 24px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--rule);margin-bottom:-12px}
+.brand{font-family:var(--f-display);font-size:20px;color:var(--gold);text-decoration:none;letter-spacing:.02em}
+.brand b{font-weight:400;color:var(--text)}
+.navlinks{display:flex;gap:4px;flex-wrap:wrap}
+.navlinks a{font-weight:700;font-size:15px;color:var(--muted);text-decoration:none;padding:7px 12px;border-radius:3px;border:1px solid transparent}
+.navlinks a:hover{color:var(--text);border-color:var(--rule)}
+.navlinks a[aria-current="page"]{color:var(--text);background:var(--wood2);border-color:var(--rule);box-shadow:inset 0 -2px 0 var(--gold)}
+.navlinks a:focus-visible,.brand:focus-visible,.hint-link:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.view{display:flex;flex-direction:column;gap:44px}
+.hint-link{align-self:flex-start;font-size:14px;font-weight:700;color:var(--gold);text-decoration:none;border-bottom:1px solid rgba(217,164,65,.4)}
+.hint-link::after{content:" →"}
+.hint-link:hover{border-bottom-color:var(--gold)}
 .h1-pre{display:block;font-size:.3em;line-height:1.15;color:var(--gold);letter-spacing:.03em}
 .realm{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap}
 .realm-lbl{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
@@ -162,6 +174,16 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
 <body>
 <main id="home">
   <div class="home-wrap">
+    <nav class="topnav" aria-label="Navigation principale">
+      <a class="brand" href="#jouer">Fight for <b>Ligeria</b></a>
+      <div class="navlinks">
+        <a href="#jouer" data-view="jouer">Jouer</a>
+        <a href="#classement" data-view="classement">Classement</a>
+        <a href="#guide" data-view="guide">Comment jouer</a>
+      </div>
+    </nav>
+
+    <div class="view" id="v-jouer">
     <header class="hero">
       <div class="hero-text">
         <p class="eyebrow">Stratégie médiévale en Val de Loire</p>
@@ -186,6 +208,7 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
             <button class="go" type="button" disabled>Bientôt</button>
           </div>
         </section>
+        <a class="hint-link" href="#guide">Première partie ? Lis comment jouer</a>
       </div>
       <svg class="hero-art" viewBox="0 0 480 300" role="img" aria-label="Un château de tuffeau aux couleurs de ton royaume, au bord de la Loire, face à une tour ennemie">
         <polygon points="0,210 90,150 170,200" fill="#3e6630"/>
@@ -225,7 +248,9 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
         <polygon points="250,232 262,226 270,234 258,240" fill="#e6dcc4"/><polygon points="262,238 276,232 282,240 268,244" fill="#d8cdb2"/>
       </svg>
     </header>
+    </div>
 
+    <div class="view" id="v-classement" hidden>
     <section class="rank-sec" aria-labelledby="ranked">
       <div class="rank-head">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><h2 id="ranked">Classement</h2><span class="soon">En préparation</span></div>
@@ -254,6 +279,9 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
       </div>
     </section>
 
+    </div>
+
+    <div class="view" id="v-guide" hidden>
     <section class="guide-sec" aria-labelledby="howto">
       <h2 id="howto">Comment jouer</h2>
       <div class="guide">
@@ -313,6 +341,7 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
       </div>
     </section>
     <p class="home-foot">Clavier et souris requis. L'ennemi attaque à partir de la 4<sup>e</sup> minute.</p>
+    </div>
   </div>
 </main>
 
@@ -359,6 +388,22 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
 </div>
 
 <script>
+// ---- Navigation entre les pages de l'accueil ----
+(()=>{
+  const VIEWS=['jouer','classement','guide'],TITLES={jouer:'FightForLigeria',classement:'Classement · FightForLigeria',guide:'Comment jouer · FightForLigeria'};
+  const home=document.getElementById('home');
+  function show(v,scroll){
+    if(!VIEWS.includes(v))v='jouer';
+    for(const id of VIEWS)document.getElementById('v-'+id).hidden=id!==v;
+    for(const a of document.querySelectorAll('.navlinks a'))a.dataset.view===v?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current');
+    if(!home.hidden)document.title=TITLES[v];
+    window.__homeView=v;
+    if(scroll)home.scrollTo(0,0);
+  }
+  window.__showView=show;
+  addEventListener('hashchange',()=>show(location.hash.slice(1),true));
+  show(location.hash.slice(1),false);
+})();
 // ---- Couleur du royaume ----
 (()=>{
   const K=[{id:'azur',n:'Azur',c:'#3f6fd8'},{id:'gueules',n:'Gueules',c:'#c9402e'},{id:'sinople',n:'Sinople',c:'#2f8a4a'},{id:'pourpre',n:'Pourpre',c:'#7f43b0'},
@@ -1419,7 +1464,7 @@ function endGame(win){
   $('endText').textContent=(win?'Le seigneur ennemi est tombé. ':'Ton seigneur est tombé. ')+`Partie de ${m} min ${s} s · ${G.stats.recruits} soldats recrutés · ${G.stats.kills} ennemis abattus.`;
   refreshHud();setTimeout(()=>{$('end').hidden=false;$('again').focus()},900);
 }
-function showHome(on){$('home').hidden=!on;$('play').hidden=on;document.title=on?'FightForLigeria':'FightForLigeria · partie'}
+function showHome(on){$('home').hidden=!on;$('play').hidden=on;if(on&&window.__showView)window.__showView(window.__homeView||'jouer');else document.title='FightForLigeria · partie'}
 function start(){showHome(false);applyColors();newGame();running=true;$('end').hidden=true;resize();refreshHud();toast('Pose une cabane de bûcheron près des arbres (touche 1)')}
 function goHome(){running=false;aim.charging=false;placing=null;box=null;$('end').hidden=true;showHome(true);$('start').focus()}
 $('start').addEventListener('click',start);
