@@ -52,12 +52,22 @@ export const BUILD:Record<string,(g:any,b:any)=>void>={
     flag(g,b,1.1,0,-.2,true,2.46);
   },
   bucheron(g,b){
-    hut(g,b,{x:-.3,z:-.3,w:1.1,d:.95,wall:'timber',roof:'thatch'});
-    logs(g,6,.45,.5);
-    g.add(cylM(.15,.17,.2,7,M(0x7a5230),.55,0,-.5));
-    g.add(mk(B(.03,.36,.03).rotateZ(.5),M(0x5a3a1e),.55,.35,-.5));
-    g.add(mk(B(.12,.06,.02),M(0xb8bec4),.48,.47,-.5));
-    flag(g,b,.95,-.85,.7);
+    // cahute en rondins, toit d'une seule pente en planches, gros tas de bûches
+    const L1=M(0x7a5230),L2=M(0x664224),cx=-.32,cz=-.28,w=.95,d=.8;
+    g.add(boxM(w+.2,.05,d+.2,M(0x5e4a33),cx,0,cz));
+    for(let r=0;r<5;r++){const y=.08+r*.11;
+      for(const sd of [-1,1]){
+        g.add(mk(C(.058,.058,w+.16,6).rotateZ(Math.PI/2),r%2?L1:L2,cx,y,cz+sd*d/2));
+        g.add(mk(C(.058,.058,d+.16,6).rotateX(Math.PI/2),r%2?L2:L1,cx+sd*w/2,y+.055,cz));
+      }}
+    for(const [x,z] of [[-w/2,-d/2],[w/2,-d/2],[-w/2,d/2],[w/2,d/2]])g.add(mk(C(.03,.03,.02,6).rotateZ(Math.PI/2),M(0xc9a06a),cx+x+(x>0?.08:-.08),.19,cz+z));
+    const roof=mk(B(w+.42,.05,d+.5),TM('planks',2,2,0x9c7b52),cx,.72,cz);roof.rotation.x=.42;g.add(roof);
+    g.add(mk(B(.05,.32,.05),L2,cx-w/2-.08,.5,cz+d/2+.18));g.add(mk(B(.05,.32,.05),L2,cx+w/2+.08,.5,cz+d/2+.18));
+    g.add(boxM(.24,.34,.03,M(0x24180e),cx+.12,.04,cz+d/2+.07));
+    logs(g,6,.5,.42);logs(g,3,.5,-.55);
+    g.add(cylM(.16,.18,.22,8,M(0x7a5230),-.55,0,.55));g.add(mk(C(.15,.15,.01,8),M(0xc9a06a),-.55,.225,.55));
+    g.add(mk(B(.03,.4,.03).rotateZ(.45),M(0x5a3a1e),-.48,.36,.55));g.add(mk(B(.13,.07,.02),M(0xb8bec4),-.4,.53,.55));
+    flag(g,b,.9,-.85,-.78);
   },
   carriere(g,b){
     g.add(boxM(1.8,.06,1.8,M(0x5a5750)));
@@ -81,21 +91,34 @@ export const BUILD:Record<string,(g:any,b:any)=>void>={
     flag(g,b,.95,1.35,.9);
   },
   arcs(g,b){
-    hut(g,b,{x:-.2,z:-.25,w:1.3,d:1,wall:'timber',roof:'tile'});
-    g.add(mk(C(.26,.26,.08,10).rotateX(Math.PI/2),M(0xd9c07a),.55,.4,.62));
-    g.add(mk(C(.12,.12,.09,10).rotateX(Math.PI/2),M(0xc0392b),.55,.4,.665));
-    g.add(boxM(.04,.4,.04,M(0x5a3a1e),.45,0,.58));g.add(boxM(.04,.4,.04,M(0x5a3a1e),.65,0,.58));
-    g.add(mk(new THREE.TorusGeometry(.2,.015,3,8,Math.PI*.8).rotateZ(Math.PI*.1),M(0x6b4520),-.2,.55,.27));
-    g.add(boxM(.6,.08,.3,TM('planks',1,1),.55,.32,-.45));g.add(boxM(.05,.32,.05,M(0x5a3a1e),.3,0,-.45));g.add(boxM(.05,.32,.05,M(0x5a3a1e),.8,0,-.45));
-    flag(g,b,.95,-.85,.75);
+    // atelier d'arcs : préau ouvert sur poteaux, toit de chaume en pyramide, grande cible devant
+    const P=M(0x5a3a1e),cx=-.2,cz=-.3;
+    g.add(boxM(1.35,.06,1.15,TM('planks',2,2,0xb59a76),cx,0,cz));
+    for(const [x,z] of [[-.6,-.5],[.6,-.5],[-.6,.5],[.6,.5]])g.add(cylM(.04,.05,.72,6,P,cx+x,.06,cz+z));
+    g.add(mk(K(1.08,.55,4).rotateY(Math.PI/4),TM('thatch',2,2),cx,.78+.27,cz));
+    g.add(boxM(1.2,.6,.05,TM('timber',2,1),cx,.06,cz-.5));
+    for(let i=0;i<3;i++)g.add(mk(new THREE.TorusGeometry(.17,.016,3,8,Math.PI*.8).rotateZ(Math.PI*.6),M(0x6b4520),cx-.35+i*.32,.42,cz-.45));
+    g.add(boxM(.6,.07,.28,TM('planks',1,1),cx+.1,.3,cz));g.add(boxM(.05,.28,.05,P,cx-.15,.06,cz));g.add(boxM(.05,.28,.05,P,cx+.35,.06,cz));
+    for(let i=0;i<4;i++)g.add(mk(C(.01,.01,.6,3),M(0xc9a36a),cx+.55,.36,cz-.3+i*.08));
+    // cible
+    g.add(mk(B(.04,.62,.04).rotateX(-.25),P,.56,.3,.72));g.add(mk(B(.04,.62,.04).rotateX(.25),P,.56,.3,.42));
+    const t=new THREE.Group();t.position.set(.56,.5,.58);t.rotation.y=Math.PI/2;
+    t.add(mk(C(.3,.3,.06,14).rotateX(Math.PI/2),M(0xe8dcc0)));t.add(mk(C(.2,.2,.065,14).rotateX(Math.PI/2),M(0xc0392b)));t.add(mk(C(.1,.1,.07,12).rotateX(Math.PI/2),M(0xe8dcc0)));t.add(mk(C(.04,.04,.075,8).rotateX(Math.PI/2),M(0xc0392b)));
+    g.add(t);
+    flag(g,b,1.15,-.9,.72);
   },
   lances(g,b){
-    hut(g,b,{x:-.25,z:-.2,w:1.2,d:1.05,wall:'stone',roof:'slate'});
-    const wd=M(0x6b4a28),st=M(0xc3c9cf);
-    g.add(boxM(.05,.5,.05,wd,.35,0,.6));g.add(boxM(.05,.5,.05,wd,.85,0,.6));g.add(boxM(.56,.05,.05,wd,.6,.42,.6));
-    for(let i=0;i<4;i++){const x=.42+i*.13;g.add(mk(C(.012,.012,.9,4).rotateX(-.25),M(0x8a6a40),x,.45,.5));g.add(mk(K(.03,.1,4).rotateX(-.25),st,x,.9,.62))}
-    g.add(cylM(.18,.2,.25,7,M(0x55402a),.7,0,-.5));g.add(boxM(.3,.08,.18,M(0x3d3d40),.7,.25,-.5));
-    flag(g,b,.95,-.85,.75);
+    // atelier de lances : maison de pierre étroite et haute, grand faisceau de lances dressées, meule
+    hut(g,b,{x:-.42,z:-.32,w:.85,d:.95,h:1.05,wall:'stone',roof:'slate'});
+    const st=M(0xc3c9cf),wd=M(0x8a6a40),cx=.42,cz=.32,n=9;
+    for(let i=0;i<n;i++){const a=i/n*Math.PI*2,sp=new THREE.Group();sp.position.set(cx+Math.cos(a)*.24,0,cz+Math.sin(a)*.24);sp.rotation.set(Math.sin(a)*-.19,0,Math.cos(a)*.19);
+      sp.add(mk(C(.024,.024,1.55,5).translate(0,.78,0),wd));sp.add(mk(K(.05,.17,4).translate(0,1.62,0),st));g.add(sp)}
+    g.add(mk(B(.02,.24,.16).translate(0,0,.08),M(TEAMC[b.team].hex),cx,1.32,cz));
+    g.add(cylM(.05,.05,.06,8,M(0x4a3522),cx,1.25,cz));
+    // meule à aiguiser
+    g.add(boxM(.05,.3,.05,M(0x5a3a1e),.55,0,-.48));g.add(boxM(.05,.3,.05,M(0x5a3a1e),.55,0,-.78));
+    g.add(mk(C(.17,.17,.07,12).rotateX(Math.PI/2),M(0x9a968c),.55,.3,-.63));
+    flag(g,b,.95,-.88,.72);
   },
   mine(g,b){
     g.add(boxM(1.8,.06,1.8,M(0x4a3f3a)));
@@ -131,12 +154,19 @@ export const BUILD:Record<string,(g:any,b:any)=>void>={
     b.pile=new THREE.Group();b.pile.position.set(.62,0,.62);g.add(b.pile);
   },
   fleches(g,b){
-    hut(g,b,{x:-.25,z:-.3,w:1.15,d:.95,wall:'timber',roof:'thatch'});
-    g.add(cylM(.17,.15,.32,8,TM('planks',2,1),.55,0,.45));
-    for(let i=0;i<9;i++){const a=i/9*Math.PI*2,rr=.08*(i%3?1:.4);g.add(mk(C(.008,.008,.42,3).rotateZ((Math.random()-.5)*.2),M(0xd8c49a),.55+Math.cos(a)*rr,.5,.45+Math.sin(a)*rr));g.add(mk(B(.05,.06,.01),M(TEAMC[b.team].light),.55+Math.cos(a)*rr,.68,.45+Math.sin(a)*rr))}
-    g.add(mk(C(.24,.24,.06,12).rotateX(Math.PI/2),M(0xe9dcb8),.6,.42,-.55));g.add(mk(C(.15,.15,.065,12).rotateX(Math.PI/2),M(0xc0392b),.6,.42,-.55));g.add(mk(C(.06,.06,.07,10).rotateX(Math.PI/2),M(0xe9dcb8),.6,.42,-.55));
-    g.add(boxM(.04,.42,.04,M(0x5a3a1e),.48,0,-.6));g.add(boxM(.04,.42,.04,M(0x5a3a1e),.72,0,-.6));
-    flag(g,b,.95,-.85,.7);
+    // atelier de flèches : hutte ronde au toit de chaume conique, tonneaux de flèches, plumes qui sèchent
+    const cx=-.3,cz=-.3;
+    g.add(cylM(.5,.52,.06,12,M(0x7d776b),cx,0,cz));
+    g.add(cylM(.44,.46,.5,12,TM('timber',3,1),cx,.06,cz));
+    g.add(mk(K(.66,.62,12),TM('thatch',3,2),cx,.56+.31,cz));
+    g.add(boxM(.22,.34,.04,TM('planks',1,1,0x8a7a6a),cx+.05,.06,cz+.45));
+    for(const [x,z] of [[.5,.42],[.22,.62]]){
+      g.add(cylM(.15,.13,.3,8,TM('planks',2,1),x,0,z));
+      for(let i=0;i<7;i++){const a=i/7*Math.PI*2,r=.07*(i%2?1:.45);g.add(mk(C(.008,.008,.38,3),M(0xd8c49a),x+Math.cos(a)*r,.45,z+Math.sin(a)*r));g.add(mk(B(.04,.05,.01),M(TEAMC[b.team].light),x+Math.cos(a)*r,.62,z+Math.sin(a)*r))}
+    }
+    const P=M(0x5a3a1e);g.add(boxM(.04,.55,.04,P,.35,0,-.72));g.add(boxM(.04,.55,.04,P,.8,0,-.72));g.add(mk(C(.006,.006,.45,3).rotateZ(Math.PI/2),M(0xdddddd),.575,.52,-.72));
+    for(let i=0;i<5;i++)g.add(mk(B(.03,.08,.01),M(i%2?0xf2f0ea:0x9a9a9a),.42+i*.08,.46,-.72));
+    flag(g,b,.95,-.85,.72);
   },
   forge(g,b){
     hut(g,b,{x:-.25,z:-.25,w:1.2,d:1,wall:'stone',roof:'slate'});

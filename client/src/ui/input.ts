@@ -1,5 +1,5 @@
 // Clavier et souris : ZQSD + arc pour le seigneur, placement des bâtiments, sélection et ordres.
-import { BUILD_LIST, G, cancelCharge, orderAttack, orderMove, placeBuilding, releaseCharge, startCharge, steer } from '@ffl/shared';
+import { BUILD_LIST, G, S, cancelCharge, orderAttack, orderMove, placeBuilding, releaseCharge, startCharge, steer } from '@ffl/shared';
 import { cv } from '../render/engine';
 import { enterFps, exitFps, fpsLook } from '../render/fps';
 import { addMark, ghostTile, screenToWorld, toScreen } from '../render/sync';
