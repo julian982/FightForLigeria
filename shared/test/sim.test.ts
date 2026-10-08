@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   loadMap, newGame, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater,
   placeBuilding, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
-  START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf,
+  START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish,
 } from '../src/index';
 
 const DT = 1 / 60;
@@ -111,6 +111,25 @@ describe('bûcheron', () => {
     expect(w.tree).toBeTruthy();
     expect(Math.hypot(w.tree.x - b.x, w.tree.y - b.y)).toBeGreaterThan(600);
     expect(w.idle).toBe(false);
+  });
+});
+
+describe('démolition', () => {
+  it('rend la moitié du coût, sauf si le bâtiment est abîmé', () => {
+    loadMap('amboise'); newGame();
+    G.teams[0].res.bois = 100; G.teams[0].res.pierre = 100;
+    expect(build('arcs')).toBeNull();
+    const b = G.buildings.find(b => b.team === 0 && b.type === 'arcs');
+    const bois = G.teams[0].res.bois, pierre = G.teams[0].res.pierre;
+    b.hp -= 1;
+    expect(demolish(0, b)).toMatch(/endommagé/);
+    b.hp = b.maxhp;
+    expect(demolish(0, b)).toBeNull();
+    expect(G.teams[0].res.bois).toBe(bois + 7); expect(G.teams[0].res.pierre).toBe(pierre + 4);
+    update(DT);
+    expect(G.buildings.includes(b)).toBe(false);
+    expect(G.st[0].lostB).toBe(0);
+    expect(demolish(0, G.teams[0].keep)).toMatch(/donjon/);
   });
 });
 

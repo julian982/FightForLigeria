@@ -274,6 +274,20 @@ export function orderMove(team, units, x, y) {
   sel.forEach((u, i) => { const cx = i % cols, cy = i / cols | 0, p = freePoint(x + (cx - (cols - 1) / 2) * sp, y + (cy - (Math.ceil(n / cols) - 1) / 2) * sp, u.r); u.order = { type: 'move', x: p.x, y: p.y } });
 }
 /** ordonne d'attaquer une cible (unité, ouvrier ou bâtiment ennemi) */
+/** remboursement d'une démolition : la moitié du coût, arrondie en dessous */
+export function refundOf(type) { const c = DEF[type].cost || {}, r: Record<string, number> = {}; for (const k in c) { const v = Math.floor(c[k] / 2); if (v > 0) r[k] = v } return r }
+/** démolit un de ses bâtiments intact : il disparaît tout de suite et rend la moitié de son coût. Renvoie la raison du refus, ou null. */
+export function demolish(team, b): string | null {
+  if (!b || b.dead || b.team !== team) return 'Ce bâtiment ne t\'appartient pas';
+  if (b.type === 'keep') return 'Le donjon ne peut pas être démoli';
+  if (b.hp < b.maxhp) return 'Bâtiment endommagé : impossible de le démolir';
+  const res = G.teams[team].res, r = refundOf(b.type);
+  for (const k in r) res[k] += r[k];
+  b.dead = true; b.demolished = true;
+  if (b.worker) b.worker.dead = true;
+  puff(b.x, b.y, 18, .5);
+  return null;
+}
 export function orderAttack(team, units, target) {
   if (!target || target.team === team) return;
   for (const u of units) if (u.team === team && !u.dead && u.type !== 'lord') u.order = { type: 'attack', target };

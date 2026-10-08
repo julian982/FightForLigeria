@@ -1,5 +1,5 @@
 // Le bandeau du haut (ressources, vie du seigneur) et celui du bas (bâtiments, recrutement).
-import { BUILD_LIST, DEF, G, RESN, afford, armySize, cancelCharge, missing, recruit } from '@ffl/shared';
+import { BUILD_LIST, DEF, G, RESN, afford, armySize, cancelCharge, demolish, missing, recruit, refundOf } from '@ffl/shared';
 import { $, ME, sel, ui } from '../state';
 
 export const SHORT={ferme:'Ferme',fleches:'Flèches',arcs:'Arcs',lances:'Lances',mine:'Mine de fer'};
@@ -12,7 +12,7 @@ export const bb=$('buildBtns');
 for(const t of BUILD_LIST){const d=DEF[t],b=document.createElement('button');b.className='btn';b.type='button';b.dataset.b=t;
   b.title=d.name+" : "+costStr(d.cost);b.innerHTML=`<kbd>${d.key}</kbd><span class="n">${SHORT[t]||d.name}</span><span class="c">${costHtml(d.cost)}</span>`;
   b.addEventListener('click',()=>selectBuild(t));bb.appendChild(b)}
-export function selectBuild(t){if(!ui.running)return;ui.placing=ui.placing===t?null:t;cancelCharge(ME);refreshHud()}
+export function selectBuild(t){if(!ui.running)return;ui.placing=ui.placing===t?null:t;ui.selB=null;cancelCharge(ME);refreshHud()}
 export function askRecruit(type){
   if(!ui.running)return;
   const err=recruit(ME,type);if(err){toast(err);return}
@@ -46,4 +46,25 @@ selBar.addEventListener('click',(e:any)=>{
   const b=e.target.closest('button');if(!b)return;const t=b.dataset.t;
   for(const u of [...sel])if(e.shiftKey?u.type===t:u.type!==t)sel.delete(u);
   b.blur();renderSelBar();
+});
+
+// ---- fenêtre du bâtiment sélectionné : nom, vie, bouton Démolir ----
+export const bldPanel=$('bldPanel');let bldKey='';
+export function renderBldPanel(){
+  let b=ui.selB;if(b&&(b.dead||!ui.running)){b=ui.selB=null}
+  const mine=b&&b.team===ME,dmg=b&&b.hp<b.maxhp,ref=b?refundOf(b.type):{};
+  const key=b?[b.id,b.team,Math.ceil(b.hp),dmg].join(','):'';if(key===bldKey)return;bldKey=key;
+  bldPanel.hidden=!b;if(!b){bldPanel.innerHTML='';return}
+  const d=DEF[b.type],gain=Object.entries(ref).map(([k,v])=>'+'+v+' '+RESN[k]).join(', ');
+  let act='';
+  if(mine){
+    const why=b.type==='keep'?'Le donjon ne peut pas être démoli':dmg?'Endommagé : impossible de le démolir':'';
+    act=why?`<p class="why">${why}</p>`:`<button type="button" class="demo">Démolir${gain?' <small>('+gain+')</small>':' <small>(rien à récupérer)</small>'}</button>`;
+  }
+  bldPanel.innerHTML=`<div class="bp-head"><b>${d.name}</b><button type="button" class="x" aria-label="Fermer">×</button></div>
+    <p class="who">${mine?'Ton bâtiment':'Bâtiment ennemi'}</p>${mine?`<div class="bp-hp"><div style="width:${Math.max(0,b.hp/b.maxhp*100)}%"></div></div><p class="hp">Vie ${Math.max(0,Math.ceil(b.hp))} / ${b.maxhp}</p>`:''}${act}`;
+}
+bldPanel.addEventListener('click',(e:any)=>{
+  if(e.target.closest('.x')){ui.selB=null;renderBldPanel();return}
+  if(e.target.closest('.demo')&&ui.selB){const err=demolish(ME,ui.selB);if(err)toast(err,'warn');else{toast(DEF[ui.selB.type].name+' démoli');ui.selB=null;refreshHud()}renderBldPanel()}
 });

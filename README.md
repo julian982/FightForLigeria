@@ -64,6 +64,7 @@ Clavier et souris requis.
 | R · T · Y | Recruter un archer, un lancier, un spadassin |
 | Clic gauche | Sélectionner un soldat ; glisser pour en encadrer plusieurs (Maj ou Ctrl pour ajouter) |
 | F | Sélectionner toute l'armée |
+| Clic sur un bâtiment | Fenêtre d'info ; « Démolir » le retire et rend la moitié du coût (s'il est intact) |
 | Barre « Sélection » | Clic sur un type (archers…) pour ne garder que lui, Maj + clic pour le retirer |
 | Clic droit | Déplacer la sélection, ou attaquer la cible visée |
 | Échap | Annuler la construction ou la sélection |

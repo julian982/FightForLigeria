@@ -37,7 +37,10 @@ export function selectBox(add){
   const x0=Math.min(ui.box.sx,mouse.sx),x1=Math.max(ui.box.sx,mouse.sx),y0=Math.min(ui.box.sy,mouse.sy),y1=Math.max(ui.box.sy,mouse.sy);
   const mine=G.units.filter(u=>u.team===0&&u.type!=='lord'&&!u.dead);
   let pick;
-  if(x1-x0<6&&y1-y0<6){const u=pickNear(mine,22*view.ppu/46);pick=u?[u]:[]}
+  ui.selB=null;
+  if(x1-x0<6&&y1-y0<6){const u=pickNear(mine,22*view.ppu/46);pick=u?[u]:[];
+    // clic sur un bâtiment (sans soldat dessous) : fenêtre d'info
+    if(!u){const b=G.buildings.find(b=>!b.dead&&mouse.wx>b.bx&&mouse.wx<b.bx+b.bw&&mouse.wy>b.by&&mouse.wy<b.by+b.bh);if(b){sel.clear();ui.selB=b;return}}}
   else pick=mine.filter(u=>{const p=toScreen(u.x,u.y,.4);return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1});
   if(!add||!pick.length)sel.clear();
   for(const u of pick)sel.add(u);
@@ -67,7 +70,7 @@ addEventListener('keydown',(e:any)=>{
   const m=/^(?:Digit|Numpad)([0-9])$/.exec(e.code);
   if(m){selectBuild(BUILD_LIST[m[1]==='0'?9:+m[1]-1]);return}
   if(e.code==='Minus'){selectBuild(BUILD_LIST[10]);return}
-  if(e.code==='Escape'){ui.placing=null;sel.clear();refreshHud()}
+  if(e.code==='Escape'){ui.placing=null;ui.selB=null;sel.clear();refreshHud()}
   if(e.code==='KeyF'){sel.clear();for(const u of G.units)if(u.team===0&&u.type!=='lord'&&!u.dead)sel.add(u)}
   if(e.code==='KeyR')askRecruit('archer');
   if(e.code==='KeyT')askRecruit('lancier');

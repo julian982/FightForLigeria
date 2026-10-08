@@ -68,3 +68,16 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 /* vue seigneur : on ne garde que le bandeau du haut */
 #play.fps .hud-bot{display:none}
 #play.fps #game{cursor:none}
+/* fenêtre du bâtiment sélectionné */
+#bldPanel{position:absolute;right:16px;bottom:calc(100% + 8px);width:230px;padding:10px 12px;background:rgba(31,26,21,.94);border:1px solid var(--rule);border-radius:3px}
+#bldPanel .bp-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#bldPanel .bp-head b{font-family:var(--f-title,serif);font-size:17px;color:var(--gold)}
+#bldPanel .x{font:inherit;font-size:18px;line-height:1;color:var(--text);background:none;border:0;cursor:pointer;padding:0 2px}
+#bldPanel p{margin:4px 0 0;font-size:13px}
+#bldPanel .who{color:#a99d87}
+#bldPanel .bp-hp{margin-top:8px;height:5px;background:rgba(0,0,0,.5);border-radius:2px;overflow:hidden}
+#bldPanel .bp-hp div{height:100%;background:var(--me)}
+#bldPanel .why{color:#ffb3a6}
+#bldPanel .demo{margin-top:10px;width:100%;font:inherit;font-weight:700;color:#fff1c9;background:#6e2a1f;border:1px solid #a8452f;border-radius:3px;padding:6px 8px;cursor:pointer}
+#bldPanel .demo:hover{background:#86331f}
+#bldPanel .demo small{font-weight:500;opacity:.85}

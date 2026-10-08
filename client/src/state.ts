@@ -9,6 +9,8 @@ export const ui = {
   placing: null as string | null,
   /** sélection au cadre (coordonnées écran du coin de départ) */
   box: null as null | { sx: number, sy: number },
+  /** bâtiment sélectionné (fenêtre d'info / démolition) */
+  selB: null as any,
   /** vue seigneur (première personne) */
   fps: false,
 };

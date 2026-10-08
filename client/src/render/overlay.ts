@@ -21,6 +21,9 @@ export function drawOverlay(){
   octx.setTransform(view.DPR,0,0,view.DPR,0,0);octx.clearRect(0,0,view.VW,view.VH);
   if(!ui.running&&!G.over)return;
   if(ui.fps){drawFpsOverlay();return}
+  // contour doré autour du bâtiment sélectionné
+  const sb=ui.selB;if(sb&&!sb.dead){const q=[[sb.bx,sb.by],[sb.bx+sb.bw,sb.by],[sb.bx+sb.bw,sb.by+sb.bh],[sb.bx,sb.by+sb.bh]].map(([x,y])=>toScreen(x,y,.06));
+    octx.strokeStyle='#ffe08a';octx.lineWidth=2;octx.setLineDash([6,4]);octx.beginPath();q.forEach((p,i)=>i?octx.lineTo(p.x,p.y):octx.moveTo(p.x,p.y));octx.closePath();octx.stroke();octx.setLineDash([])}
   const z=view.ppu/46;
   for(const u of G.units){if(u.dead)continue;const lord=u.type==='lord';if(!lord&&u.hp>=u.maxhp)continue;
     const p=toScreen(u.x,u.y,lord?1.35:1.05);if(!lord||u.team===0)bar(p.x,p.y,(lord?38:22)*z,u.hp/u.maxhp,TEAMC[u.team].m);

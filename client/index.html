@@ -292,7 +292,7 @@
           <p class="g-sub">15 soldats au maximum.</p>
           <dl class="keys">
             <dt><kbd>R</kbd> <kbd>T</kbd> <kbd>Y</kbd></dt><dd>Recruter un archer (1 arc), un lancier (1 lance) ou un spadassin (1 épée). Il faut une caserne.</dd>
-            <dt><kbd>Clic gauche</kbd></dt><dd>Sur un soldat : le sélectionne seul. Glisser : encadrer des soldats pour les sélectionner. Avec Maj ou Ctrl, on ajoute à la sélection. La barre « Sélection » au-dessus du menu compte tes soldats par type : clique sur un type pour ne garder que lui (Maj + clic pour le retirer).</dd>
+            <dt><kbd>Clic gauche</kbd></dt><dd>Sur un soldat : le sélectionne seul. Glisser : encadrer des soldats pour les sélectionner. Avec Maj ou Ctrl, on ajoute à la sélection. Clic sur un bâtiment : une fenêtre affiche son nom et sa vie, avec un bouton <b>Démolir</b> qui le retire tout de suite et te rend la moitié de son coût (impossible s'il est endommagé). La barre « Sélection » au-dessus du menu compte tes soldats par type : clique sur un type pour ne garder que lui (Maj + clic pour le retirer).</dd>
             <dt><kbd>F</kbd></dt><dd>Sélectionner toute ton armée. Échap désélectionne.</dd>
             <dt><kbd>Clic droit</kbd></dt><dd>Sur le sol : la sélection y marche et contourne les obstacles. Sur un ennemi ou un bâtiment ennemi : elle l'attaque.</dd>
           </dl>
@@ -346,6 +346,7 @@
 
 <div class="hud-bot" id="hudBot">
   <div id="selBar" hidden></div>
+  <div id="bldPanel" hidden></div>
   <div class="group grow"><h3>Construire</h3><div class="btns" id="buildBtns"></div></div>
   <div class="group"><h3>Caserne</h3><div class="btns">
     <button class="btn" id="bArcher" type="button"><kbd>R</kbd><span class="n">Archer</span><span class="c">1 arc</span></button>

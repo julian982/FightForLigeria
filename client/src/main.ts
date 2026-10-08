@@ -10,7 +10,7 @@ import { applyColors } from './render/models';
 import { syncScene, updateCam, onRemoved, onReset, toScreen } from './render/sync';
 import { drawOverlay } from './render/overlay';
 import { drawMapBase, makeMiniBase, renderMini } from './render/minimap';
-import { toast, refreshHud, renderSelBar } from './ui/hud';
+import { toast, refreshHud, renderSelBar, renderBldPanel } from './ui/hud';
 import { fpsCam, updateFps, exitFps } from './render/fps';
 import { endGame } from './ui/end';
 import { steerLord } from './ui/input';
@@ -31,7 +31,7 @@ let worldMap:string|null=null;
 function setMap(id){worldMap=loadMap(id);rebuildWorld();makeMiniBase()}
 function startGame(opts){
   newGame({rich:!!opts.rich});
-  sel.clear();ui.placing=null;ui.box=null;
+  sel.clear();ui.placing=null;ui.box=null;ui.selB=null;
   const L=G.teams[ME].lord;camT.set(L.x*S,0,L.y*S);
 }
 
@@ -75,7 +75,7 @@ function frame(now){
   if($('play').hidden){requestAnimationFrame(frame);return}
   updateCam(dt);syncScene(dt);
   if(ui.fps){updateFps();renderer.render(scene,fpsCam)}else renderer.render(scene,camera);
-  drawOverlay();renderSelBar();
+  drawOverlay();renderSelBar();renderBldPanel();
   hudT+=dt;if(hudT>.15&&ui.running){hudT=0;refreshHud()}
   miniT+=dt;if(miniT>.2){miniT=0;renderMini()}
   requestAnimationFrame(frame);
