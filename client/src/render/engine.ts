@@ -13,7 +13,7 @@ export const scene=new THREE.Scene();
 export const camera=new THREE.OrthographicCamera(-10,10,10,-10,1,500);
 export const ISO=new THREE.Vector3(1,1,1).normalize().multiplyScalar(150);
 // caméra rotative autour du seigneur : A/E (Q/E en QWERTY) ou clic molette glissé
-export const CAM_R=Math.hypot(ISO.x,ISO.z),CAM_Y=ISO.y;
+export const CAM_D=150;
 scene.add(new THREE.HemisphereLight(0xdcecff,0x6b5a3a,.72));
 export const sun=new THREE.DirectionalLight(0xfff0d2,.95);
 sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);

@@ -1,6 +1,6 @@
 // La simulation : création de partie, ouvriers, combat, famine, commandes des joueurs.
 // Aucun accès au DOM ni à Three.js : le client lit `G` pour dessiner, et reçoit les événements par `hooks`.
-import { T, GW, GH, W, H, TERR, S, DEF, ARMY_MAX, STORE_OF, START_RES, RICH_RES, UT, RESN, NEED, STONES, IRON, ROCKS, RESPAWN, TREE_R, CHARGE_T } from './config';
+import { T, GW, GH, W, H, TERR, S, DEF, ARMY_MAX, STORE_OF, START_RES, RICH_RES, UT, RESN, NEED, STONES, IRON, ROCKS, RESPAWN, TREE_R, CHARGE_T, AI_ARCHER_RANGE } from './config';
 import { rawWater, genTrees, gh } from './maps';
 import { dist, dE, rectDist, rectClamp, inRect } from './util';
 import { G, trees, setG, setTrees, hooks } from './state';
@@ -102,11 +102,13 @@ export function fireArrow(team, x, y, ang, charge) {
   G.arrows.push(a); G.st[team].shot++;
 }
 function lordHit(a, dmg) { const s = G.st[a.team]; s.hit++; s.dmg += dmg; s.longest = Math.max(s.longest, a.d) }
+/** portée et rayon de détection d'une unité (les archers de l'IA voient et tirent plus loin) */
+export function rangeOf(u) { const s = UT[u.type], k = u.type === 'archer' && G.ctrl[u.team].ai ? AI_ARCHER_RANGE : 1; return { range: s.range * k, aggro: Math.max(s.aggro, s.range * k + 50) } }
 function unitArrow(u, t) {
   const s = UT.archer, sp = 470, p = t.kind === 'building' ? rectClamp(u.x, u.y, t) : { x: t.x, y: t.y };
   const d = dist(u.x, u.y, p.x, p.y), tt = d / sp, px = p.x + (t.vx || 0) * tt * .7, py = p.y + (t.vy || 0) * tt * .7;
   const ang = Math.atan2(py - u.y, px - u.x) + (Math.random() - .5) * .08; u.face = ang;
-  const a = { team: u.team, x: u.x + Math.cos(ang) * 10, y: u.y + Math.sin(ang) * 10, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, d: 0, md: Math.min(s.range + 60, d + 40), dmg: s.dmg, lord: false, z: 0 };
+  const a = { team: u.team, x: u.x + Math.cos(ang) * 10, y: u.y + Math.sin(ang) * 10, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, d: 0, md: Math.min(rangeOf(u).range + 60, d + 40), dmg: s.dmg, lord: false, z: 0 };
   G.arrows.push(a);
 }
 /** nuage de poussière (effet visuel, sans incidence sur le jeu) */
@@ -149,9 +151,9 @@ function nearestEnemy(u, radius) {
 }
 function edgeDist(u, t) { return t.kind === 'building' ? rectDist(u.x, u.y, t) : dE(u, t) - t.r - u.r }
 function engage(u, t, dt) {
-  const s = UT[u.type], d = edgeDist(u, t);
+  const s = UT[u.type], d = edgeDist(u, t), range = rangeOf(u).range;
   if (u.noLos > 0) u.noLos -= dt;
-  if (d > s.range || u.noLos > 0) { const p = t.kind === 'building' ? rectClamp(u.x, u.y, t) : t; nav(u, p.x, p.y, dt, 0) }
+  if (d > range || u.noLos > 0) { const p = t.kind === 'building' ? rectClamp(u.x, u.y, t) : t; nav(u, p.x, p.y, dt, 0) }
   else {
     u.face = Math.atan2(t.y - u.y, t.x - u.x);
     if (u.cd <= 0) {
@@ -163,11 +165,11 @@ function engage(u, t, dt) {
 }
 function updUnit(u, dt) {
   u.cd -= dt; if (u.lunge) u.lunge = Math.max(0, u.lunge - dt);
-  const s = UT[u.type], o = u.order;
+  const aggro = rangeOf(u).aggro, o = u.order;
   if (o && o.type === 'move') { if (nav(u, o.x, o.y, dt, 5)) { u.order = null; u.guard = { x: u.x, y: u.y } } return }
   if (o && o.type === 'attack') { if (o.target.dead) { u.order = null; u.guard = { x: u.x, y: u.y }; return } engage(u, o.target, dt); return }
-  if (o && o.type === 'amove') { const e = nearestEnemy(u, s.aggro); if (e) { engage(u, e, dt); return } if (nav(u, o.x, o.y, dt, 12)) { u.order = null; u.guard = { x: u.x, y: u.y } } return }
-  const e = nearestEnemy(u, s.aggro);
+  if (o && o.type === 'amove') { const e = nearestEnemy(u, aggro); if (e) { engage(u, e, dt); return } if (nav(u, o.x, o.y, dt, 12)) { u.order = null; u.guard = { x: u.x, y: u.y } } return }
+  const e = nearestEnemy(u, aggro);
   if (e && dist(e.x, e.y, u.guard.x, u.guard.y) < 460) engage(u, e, dt);
   else if (dist(u.x, u.y, u.guard.x, u.guard.y) > 8) nav(u, u.guard.x, u.guard.y, dt, 8, .8);
 }
@@ -181,7 +183,8 @@ function updWorker(w, dt) {
     if (!w.spot || w.spotVer !== navVer || (b.type === 'bucheron' && (!w.tree || w.tree.wood <= 0))) {
       w.spotVer = navVer;
       if (b.type === 'bucheron') {
-        if (!w.tree || w.tree.wood <= 0) w.tree = nearestTree(b.x, b.y, 280);
+        // plus d'arbre à côté : le bûcheron va au plus proche, même au bout de la carte
+        if (!w.tree || w.tree.wood <= 0) w.tree = nearestTree(b.x, b.y, 280) || nearestTree(b.x, b.y, Infinity);
         w.spot = w.tree ? treeSpot(w.tree, w) : doorSpot(b);
       } else if (b.type === 'ferme') w.spot = { x: b.bx + 18 + ((b.id * 37) % 50), y: b.y + ((b.id * 13) % 40) - 10 };
       else w.spot = doorSpot(b);

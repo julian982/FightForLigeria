@@ -2,10 +2,10 @@
 // Les maillages sont créés à la demande : la simulation ne connaît pas Three.js.
 import * as THREE from 'three';
 import { DEF, G, S, T, afford, canPlace, gh, stockPt, trees } from '@ffl/shared';
-import { B, C, CAM_R, CAM_Y, I, ISO, M, SUN_OFF, VC, VCF, boxM, camT, camera, dyn, mk, scene, sun } from './engine';
+import { B, C, CAM_D, I, ISO, M, SUN_OFF, VC, VCF, boxM, camT, camera, dyn, mk, scene, sun } from './engine';
 import { AGEO, CARRY, RINGGEO, RINGMAT, STUMPGEO, arrowObj, buildingObj, treeObj, unitObj } from './models';
 import { groundMesh, terrRing } from './world';
-import { $, ME, keys, mouse, sel, ui, view } from '../state';
+import { $, ME, keys, mouse, sel, tilt, ui, view } from '../state';
 export const ray=new THREE.Raycaster(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),V2=new THREE.Vector2(),V3=new THREE.Vector3(),HIT=new THREE.Vector3();
 export function screenToWorld(sx,sy){V2.set(sx/view.VW*2-1,-(sy/view.VH)*2+1);ray.setFromCamera(V2,camera);if(groundMesh){const h=ray.intersectObject(groundMesh,false)[0];if(h)return{x:h.point.x*T,y:h.point.z*T}}return ray.ray.intersectPlane(plane,HIT)?{x:HIT.x*T,y:HIT.z*T}:{x:0,y:0}}
 export function toScreen(x,y,h){V3.set(x*S,h+gh(x,y),y*S).project(camera);return{x:(V3.x+1)/2*view.VW,y:(1-V3.y)/2*view.VH}}
@@ -15,9 +15,10 @@ export function updateCam(dt){
   const topPad=$('hudTop').offsetHeight,botPad=$('hudBot').offsetHeight,sh=(topPad-botPad)/2/view.ppu;
   const hw=view.VW/2/view.ppu,hh=view.VH/2/view.ppu;
   camera.left=-hw;camera.right=hw;camera.top=hh+sh;camera.bottom=-hh+sh;camera.updateProjectionMatrix();
-  if(ui.running){if(keys.KeyQ)view.yawTarget-=dt*1.7;if(keys.KeyE)view.yawTarget+=dt*1.7}
-  view.camYaw+=(view.yawTarget-view.camYaw)*(1-Math.pow(.0005,dt));
-  ISO.set(Math.cos(view.camYaw)*CAM_R,CAM_Y,Math.sin(view.camYaw)*CAM_R);
+  if(ui.running){if(keys.KeyQ)view.yawTarget-=dt*1.7;if(keys.KeyE)view.yawTarget+=dt*1.7;if(keys.PageUp)tilt(dt*1.2);if(keys.PageDown)tilt(-dt*1.2)}
+  const ease=1-Math.pow(.0005,dt);
+  view.camYaw+=(view.yawTarget-view.camYaw)*ease;view.pitch+=(view.pitchTarget-view.pitch)*ease;
+  const hr=CAM_D*Math.cos(view.pitch);ISO.set(Math.cos(view.camYaw)*hr,CAM_D*Math.sin(view.pitch),Math.sin(view.camYaw)*hr);
   camera.position.copy(camT).add(ISO);camera.lookAt(camT);camera.updateMatrixWorld();
   sun.position.copy(camT).add(SUN_OFF);sun.target.position.copy(camT);sun.target.updateMatrixWorld();
   const w=screenToWorld(mouse.sx,mouse.sy);mouse.wx=w.x;mouse.wy=w.y;

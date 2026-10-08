@@ -10,8 +10,13 @@ export const ui = {
   /** sélection au cadre (coordonnées écran du coin de départ) */
   box: null as null | { sx: number, sy: number },
 };
+const PITCH0 = Math.asin(1 / Math.sqrt(3)), PITCH_MIN = .35, PITCH_MAX = 1.36;
 /** caméra et écran */
-export const view = { VW: 0, VH: 0, DPR: 1, ppu: 46, camYaw: Math.PI / 4, yawTarget: Math.PI / 4, rotDrag: null as null | { x: number } };
+export const view = { VW: 0, VH: 0, DPR: 1, ppu: 46, camYaw: Math.PI / 4, yawTarget: Math.PI / 4,
+  /** inclinaison de la caméra (radians au-dessus de l'horizon), réglable de 20° à 78° */
+  pitch: PITCH0, pitchTarget: PITCH0,
+  rotDrag: null as null | { x: number, y: number } };
+export function tilt(d: number) { view.pitchTarget = Math.max(PITCH_MIN, Math.min(PITCH_MAX, view.pitchTarget + d)) }
 /** soldats sélectionnés */
 export const sel = new Set<any>();
 export const keys: Record<string, boolean> = {};

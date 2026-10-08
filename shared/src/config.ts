@@ -23,7 +23,7 @@ BUILD_LIST.forEach((t, i) => DEF[t].key = BUILD_KEYS[i]);
 // stockage : le blé va au grenier, bois/pierre/fer à la réserve, les armes et flèches au donjon
 export const STORE_OF: Record<string, string> = {ble:'grenier',bois:'reserve',pierre:'reserve',fer:'reserve'};
 export const START_ARROWS = 8;
-export const START_RES = {bois:40,pierre:15,ble:30,fer:0,arc:0,lance:0,epee:0,fleche:START_ARROWS};
+export const START_RES = {bois:30,pierre:10,ble:20,fer:0,arc:0,lance:0,epee:0,fleche:START_ARROWS};
 export const RICH_RES = {bois:120,pierre:60,ble:90,fleche:16};
 export const UT: Record<string, any> = {
   lord:{hp:300,speed:125,r:13},
@@ -44,3 +44,5 @@ export const RESPAWN = 20;
 export const TREE_R = 11;
 /** temps de charge complet de l'arc du seigneur, en secondes */
 export const CHARGE_T = 1.1;
+/** les archers de l'IA tirent de plus loin (portée et détection multipliées) */
+export const AI_ARCHER_RANGE = 1.4;

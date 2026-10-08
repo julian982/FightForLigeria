@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   loadMap, newGame, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater,
   placeBuilding, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
-  START_ARROWS, RESPAWN, UT, ELO, armySize,
+  START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf,
 } from '../src/index';
 
 const DT = 1 / 60;
@@ -100,6 +100,20 @@ describe('économie et stockage', () => {
   });
 });
 
+describe('bûcheron', () => {
+  it('sans arbre à côté, il va au plus proche, même loin', () => {
+    loadMap('amboise'); newGame();
+    build('reserve'); expect(build('bucheron')).toBeNull();
+    const b = G.buildings.find(b => b.team === 0 && b.type === 'bucheron');
+    for (const t of trees) if (Math.hypot(t.x - b.x, t.y - b.y) < 600) t.wood = 0;
+    update(DT); run(5);
+    const w = b.worker;
+    expect(w.tree).toBeTruthy();
+    expect(Math.hypot(w.tree.x - b.x, w.tree.y - b.y)).toBeGreaterThan(600);
+    expect(w.idle).toBe(false);
+  });
+});
+
 describe('famine', () => {
   it('vitesse −50 % et vie −25 % sans blé', () => {
     loadMap('amboise'); newGame();
@@ -129,6 +143,14 @@ describe('équilibrage', () => {
   it('un spadassin bat trois lanciers', () => {
     let wins = 0; for (let i = 0; i < 5; i++) if (duel(3)) wins++;
     expect(wins).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe('archers de l\'IA', () => {
+  it('tirent de plus loin que ceux du joueur', () => {
+    loadMap('amboise'); newGame();
+    const a0 = spawnUnit(0, 'archer', { x: 1000, y: 600 }), a1 = spawnUnit(1, 'archer', { x: 1400, y: 600 });
+    expect(rangeOf(a1).range).toBeGreaterThan(rangeOf(a0).range * 1.3);
   });
 });
 

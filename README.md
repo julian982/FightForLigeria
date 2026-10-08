@@ -57,7 +57,8 @@ Clavier et souris requis.
 | Espace maintenue | Bander l'arc, relâcher pour tirer (la charge augmente portée et dégâts) |
 | Molette | Zoomer |
 | A · E (Q · E en QWERTY) | Tourner la caméra autour du seigneur |
-| Clic molette maintenu | Tourner la caméra en glissant la souris |
+| Clic molette maintenu | Tourner (gauche/droite) et incliner (haut/bas) la caméra |
+| Page ↑ · Page ↓, Maj + molette | Incliner la caméra |
 | 1 à 9, 0, ) | Choisir un bâtiment, clic gauche pour le poser |
 | R · T · Y | Recruter un archer, un lancier, un spadassin |
 | Clic gauche | Sélectionner un soldat ; glisser pour en encadrer plusieurs (Maj ou Ctrl pour ajouter) |
@@ -68,7 +69,7 @@ Clavier et souris requis.
 ## Règles
 
 - **Victoire** : abattre le seigneur ennemi. Sa vie n'est pas affichée.
-- **Ressources** : bois, pierre (tuffeau), blé, fer. Petit stock au départ (40 bois, 15 pierre, 30 blé, 8 flèches).
+- **Ressources** : bois, pierre (tuffeau), blé, fer. Petit stock au départ (30 bois, 10 pierre, 20 blé, 8 flèches).
 - **Stockage** : réserve et grenier, gratuits, un de chaque. Bois, pierre et fer vont à la réserve, le blé au grenier, les armes et flèches au donjon. Si la réserve ou le grenier est détruit, son stock est perdu.
 - **Nourriture** : ouvriers et soldats mangent 1 blé toutes les 12 s pour 4 bouches. En famine (blé à 0), ils perdent 50 % de vitesse et 25 % de vie.
 - **Flèches du seigneur** : 8 au départ, une par tir. L'atelier de flèches en fabrique d'autres avec du bois. Les archers n'en consomment pas.

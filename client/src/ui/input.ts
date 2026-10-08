@@ -2,16 +2,19 @@
 import { BUILD_LIST, G, cancelCharge, orderAttack, orderMove, placeBuilding, releaseCharge, startCharge, steer } from '@ffl/shared';
 import { cv } from '../render/engine';
 import { addMark, ghostTile, screenToWorld, toScreen } from '../render/sync';
-import { $, ME, keys, mouse, sel, ui, view } from '../state';
+import { $, ME, keys, mouse, sel, tilt, ui, view } from '../state';
 import { askRecruit, refreshHud, selectBuild, toast } from './hud';
 export function setMouse(e){mouse.sx=e.clientX;mouse.sy=e.clientY;mouse.in=true;const w=screenToWorld(mouse.sx,mouse.sy);mouse.wx=w.x;mouse.wy=w.y}
 cv.addEventListener('contextmenu',e=>e.preventDefault());
-addEventListener('mousemove',e=>{if(view.rotDrag){view.yawTarget+=(e.clientX-view.rotDrag.x)*.008;view.rotDrag.x=e.clientX}setMouse(e)});
+addEventListener('mousemove',e=>{if(view.rotDrag){view.yawTarget+=(e.clientX-view.rotDrag.x)*.008;tilt((e.clientY-view.rotDrag.y)*.006);view.rotDrag.x=e.clientX;view.rotDrag.y=e.clientY}setMouse(e)});
 addEventListener('mouseup',e=>{if(e.button===1)view.rotDrag=null});
-cv.addEventListener('wheel',e=>{e.preventDefault();view.ppu=Math.max(30,Math.min(72,view.ppu*(e.deltaY>0?.9:1.1)))},{passive:false});
+cv.addEventListener('wheel',e=>{e.preventDefault();
+  // Maj + molette : incliner la caméra ; molette seule : zoomer
+  if(e.shiftKey){tilt((e.deltaY||e.deltaX)>0?-.08:.08);return}
+  view.ppu=Math.max(30,Math.min(72,view.ppu*(e.deltaY>0?.9:1.1)))},{passive:false});
 cv.addEventListener('mousedown',e=>{
   setMouse(e);if(!ui.running)return;
-  if(e.button===1){e.preventDefault();view.rotDrag={x:e.clientX};return}
+  if(e.button===1){e.preventDefault();view.rotDrag={x:e.clientX,y:e.clientY};return}
   if(e.button===0){
     if(ui.placing){tryPlace(e.shiftKey);return}
     // clic simple : un soldat ; glisser : encadrer plusieurs soldats
@@ -51,7 +54,7 @@ addEventListener('keydown',(e:any)=>{
     if(ui.running&&e.code==='Space'){e.preventDefault();e.target.blur()}else return;
   }
   keys[e.code]=true;
-  if(e.code.startsWith('Arrow'))e.preventDefault();
+  if(e.code.startsWith('Arrow')||e.code==='PageUp'||e.code==='PageDown')e.preventDefault();
   if(!ui.running)return;
   if(e.code==='Space'||e.code.startsWith('Digit'))e.preventDefault();
   // Espace maintenue : bander l'arc ; relâchée : tirer
