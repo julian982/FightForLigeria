@@ -1,0 +1,12 @@
+{
+  "name": "@ffl/client",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:single": "vite build --mode single && node scripts/to-artifact.mjs",
+    "preview": "vite preview"
+  }
+}

@@ -4,19 +4,48 @@ Jeu de stratégie médiévale en temps réel dans le navigateur, en 3D isométri
 
 ## Organisation du dépôt
 
+Un monorepo TypeScript (workspaces npm) :
+
 ```
 fightforligeria/
-├── index.html   → redirige vers client/ (pour GitHub Pages)
-├── client/      → le jeu, jouable dans le navigateur
-│   └── index.html
-└── server/      → le futur serveur multijoueur (pas encore développé)
+├── shared/      → la simulation pure, sans Three.js ni DOM (partagée avec le futur serveur)
+│   ├── src/
+│   │   ├── config.ts   règles et équilibrage (bâtiments, unités, coûts)
+│   │   ├── maps.ts     les cartes, l'eau, le relief, les arbres
+│   │   ├── state.ts    l'état de la partie et les « hooks » vers le client
+│   │   ├── nav.ts      obstacles, A*, glissement, ligne de tir
+│   │   ├── game.ts     la simulation et les commandes des joueurs
+│   │   ├── ai.ts       l'IA (seigneur, économie, vagues)
+│   │   └── elo.ts      le calcul de l'Elo
+│   └── test/           tests automatiques (vitest)
+├── client/      → le jeu dans le navigateur (Three.js, construit avec Vite)
+│   ├── index.html      les pages et le HUD
+│   ├── css/
+│   └── src/
+│       ├── render/     moteur 3D, décor, modèles, synchro scène, minicarte
+│       └── ui/         accueil, HUD, entrées clavier/souris, écran de fin
+├── server/      → le futur serveur multijoueur (pas encore développé)
+└── .github/workflows/pages.yml → tests puis déploiement sur GitHub Pages à chaque push
 ```
+
+La simulation ne dessine rien : le client lit l'état `G` pour afficher la scène, envoie les actions du joueur par des commandes (`steer`, `startCharge`, `releaseCharge`, `placeBuilding`, `recruit`, `orderMove`, `orderAttack`) et reçoit les événements par des hooks (`removed`, `notify`, `end`, `reset`). C'est ce découpage qui permettra au serveur de faire tourner la même simulation.
 
 ## Lancer le jeu
 
 L'accueil a trois pages : **Jouer** (couleur du royaume, carte et parties), **Classement** et **Comment jouer**.
 
-Ouvre `client/index.html` dans un navigateur récent, ou l'adresse GitHub Pages du dépôt (la racine redirige vers `client/`). Il n'y a rien à installer ni à compiler. Three.js et les polices se chargent depuis un CDN, il faut donc une connexion internet.
+Le plus simple : l'adresse GitHub Pages du dépôt, mise à jour automatiquement à chaque push sur `main`.
+
+En local (Node.js 22) :
+
+```
+npm install
+npm run dev          # serveur de développement Vite
+npm test             # tests de la simulation
+npm run typecheck    # vérification des types
+npm run build        # site statique dans client/dist
+npm run build:single # un seul fichier HTML autonome dans client/dist-single
+```
 
 Clavier et souris requis.
 
@@ -105,11 +134,11 @@ Deux classements indépendants, 1v1 et 2v2, avec 6 rangs de 3 divisions chacun :
 - En 2v2, l'équipe vaut la moyenne de ses deux joueurs ; les deux coéquipiers gagnent ou perdent autant.
 - Quitter une partie classée = défaite. À partir de la 4e partie classée contre le même adversaire dans la journée, gains et pertes divisés par deux. Pas de perte pour inactivité.
 
-La page Classement explique ces règles et propose un simulateur de gains. Le calcul (objet `ELO` dans `client/index.html`) est prêt à être repris côté serveur.
+La page Classement explique ces règles et propose un simulateur de gains. Le calcul (`shared/src/elo.ts`) sera repris tel quel par le serveur.
 
 ## Où en est le projet
 
-Prototype jouable en solo contre une IA. Tout le jeu tient dans `client/index.html` : la simulation (`update`) est séparée du rendu Three.js, ce qui facilitera le passage en multijoueur.
+Prototype jouable en solo contre une IA. La simulation (`shared/`) est isolée du rendu (`client/`) et couverte par des tests automatiques : première étape vers le multijoueur.
 
 Pistes pour la suite :
 - multijoueur 1v1 puis 2v2, avec un serveur qui fait autorité ;
