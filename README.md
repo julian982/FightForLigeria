@@ -74,6 +74,10 @@ Trois cartes symétriques, au choix sur la page Jouer. Les donjons, le tuffeau e
 
 En classé, la carte sera tirée au sort parmi les trois.
 
+## Écran de fin
+
+À la fin de chaque partie, un bilan compare toi et l'ennemi : ennemis tués, soldats et ouvriers perdus, soldats recrutés, flèches tirées et touchées, précision, dégâts et plus long tir du seigneur, bâtiments construits, perdus et rasés, ressources produites par type, temps de famine, et une courbe de la taille des armées.
+
 ## Classement (en préparation)
 
 Deux classements indépendants, 1v1 et 2v2, avec 6 rangs de 3 divisions chacun : Bois, Pierre, Fer, Argent, Or, Rubis. Départ à 1000 Elo (Bois I), après 5 parties de placement. L'écran est prêt, mais il ne sera actif qu'avec le jeu en ligne.

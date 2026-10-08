@@ -180,6 +180,21 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
 .quit{pointer-events:auto;font:inherit;font-weight:700;font-size:13px;padding:5px 12px;border-radius:3px;border:1px solid var(--rule);background:var(--wood2);color:var(--text);cursor:pointer}
 .quit:hover{border-color:var(--gold)} .quit:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
 .end-btns{display:flex;gap:8px;flex-wrap:wrap}
+.end-card{max-width:860px;gap:16px}
+.end-head{display:flex;align-items:baseline;gap:8px 18px;flex-wrap:wrap}
+.end-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+.es{background:var(--wood2);border:1px solid var(--rule);border-radius:3px;padding:10px 12px;min-width:0}
+.es.wide{grid-column:1/-1}
+.es h3{margin:0 0 6px;font-family:var(--f-display);font-weight:400;font-size:17px;color:var(--gold)}
+.es table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.es th,.es td{padding:3px 4px;text-align:right;white-space:nowrap}
+.es th[scope=row]{text-align:left;font-weight:500;color:var(--muted);white-space:normal}
+.es thead th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.es thead i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.es tbody tr+tr{border-top:1px solid rgba(75,63,49,.6)}
+.es td.best{color:var(--text);font-weight:800}
+.es svg{width:100%;height:auto;display:block}
+@media (max-width:700px){.end-stats{grid-template-columns:1fr}}
 .go.ghost{background:transparent;color:var(--text);border-color:var(--rule)}
 .lords{align-items:center}
 @media (max-width:900px){.hero{grid-template-columns:1fr}.hero-art{max-width:520px}.guide{grid-template-columns:1fr}}
@@ -399,9 +414,9 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
 <div id="toast"></div>
 
 <div class="overlay" id="end" hidden>
-  <div class="card">
-    <h1 id="endTitle">Victoire</h1>
-    <p id="endText"></p>
+  <div class="card end-card">
+    <div class="end-head"><h1 id="endTitle">Victoire</h1><p id="endText"></p></div>
+    <div class="end-stats" id="endStats"></div>
     <div class="end-btns"><button class="go" id="again" type="button">Rejouer</button><button class="go ghost" id="toMenu" type="button">Menu principal</button></div>
   </div>
 </div>
@@ -1018,7 +1033,7 @@ function newGame(){
   while(dyn.children.length)dyn.remove(dyn.children[0]);
   trees=genTrees();for(const t of trees)treeObj(t);
   G={t:0,teams:[],buildings:[],units:[],workers:[],arrows:[],fx:[],sel:new Set(),over:null,foodT:0,nid:1,
-     ai:{i:0,t:0,wave:5,next:240},stats:{kills:0,recruits:0}};
+     ai:{i:0,t:0,wave:5,next:240},stats:{kills:0,recruits:0},st:[newStats(),newStats()],histT:0};
   for(const id of [0,1]){
     const tm={id,res:{bois:40,pierre:15,ble:30,fer:0,arc:0,lance:0,epee:0,fleche:START_ARROWS},keep:null,lord:null,pile:null,pileKey:''};
     G.teams.push(tm);
@@ -1031,11 +1046,12 @@ function newGame(){
   buildNav();
   const L=G.teams[0].lord;camT.set(L.x*S,0,L.y*S);
 }
+function newStats(){return{killS:0,killW:0,lostS:0,lostW:0,recruits:0,prod:{bois:0,pierre:0,ble:0,fer:0,arc:0,lance:0,epee:0,fleche:0},built:0,lostB:0,razed:0,shot:0,hit:0,dmg:0,longest:0,starve:0,army:[]}}
 function addBuilding(team,type,tx,ty){
   const d=DEF[type];
   const b={kind:'building',id:G.nid++,team,type,tx,ty,bx:tx*T,by:ty*T,bw:d.w*T,bh:d.h*T,hp:d.hp,maxhp:d.hp,flash:0,worker:null,dead:false,grow:0};
   b.x=b.bx+b.bw/2;b.y=b.by+b.bh/2;b.blocks=blocksOf(b);
-  G.buildings.push(b);buildingObj(b);navDirty=true;
+  G.buildings.push(b);buildingObj(b);navDirty=true;if(type!=='keep'&&G.st)G.st[team].built++;
   if(d.work)spawnWorker(b);
   return b;
 }
@@ -1054,7 +1070,7 @@ function stockPt(team){const k=G.teams[team].keep;return{x:k.x,y:k.by+k.bh+12}}
 function spawnUnit(team,type,at){
   const s=UT[type];
   const u={kind:'unit',team,type,x:at.x+(Math.random()-.5)*20,y:at.y+(Math.random()-.5)*10,r:s.r,hp:s.hp,maxhp:s.hp,speed:s.speed,order:null,cd:Math.random(),face:team===0?0:Math.PI,flash:0,dead:false,vx:0,vy:0,ai:0,charge:0};
-  u.guard={x:u.x,y:u.y};G.units.push(u);unitObj(u);if(type!=='lord'&&G.teams[team].starving)setStarve(u,true);return u;
+  u.guard={x:u.x,y:u.y};G.units.push(u);unitObj(u);if(type!=='lord'&&G.st)G.st[team].recruits++;if(type!=='lord'&&G.teams[team].starving)setStarve(u,true);return u;
 }
 function afford(tm,type){const c=DEF[type].cost;return Object.keys(c).every(k=>tm.res[k]>=c[k])}
 function missing(tm,type){const c=DEF[type].cost;return Object.keys(c).filter(k=>tm.res[k]<c[k]).map(k=>(c[k]-tm.res[k])+' '+RESN[k]).join(', ')}
@@ -1216,8 +1232,9 @@ function clampWorld(e){e.x=Math.max(e.r,Math.min(W-e.r,e.x));e.y=Math.max(e.r,Ma
 function fireArrow(team,x,y,ang,charge){
   const sp=380+560*charge,md=200+520*charge,dmg=Math.round(10+50*charge);
   const a={team,x:x+Math.cos(ang)*15,y:y+Math.sin(ang)*15,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,d:0,md,dmg,lord:true,z:charge};
-  G.arrows.push(a);arrowObj(a);
+  G.arrows.push(a);arrowObj(a);G.st[team].shot++;
 }
+function lordHit(a,dmg){const s=G.st[a.team];s.hit++;s.dmg+=dmg;s.longest=Math.max(s.longest,a.d)}
 function unitArrow(u,t){
   const s=UT.archer,sp=470,p=t.kind==='building'?rectClamp(u.x,u.y,t):{x:t.x,y:t.y};
   const d=dist(u.x,u.y,p.x,p.y),tt=d/sp,px=p.x+(t.vx||0)*tt*.7,py=p.y+(t.vy||0)*tt*.7;
@@ -1236,6 +1253,10 @@ function hit(e,dmg,showNum){
   if(e.hp<=0){
     e.dead=true;
     if(e.team===1&&e.kind!=='building')G.stats.kills++;
+    const me=G.st[e.team],foe=G.st[1-e.team];
+    if(e.kind==='unit'&&e.type!=='lord'){me.lostS++;foe.killS++}
+    else if(e.kind==='worker'){me.lostW++;foe.killW++}
+    else if(e.kind==='building'){me.lostB++;foe.razed++;if(e.worker&&!e.worker.dead)me.lostW++}
     if(e.kind==='building'){if(e.worker)e.worker.dead=true;
       if(e.type==='grenier'||e.type==='reserve'){const r=G.teams[e.team].res,lost=e.type==='grenier'?['ble']:['bois','pierre','fer'];
         for(const k of lost)r[k]=0;toast(e.team===0?(e.type==='grenier'?'Ton grenier est détruit : tout ton blé est perdu !':'Ta réserve est détruite : bois, pierre et fer perdus !'):(e.type==='grenier'?'Grenier ennemi détruit : l\'ennemi n\'a plus de blé':'Réserve ennemie détruite'),e.team===0?'warn':'');}for(let i=0;i<9;i++)puff(e.bx+Math.random()*e.bw,e.by+Math.random()*e.bh,14,.4+Math.random());
@@ -1311,7 +1332,7 @@ function updWorker(w,dt){
       if(w.destB!==sb||w.destVer!==navVer){w.dest=doorSpot(sb);w.destB=sb;w.destVer=navVer}
       dest=w.dest;
     }else{const sp=stockPt(w.team);dest={x:sp.x+((w.b.id%5)-2)*7,y:sp.y}}
-    if(nav(w,dest.x,dest.y,dt,4)){tm.res[w.carry.type]+=w.carry.n;w.carry=null;w.state='toWork'}
+    if(nav(w,dest.x,dest.y,dt,4)){tm.res[w.carry.type]+=w.carry.n;G.st[w.team].prod[w.carry.type]+=w.carry.n;w.carry=null;w.state='toWork'}
   }
 }
 function stump(t){const m=mk(STUMPGEO,VC,t.x*S,gh(t.x,t.y),t.y*S);dyn.add(m);G.fx.push({k:'stump',x:t.x,y:t.y,t:0,life:45,obj:m});puff(t.x,t.y,18,.8)}
@@ -1420,10 +1441,10 @@ function update(dt){
   for(const [e,x,y] of pos){e.vx=(e.x-x)/dt;e.vy=(e.y-y)/dt}
   for(const a of G.arrows){
     a.x+=a.vx*dt;a.y+=a.vy*dt;a.d+=Math.hypot(a.vx,a.vy)*dt;
-    for(const e of G.units){if(e.team===a.team||e.dead)continue;if(dE(a,e)<e.r+3){hit(e,e.type==='spadassin'?Math.ceil(a.dmg*.5):a.dmg,a.lord);a.dead=true;break}}
-    if(!a.dead)for(const w of G.workers){if(w.team===a.team||w.dead)continue;if(dE(a,w)<w.r+3){hit(w,a.dmg,a.lord);a.dead=true;break}}
+    for(const e of G.units){if(e.team===a.team||e.dead)continue;if(dE(a,e)<e.r+3){const dm=e.type==='spadassin'?Math.ceil(a.dmg*.5):a.dmg;if(a.lord)lordHit(a,dm);hit(e,dm,a.lord);a.dead=true;break}}
+    if(!a.dead)for(const w of G.workers){if(w.team===a.team||w.dead)continue;if(dE(a,w)<w.r+3){if(a.lord)lordHit(a,a.dmg);hit(w,a.dmg,a.lord);a.dead=true;break}}
     if(!a.dead)for(const b of G.buildings){if(b.dead)continue;
-      if(b.team!==a.team&&b.type!=='keep'&&a.x>b.bx&&a.x<b.bx+b.bw&&a.y>b.by&&a.y<b.by+b.bh){hit(b,Math.ceil(a.dmg*.4),a.lord);a.dead=true;break}
+      if(b.team!==a.team&&b.type!=='keep'&&a.x>b.bx&&a.x<b.bx+b.bw&&a.y>b.by&&a.y<b.by+b.bh){const dm=Math.ceil(a.dmg*.4);if(a.lord)lordHit(a,dm);hit(b,dm,a.lord);a.dead=true;break}
       if(b.blocks.some(q=>inRect(a.x,a.y,q))){a.dead=true;a.stick=.5;break}}
     if(!a.dead&&treesNear(a.x,a.y,t=>Math.abs(t.x-a.x)<TREE_R&&Math.abs(t.y-a.y)<TREE_R&&dist(a.x,a.y,t.x,t.y)<TREE_R)){a.dead=true;a.stick=.55}
     if(!a.dead){for(const st of ROCKS)if(dist(a.x,a.y,st.x,st.y)<st.r*.9){a.dead=true;a.stick=.15;break}}
@@ -1436,6 +1457,8 @@ function update(dt){
   G.foodT+=dt;
   // le blé nourrit ouvriers et soldats : 1 blé toutes les 12 s pour 4 bouches
   if(G.foodT>=12){G.foodT=0;for(const tm of G.teams){const n=G.workers.filter(w=>w.team===tm.id&&!w.dead).length+G.units.filter(u=>u.team===tm.id&&!u.dead&&u.type!=='lord').length;tm.res.ble=Math.max(0,tm.res.ble-Math.ceil(n/4))}}
+  for(const tm of G.teams)if(tm.starving)G.st[tm.id].starve+=dt;
+  G.histT-=dt;if(G.histT<=0){G.histT=10;for(const id of [0,1])G.st[id].army.push(G.units.filter(u=>u.team===id&&!u.dead&&u.type!=='lord').length)}
   // famine : vitesse −50 % et vie −25 % pour les ouvriers et les soldats
   for(const tm of G.teams){const st=tm.res.ble<=0;if(st===!!tm.starving)continue;tm.starving=st;
     for(const e of [...G.workers,...G.units])if(e.team===tm.id&&!e.dead&&e.type!=='lord')setStarve(e,st);
@@ -1644,8 +1667,38 @@ function endGame(win){
   G.over=win?'win':'lose';running=false;aim.charging=false;placing=null;box=null;
   const m=Math.floor(G.t/60),s=String(Math.floor(G.t%60)).padStart(2,'0');
   $('endTitle').textContent=win?'Victoire':'Défaite';
-  $('endText').textContent=(win?'Le seigneur ennemi est tombé. ':'Ton seigneur est tombé. ')+`Partie de ${m} min ${s} s · ${G.stats.recruits} soldats recrutés · ${G.stats.kills} ennemis abattus.`;
+  for(const id of [0,1])G.st[id].army.push(G.units.filter(u=>u.team===id&&!u.dead&&u.type!=='lord').length);
+  $('endText').textContent=(win?'Le seigneur ennemi est tombé. ':'Ton seigneur est tombé. ')+`Partie de ${m} min ${s} s sur ${MAP.name}.`;
+  $('endStats').innerHTML=statsHtml();
   refreshHud();setTimeout(()=>{$('end').hidden=false;$('again').focus()},900);
+}
+// ---- statistiques de fin de partie ----
+function statsHtml(){
+  const A=G.st[0],E=G.st[1],pct=s=>s.shot?Math.round(s.hit/s.shot*100)+' %':'—',cases=v=>v?(v/T).toFixed(1).replace('.',',')+' cases':'—';
+  const mmss=v=>{v=Math.round(v);return v?Math.floor(v/60)+' min '+String(v%60).padStart(2,'0')+' s':'—'};
+  // better : 1 = plus haut gagne, -1 = plus bas gagne, 0 = neutre
+  const row=(label,a,e,better=1,fmt=v=>v)=>{
+    const wa=better&&a!==e&&(better>0?a>e:a<e),we=better&&a!==e&&!wa;
+    return `<tr><th scope="row">${label}</th><td class="${wa?'best':''}">${fmt(a)}</td><td class="${we?'best':''}">${fmt(e)}</td></tr>`};
+  const head=`<thead><tr><th></th><th><i style="background:${TEAMC[0].m}"></i>Toi</th><th><i style="background:${TEAMC[1].m}"></i>Ennemi</th></tr></thead>`;
+  const sec=(title,rows,cls='')=>`<section class="es ${cls}"><h3>${title}</h3><table>${head}<tbody>${rows}</tbody></table></section>`;
+  const combat=row('Soldats ennemis tués',A.killS,E.killS)+row('Ouvriers ennemis tués',A.killW,E.killW)+row('Soldats perdus',A.lostS,E.lostS,-1)+row('Ouvriers perdus',A.lostW,E.lostW,-1)+row('Soldats recrutés',A.recruits,E.recruits);
+  const lord=row('Flèches tirées',A.shot,E.shot,0)+row('Flèches touchées',A.hit,E.hit)+`<tr><th scope="row">Précision</th><td class="${A.shot&&E.shot&&A.hit/A.shot>E.hit/E.shot?'best':''}">${pct(A)}</td><td class="${A.shot&&E.shot&&E.hit/E.shot>A.hit/A.shot?'best':''}">${pct(E)}</td></tr>`+row('Dégâts infligés',A.dmg,E.dmg)+row('Plus long tir réussi',A.longest,E.longest,1,cases);
+  const bld=row('Bâtiments construits',A.built,E.built)+row('Bâtiments perdus',A.lostB,E.lostB,-1)+row('Bâtiments ennemis rasés',A.razed,E.razed);
+  const P=[['bois','Bois'],['pierre','Pierre'],['ble','Blé'],['fer','Fer'],['arc','Arcs'],['lance','Lances'],['epee','Épées'],['fleche','Flèches']];
+  const res=P.map(([k,l])=>row(l,A.prod[k],E.prod[k])).join('')+row('Temps de famine',A.starve,E.starve,-1,mmss);
+  return sec('Combat',combat)+sec('Ton seigneur et le sien',lord)+sec('Bâtiments',bld)+sec('Ressources produites',res)+`<section class="es wide"><h3>Armée au fil de la partie</h3>${armyChart(A.army,E.army)}</section>`;
+}
+function armyChart(a,e){
+  const n=Math.max(a.length,e.length,2),mx=Math.max(4,...a,...e),W_=600,H_=130,L=28,Rr=8,Tp=10,Bt=22;
+  const X=i=>L+(W_-L-Rr)*i/(n-1),Y=v=>Tp+(H_-Tp-Bt)*(1-v/mx);
+  const line=(arr,c)=>arr.length?`<polyline fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round" points="${arr.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ')}"/><circle cx="${X(arr.length-1)}" cy="${Y(arr[arr.length-1])}" r="3.5" fill="${c}"/>`:'';
+  const mins=Math.round(G.t/60);
+  return `<svg viewBox="0 0 ${W_} ${H_}" role="img" aria-label="Taille des deux armées toutes les 10 secondes">
+    <g stroke="rgba(239,231,214,.12)">${[0,.5,1].map(f=>`<line x1="${L}" x2="${W_-Rr}" y1="${Y(mx*f)}" y2="${Y(mx*f)}"/>`).join('')}</g>
+    <g fill="#a99d87" font-size="11" font-family="Alegreya Sans, sans-serif">${[0,Math.round(mx/2),mx].map(v=>`<text x="${L-6}" y="${Y(v)+4}" text-anchor="end">${v}</text>`).join('')}
+      <text x="${L}" y="${H_-6}">0 min</text><text x="${W_-Rr}" y="${H_-6}" text-anchor="end">${mins} min</text></g>
+    ${line(e,TEAMC[1].m)}${line(a,TEAMC[0].m)}</svg>`;
 }
 function showHome(on){$('home').hidden=!on;$('play').hidden=on;if(on&&window.__showView)window.__showView(window.__homeView||'jouer');else document.title='FightForLigeria · partie'}
 function start(){showHome(false);applyColors();if(MAPID!==selMap)setMap(selMap);newGame();running=true;$('end').hidden=true;resize();refreshHud();toast('Place ta réserve (1) et ton grenier (2) près du donjon : ils sont gratuits')}
