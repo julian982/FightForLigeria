@@ -9,7 +9,7 @@ export const TREEGEO=[
   merge([[C(.07,.1,.55,5).translate(0,.27,0),0x6b4526],[I(.46).translate(0,.9,0),0x4a8238],[I(.3).translate(.2,1.15,.1),0x5c9644],[I(.26).translate(-.22,.75,-.12),0x3f7231]]),
   merge([[C(.05,.07,.6,5).translate(0,.3,0),0xd8d2c4],[I(.34).translate(0,.95,0),0x7aa846],[I(.25).translate(.12,1.2,-.05),0x8bb852]]),
 ];
-export function treeObj(t){const m=mk(TREEGEO[t.v],VC,t.x*S,gh(t.x,t.y)-.03,t.y*S);m.receiveShadow=false;const s=t.r/15;m.scale.set(s,s*(.9+t.sh*.3),s);m.rotation.y=t.sh*6;dyn.add(m);t.obj=m}
+export function treeObj(t){const m=mk(TREEGEO[t.v],VC,t.x*S,gh(t.x,t.y)-.03,t.y*S);m.receiveShadow=false;const s=t.r/15;m.scale.set(s,s*(1.3+t.sh*.35),s);m.rotation.y=t.sh*6;dyn.add(m);t.obj=m}
 
 // ---- Bâtiments ----
 export function flag(g,b,h,x,z,big?,y0=0){
