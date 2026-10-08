@@ -41,9 +41,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 .btn:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
 .btn.active{border-color:var(--gold);background:#3a2f22}
 .btn.poor{opacity:.45}
-.btn.need{border-color:var(--gold);animation:needpulse 1.4s ease-in-out infinite}
-@keyframes needpulse{50%{box-shadow:0 0 0 3px rgba(217,164,65,.35)}}
-@media (prefers-reduced-motion:reduce){.btn.need{animation:none}}
+.btn.need{border-color:var(--gold)}
 .btn kbd{position:absolute;left:7px;top:6px;font:700 11px var(--f-body);color:var(--gold)}
 .btn .n{font-weight:700;font-size:14px;line-height:1.1}
 .btn .c{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
