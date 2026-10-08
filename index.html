@@ -194,6 +194,13 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
 .es tbody tr+tr{border-top:1px solid rgba(75,63,49,.6)}
 .es td.best{color:var(--text);font-weight:800}
 .es svg{width:100%;height:auto;display:block}
+.es-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.es-head h3{margin:0}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.seg button{font:inherit;font-size:12px;font-weight:700;padding:4px 10px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button+button{border-left:1px solid var(--rule)}
+.seg button[aria-pressed="true"]{background:var(--wood);color:var(--text);box-shadow:inset 0 -2px 0 var(--gold)}
+.seg button:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
 @media (max-width:700px){.end-stats{grid-template-columns:1fr}}
 .go.ghost{background:transparent;color:var(--text);border-color:var(--rule)}
 .lords{align-items:center}
@@ -1046,7 +1053,7 @@ function newGame(){
   buildNav();
   const L=G.teams[0].lord;camT.set(L.x*S,0,L.y*S);
 }
-function newStats(){return{killS:0,killW:0,lostS:0,lostW:0,recruits:0,prod:{bois:0,pierre:0,ble:0,fer:0,arc:0,lance:0,epee:0,fleche:0},built:0,lostB:0,razed:0,shot:0,hit:0,dmg:0,longest:0,starve:0,army:[]}}
+function newStats(){return{killS:0,killW:0,lostS:0,lostW:0,recruits:0,prod:{bois:0,pierre:0,ble:0,fer:0,arc:0,lance:0,epee:0,fleche:0},built:0,lostB:0,razed:0,shot:0,hit:0,dmg:0,longest:0,starve:0,army:[],resH:[]}}
 function addBuilding(team,type,tx,ty){
   const d=DEF[type];
   const b={kind:'building',id:G.nid++,team,type,tx,ty,bx:tx*T,by:ty*T,bw:d.w*T,bh:d.h*T,hp:d.hp,maxhp:d.hp,flash:0,worker:null,dead:false,grow:0};
@@ -1458,7 +1465,7 @@ function update(dt){
   // le blé nourrit ouvriers et soldats : 1 blé toutes les 12 s pour 4 bouches
   if(G.foodT>=12){G.foodT=0;for(const tm of G.teams){const n=G.workers.filter(w=>w.team===tm.id&&!w.dead).length+G.units.filter(u=>u.team===tm.id&&!u.dead&&u.type!=='lord').length;tm.res.ble=Math.max(0,tm.res.ble-Math.ceil(n/4))}}
   for(const tm of G.teams)if(tm.starving)G.st[tm.id].starve+=dt;
-  G.histT-=dt;if(G.histT<=0){G.histT=10;for(const id of [0,1])G.st[id].army.push(G.units.filter(u=>u.team===id&&!u.dead&&u.type!=='lord').length)}
+  G.histT-=dt;if(G.histT<=0){G.histT=10;for(const id of [0,1]){G.st[id].army.push(G.units.filter(u=>u.team===id&&!u.dead&&u.type!=='lord').length);G.st[id].resH.push({...G.st[id].prod})}}
   // famine : vitesse −50 % et vie −25 % pour les ouvriers et les soldats
   for(const tm of G.teams){const st=tm.res.ble<=0;if(st===!!tm.starving)continue;tm.starving=st;
     for(const e of [...G.workers,...G.units])if(e.team===tm.id&&!e.dead&&e.type!=='lord')setStarve(e,st);
@@ -1667,9 +1674,11 @@ function endGame(win){
   G.over=win?'win':'lose';running=false;aim.charging=false;placing=null;box=null;
   const m=Math.floor(G.t/60),s=String(Math.floor(G.t%60)).padStart(2,'0');
   $('endTitle').textContent=win?'Victoire':'Défaite';
-  for(const id of [0,1])G.st[id].army.push(G.units.filter(u=>u.team===id&&!u.dead&&u.type!=='lord').length);
+  for(const id of [0,1]){G.st[id].army.push(G.units.filter(u=>u.team===id&&!u.dead&&u.type!=='lord').length);G.st[id].resH.push({...G.st[id].prod})}
   $('endText').textContent=(win?'Le seigneur ennemi est tombé. ':'Ton seigneur est tombé. ')+`Partie de ${m} min ${s} s sur ${MAP.name}.`;
   $('endStats').innerHTML=statsHtml();
+  for(const b of document.querySelectorAll('#resTabs button'))b.addEventListener('click',()=>showResChart(b.dataset.r));
+  showResChart('total');
   refreshHud();setTimeout(()=>{$('end').hidden=false;$('again').focus()},900);
 }
 // ---- statistiques de fin de partie ----
@@ -1687,14 +1696,23 @@ function statsHtml(){
   const bld=row('Bâtiments construits',A.built,E.built)+row('Bâtiments perdus',A.lostB,E.lostB,-1)+row('Bâtiments ennemis rasés',A.razed,E.razed);
   const P=[['bois','Bois'],['pierre','Pierre'],['ble','Blé'],['fer','Fer'],['arc','Arcs'],['lance','Lances'],['epee','Épées'],['fleche','Flèches']];
   const res=P.map(([k,l])=>row(l,A.prod[k],E.prod[k])).join('')+row('Temps de famine',A.starve,E.starve,-1,mmss);
-  return sec('Combat',combat)+sec('Ton seigneur et le sien',lord)+sec('Bâtiments',bld)+sec('Ressources produites',res)+`<section class="es wide"><h3>Armée au fil de la partie</h3>${armyChart(A.army,E.army)}</section>`;
+  return sec('Combat',combat)+sec('Ton seigneur et le sien',lord)+sec('Bâtiments',bld)+sec('Ressources produites',res)+`<section class="es wide"><h3>Armée au fil de la partie</h3>${armyChart(A.army,E.army)}</section>`+
+    `<section class="es wide"><div class="es-head"><h3>Ressources produites au fil de la partie</h3><div class="seg" id="resTabs">${Object.entries(RES_CHART).map(([k,[l]])=>`<button type="button" data-r="${k}" aria-pressed="false">${l}</button>`).join('')}</div></div><div id="resChart"></div></section>`;
 }
-function armyChart(a,e){
-  const n=Math.max(a.length,e.length,2),mx=Math.max(4,...a,...e),W_=600,H_=130,L=28,Rr=8,Tp=10,Bt=22;
+const RES_CHART={total:['Total',null],bois:['Bois',['bois']],pierre:['Pierre',['pierre']],ble:['Blé',['ble']],fer:['Fer',['fer']]};
+function showResChart(k){
+  const keys=RES_CHART[k][1]||['bois','pierre','ble','fer'],sum=h=>keys.reduce((t,r)=>t+(h[r]||0),0);
+  const a=G.st[0].resH.map(sum),e=G.st[1].resH.map(sum);
+  $('resChart').innerHTML=lineChart(a,e,'Ressources produites ('+RES_CHART[k][0].toLowerCase()+') cumulées, toutes les 10 secondes');
+  for(const b of document.querySelectorAll('#resTabs button'))b.setAttribute('aria-pressed',b.dataset.r===k);
+}
+function armyChart(a,e){return lineChart(a,e,'Taille des deux armées toutes les 10 secondes')}
+function lineChart(a,e,label){
+  const n=Math.max(a.length,e.length,2),raw=Math.max(4,...a,...e),mx=raw>20?Math.ceil(raw/10)*10:raw,W_=600,H_=130,L=34,Rr=8,Tp=10,Bt=22;
   const X=i=>L+(W_-L-Rr)*i/(n-1),Y=v=>Tp+(H_-Tp-Bt)*(1-v/mx);
   const line=(arr,c)=>arr.length?`<polyline fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round" points="${arr.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ')}"/><circle cx="${X(arr.length-1)}" cy="${Y(arr[arr.length-1])}" r="3.5" fill="${c}"/>`:'';
   const mins=Math.round(G.t/60);
-  return `<svg viewBox="0 0 ${W_} ${H_}" role="img" aria-label="Taille des deux armées toutes les 10 secondes">
+  return `<svg viewBox="0 0 ${W_} ${H_}" role="img" aria-label="${label}">
     <g stroke="rgba(239,231,214,.12)">${[0,.5,1].map(f=>`<line x1="${L}" x2="${W_-Rr}" y1="${Y(mx*f)}" y2="${Y(mx*f)}"/>`).join('')}</g>
     <g fill="#a99d87" font-size="11" font-family="Alegreya Sans, sans-serif">${[0,Math.round(mx/2),mx].map(v=>`<text x="${L-6}" y="${Y(v)+4}" text-anchor="end">${v}</text>`).join('')}
       <text x="${L}" y="${H_-6}">0 min</text><text x="${W_-Rr}" y="${H_-6}" text-anchor="end">${mins} min</text></g>

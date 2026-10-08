@@ -76,7 +76,7 @@ En classé, la carte sera tirée au sort parmi les trois.
 
 ## Écran de fin
 
-À la fin de chaque partie, un bilan compare toi et l'ennemi : ennemis tués, soldats et ouvriers perdus, soldats recrutés, flèches tirées et touchées, précision, dégâts et plus long tir du seigneur, bâtiments construits, perdus et rasés, ressources produites par type, temps de famine, et une courbe de la taille des armées.
+À la fin de chaque partie, un bilan compare toi et l'ennemi : ennemis tués, soldats et ouvriers perdus, soldats recrutés, flèches tirées et touchées, précision, dégâts et plus long tir du seigneur, bâtiments construits, perdus et rasés, ressources produites par type, temps de famine, une courbe de la taille des armées et une courbe des ressources produites (total ou par ressource).
 
 ## Classement (en préparation)
 
