@@ -2,11 +2,21 @@
 
 Jeu de stratégie médiévale en temps réel dans le navigateur, en 3D isométrique low poly, sur les bords de Loire en Touraine. Inspiré de Stronghold, mais plus court et plus direct : ton seigneur est un archer que tu diriges toi-même, et la partie s'arrête dès qu'un des deux seigneurs tombe.
 
+## Organisation du dépôt
+
+```
+fightforligeria/
+├── index.html   → redirige vers client/ (pour GitHub Pages)
+├── client/      → le jeu, jouable dans le navigateur
+│   └── index.html
+└── server/      → le futur serveur multijoueur (pas encore développé)
+```
+
 ## Lancer le jeu
 
-L'accueil a trois pages : **Jouer** (couleur du royaume et parties), **Classement** et **Comment jouer**.
+L'accueil a trois pages : **Jouer** (couleur du royaume, carte et parties), **Classement** et **Comment jouer**.
 
-Ouvre `index.html` dans un navigateur récent. Il n'y a rien à installer ni à compiler. Three.js et les polices se chargent depuis un CDN, il faut donc une connexion internet.
+Ouvre `client/index.html` dans un navigateur récent, ou l'adresse GitHub Pages du dépôt (la racine redirige vers `client/`). Il n'y a rien à installer ni à compiler. Three.js et les polices se chargent depuis un CDN, il faut donc une connexion internet.
 
 Clavier et souris requis.
 
@@ -95,11 +105,11 @@ Deux classements indépendants, 1v1 et 2v2, avec 6 rangs de 3 divisions chacun :
 - En 2v2, l'équipe vaut la moyenne de ses deux joueurs ; les deux coéquipiers gagnent ou perdent autant.
 - Quitter une partie classée = défaite. À partir de la 4e partie classée contre le même adversaire dans la journée, gains et pertes divisés par deux. Pas de perte pour inactivité.
 
-La page Classement explique ces règles et propose un simulateur de gains. Le calcul (objet `ELO` dans `index.html`) est prêt à être repris côté serveur.
+La page Classement explique ces règles et propose un simulateur de gains. Le calcul (objet `ELO` dans `client/index.html`) est prêt à être repris côté serveur.
 
 ## Où en est le projet
 
-Prototype jouable en solo contre une IA. Tout le jeu tient dans `index.html` : la simulation (`update`) est séparée du rendu Three.js, ce qui facilitera le passage en multijoueur.
+Prototype jouable en solo contre une IA. Tout le jeu tient dans `client/index.html` : la simulation (`update`) est séparée du rendu Three.js, ce qui facilitera le passage en multijoueur.
 
 Pistes pour la suite :
 - multijoueur 1v1 puis 2v2, avec un serveur qui fait autorité ;
