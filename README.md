@@ -78,9 +78,24 @@ En classé, la carte sera tirée au sort parmi les trois.
 
 À la fin de chaque partie, un bilan compare toi et l'ennemi : ennemis tués, soldats et ouvriers perdus, soldats recrutés, flèches tirées et touchées, précision, dégâts et plus long tir du seigneur, bâtiments construits, perdus et rasés, ressources produites par type, temps de famine, une courbe de la taille des armées et une courbe des ressources produites (total ou par ressource).
 
-## Classement (en préparation)
+## Modes de jeu
 
-Deux classements indépendants, 1v1 et 2v2, avec 6 rangs de 3 divisions chacun : Bois, Pierre, Fer, Argent, Or, Rubis. Départ à 1000 Elo (Bois I), après 5 parties de placement. L'écran est prêt, mais il ne sera actif qu'avec le jeu en ligne.
+- **Contre l'IA** : partie libre sur la carte choisie.
+- **Partie classée** (en préparation) : file d'attente 1v1 ou 2v2, carte tirée au sort, fait bouger l'Elo.
+- **Partie privée** : lobby avec code, 1v1 ou 2v2, places réglables en ami ou IA, choix de la carte, stock de départ (normal ou généreux) et vitesse (normale ou rapide). Jouable dès maintenant en 1v1 contre l'IA ; jamais classée.
+
+## Classement et Elo (en préparation)
+
+Deux classements indépendants, 1v1 et 2v2, avec 6 rangs de 3 divisions chacun : Bois, Pierre, Fer, Argent, Or, Rubis (100 Elo par division).
+
+- Départ à **1000 Elo** (Bois I), 5 parties de placement.
+- Chances = 1 / (1 + 10^((Elo adverse − ton Elo) / 400)) ; points = K × (résultat − chances).
+- K = 80 en placement (0 à 4 parties), 40 de 5 à 29 parties, 28 ensuite. À Elo égal : ±40, ±20, ±14.
+- Matchmaking : ±100 Elo pendant 20 s, ±250 jusqu'à 40 s, ±500 jusqu'à 60 s, puis n'importe qui.
+- En 2v2, l'équipe vaut la moyenne de ses deux joueurs ; les deux coéquipiers gagnent ou perdent autant.
+- Quitter une partie classée = défaite. À partir de la 4e partie classée contre le même adversaire dans la journée, gains et pertes divisés par deux. Pas de perte pour inactivité.
+
+La page Classement explique ces règles et propose un simulateur de gains. Le calcul (objet `ELO` dans `index.html`) est prêt à être repris côté serveur.
 
 ## Où en est le projet
 

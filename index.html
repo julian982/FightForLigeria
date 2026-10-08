@@ -108,6 +108,62 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
 .unit p{margin:0;font-size:13px;color:var(--muted);line-height:1.4}
 .unit.elite{border-color:var(--gold)}
 .home-foot{margin:0;font-size:13px;color:var(--muted)}
+.sub-sec{display:flex;flex-direction:column;gap:16px}
+.back{align-self:flex-start;color:var(--muted);text-decoration:none;font-weight:700;font-size:14px}
+.back:hover{color:var(--text)} .back:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.row-title{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.sub-sec h2,.elo-sec>h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:30px;color:var(--gold)}
+.tag{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border:1px solid var(--rule);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.lobby .t .tag{margin-left:6px;font-size:10px;padding:2px 7px;vertical-align:middle}
+a.go{text-decoration:none;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}
+.go.ghost-go{background:transparent;color:var(--text);border-color:var(--rule)}
+.go.ghost-go:hover{border-color:var(--gold)}
+.q-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.lob-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;align-items:start}
+.q-status{font-size:16px;font-weight:700}
+.q-timer{font-family:var(--f-display);font-size:52px;line-height:1;color:var(--text);font-variant-numeric:tabular-nums}
+.q-window{display:flex;justify-content:space-between;width:100%;font-size:14px;color:var(--muted)}
+.q-window b{color:var(--gold);font-size:16px}
+.q-bar{width:100%;height:6px;border-radius:3px;background:var(--wood2);overflow:hidden}
+.q-bar i{display:block;height:100%;width:0;background:var(--gold);transition:width .9s linear}
+.es tr.on th,.es tr.on td{color:var(--gold);font-weight:800}
+.es ul{margin:8px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px;line-height:1.4}
+.es p{margin:0 0 8px;font-size:14px;line-height:1.45}
+.es .hint-link{display:inline-block;margin-top:10px}
+.code-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--rule);margin-bottom:4px}
+.code-row .lbl,.opt .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:24px;font-weight:700;letter-spacing:.08em;color:var(--text);user-select:all}
+.opt{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 0}
+.opt+.opt{border-top:1px solid rgba(75,63,49,.6)}
+.teams{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.team{border:1px solid var(--rule);border-radius:3px;padding:8px;display:flex;flex-direction:column;gap:8px;background:var(--wood)}
+.team h4{margin:0;font-size:13px;display:flex;align-items:center;gap:6px}
+.team h4 i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.slot{display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:3px;background:var(--wood2);border:1px solid var(--rule)}
+.slot.me{border-color:var(--gold)}
+.slot .who{font-weight:700;font-size:14px}
+.slot .st{font-size:12px;color:var(--muted)}
+.join{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0}
+.join label{font-size:13px;color:var(--muted);font-weight:700}
+.join input,.sim input,.sim select{box-sizing:border-box;font:inherit;font-size:14px;background:var(--wood2);color:var(--text);border:1px solid var(--rule);border-radius:3px;padding:7px 9px;min-width:0;width:100%}
+.join input{width:150px;text-transform:uppercase;letter-spacing:.05em}
+.join input:focus-visible,.sim input:focus-visible,.sim select:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+.join-msg{margin:-6px 0 0;font-size:14px;color:#ffcf8a;min-height:1.3em}
+.go.big{width:100%;padding:12px;font-size:16px;margin-top:10px}
+.elo-sec{display:flex;flex-direction:column;gap:14px;margin-top:8px;padding-top:24px;border-top:1px solid var(--rule)}
+.elo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+.formula{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:var(--wood);border:1px solid var(--rule);border-radius:3px;padding:10px;line-height:1.9;margin-bottom:10px;overflow-x:auto;white-space:nowrap}
+.formula span{color:var(--muted);font-size:12px}
+.sim-in{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.sim-in label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:700}
+.sim-chance{font-size:13px;color:var(--muted);margin-bottom:8px}
+.sim-out{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sim-res{background:var(--wood);border:1px solid var(--rule);border-radius:3px;padding:10px;display:flex;flex-direction:column;gap:3px;font-variant-numeric:tabular-nums}
+.sim-res .big{font-family:var(--f-display);font-weight:400;font-size:34px;line-height:1}
+.sim-res.win .big{color:#a6dc95} .sim-res.loss .big{color:#ff9d8a}
+.sim-res span{font-size:12px;color:var(--muted)}
+@media (max-width:900px){.q-grid,.lob-grid,.elo-grid{grid-template-columns:1fr}}
+@media (max-width:480px){.teams{grid-template-columns:1fr}.sim-in{grid-template-columns:1fr 1fr}}
 .mapsel{padding:12px;border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:8px;background:var(--wood)}
 .maps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .mapcard{font:inherit;color:var(--text);background:var(--wood2);border:1px solid var(--rule);border-radius:3px;padding:6px;display:flex;flex-direction:column;gap:6px;cursor:pointer;text-align:left;min-width:0}
@@ -236,14 +292,19 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
           <div class="lobbies-head"><h2>Parties</h2><span>3 cartes</span></div>
           <div class="mapsel"><div class="maps" id="maps" role="radiogroup" aria-label="Carte"></div><p class="map-desc" id="mapDesc"></p></div>
           <div class="lobby">
-            <div><div class="t">Partie rapide</div><div class="s" id="quickSub">Toi contre l'IA · 1v1</div></div>
-            <div class="m">1 / 2</div>
+            <div><div class="t">Contre l'IA</div><div class="s" id="quickSub">Toi contre l'IA · 1v1</div></div>
+            <div class="m">Libre</div>
             <button class="go" id="start" type="button">Jouer</button>
           </div>
-          <div class="lobby off">
-            <div><div class="t">Lobbies en ligne</div><div class="s">1v1 et 2v2 entre joueurs</div></div>
-            <div class="m">—</div>
-            <button class="go" type="button" disabled>Bientôt</button>
+          <div class="lobby">
+            <div><div class="t">Partie classée <span class="tag">En préparation</span></div><div class="s">1v1 ou 2v2 · carte tirée au sort · fait bouger ton Elo</div></div>
+            <div class="m">Elo</div>
+            <a class="go ghost-go" href="#file">File d'attente</a>
+          </div>
+          <div class="lobby">
+            <div><div class="t">Partie privée</div><div class="s">Entre amis ou contre l'IA · non classée</div></div>
+            <div class="m">Code</div>
+            <a class="go ghost-go" href="#lobby">Créer</a>
           </div>
         </section>
         <a class="hint-link" href="#guide">Première partie ? Lis comment jouer</a>
@@ -288,6 +349,79 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
     </header>
     </div>
 
+    <div class="view" id="v-file" hidden>
+    <section class="sub-sec" aria-labelledby="fileT">
+      <a class="back" href="#jouer">← Retour</a>
+      <div class="rank-head">
+        <div class="row-title"><h2 id="fileT">Partie classée</h2><span class="soon">En préparation</span></div>
+        <div class="tabs" role="tablist" aria-label="Mode classé">
+          <button class="tab qtab" role="tab" aria-selected="true" data-q="1v1" type="button">1v1</button>
+          <button class="tab qtab" role="tab" aria-selected="false" data-q="2v2" type="button">2v2</button>
+        </div>
+      </div>
+      <div class="q-grid">
+        <div class="me q-card">
+          <div class="lbl" id="qModeLbl">File 1v1 · ton Elo 1000 (Bois I)</div>
+          <div class="q-status" id="qStatus" role="status">Prêt à chercher un adversaire.</div>
+          <div class="q-timer" id="qTimer">0:00</div>
+          <div class="q-window"><span>Écart d'Elo accepté</span><b id="qWindow">±100</b></div>
+          <div class="q-bar"><i id="qBar"></i></div>
+          <div class="end-btns"><button class="go" id="qStart" type="button">Chercher une partie</button><button class="go ghost" id="qCancel" type="button" hidden>Annuler</button></div>
+          <button class="go ghost" id="qAi" type="button" hidden>Jouer contre l'IA en attendant</button>
+          <p class="g-note">Le classé ouvrira avec le jeu en ligne. Cette file montre déjà comment la recherche s'élargit avec le temps.</p>
+        </div>
+        <div class="es">
+          <h3>Comment ton adversaire est choisi</h3>
+          <table>
+            <thead><tr><th scope="col" style="text-align:left">Temps d'attente</th><th scope="col">Écart accepté</th></tr></thead>
+            <tbody id="qRules">
+              <tr data-w="0"><th scope="row">0 à 20 s</th><td>±100 Elo</td></tr>
+              <tr data-w="1"><th scope="row">20 à 40 s</th><td>±250 Elo</td></tr>
+              <tr data-w="2"><th scope="row">40 à 60 s</th><td>±500 Elo</td></tr>
+              <tr data-w="3"><th scope="row">Après 60 s</th><td>N'importe qui</td></tr>
+            </tbody>
+          </table>
+          <ul>
+            <li>Un gros écart d'Elo est compensé : battre bien plus faible rapporte peu, perdre contre bien plus fort coûte peu.</li>
+            <li>La carte est tirée au sort parmi les trois.</li>
+            <li>Quitter une partie classée compte comme une défaite.</li>
+          </ul>
+          <a class="hint-link" href="#classement">Voir toutes les règles de l'Elo</a>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <div class="view" id="v-lobby" hidden>
+    <section class="sub-sec" aria-labelledby="lobT">
+      <a class="back" href="#jouer">← Retour</a>
+      <div class="rank-head">
+        <div class="row-title"><h2 id="lobT">Partie privée</h2><span class="tag">Non classée</span></div>
+        <form class="join" id="joinForm"><label for="joinCode">Rejoindre un ami</label><input id="joinCode" placeholder="Code du lobby" maxlength="12" autocomplete="off"><button class="go ghost" type="submit">Rejoindre</button></form>
+      </div>
+      <p class="join-msg" id="joinMsg" role="status"></p>
+      <div class="lob-grid">
+        <div class="es">
+          <div class="code-row">
+            <div><div class="lbl">Code de ton lobby</div><div class="code" id="lobCode">LOIRE-0000</div></div>
+            <button class="go ghost" id="copyCode" type="button">Copier</button>
+          </div>
+          <div class="opt"><span class="lbl">Mode</span><div class="seg" id="lobMode"><button type="button" data-v="1v1" aria-pressed="true">1v1</button><button type="button" data-v="2v2" aria-pressed="false">2v2</button></div></div>
+          <div class="teams" id="teams"></div>
+        </div>
+        <div class="es">
+          <h3>Réglages</h3>
+          <div class="opt"><span class="lbl">Carte</span><div class="seg" id="lobMap"><button type="button" data-v="amboise">Amboise</button><button type="button" data-v="cher">Cher</button><button type="button" data-v="chinon">Chinon</button></div></div>
+          <div class="opt"><span class="lbl">Stock de départ</span><div class="seg" id="lobStock"><button type="button" data-v="normal" aria-pressed="true">Normal</button><button type="button" data-v="riche" aria-pressed="false">Généreux</button></div></div>
+          <div class="opt"><span class="lbl">Vitesse</span><div class="seg" id="lobSpeed"><button type="button" data-v="1" aria-pressed="true">Normale</button><button type="button" data-v="1.5" aria-pressed="false">Rapide</button></div></div>
+          <div class="opt"><span class="lbl">Victoire</span><span>Abattre le seigneur adverse</span></div>
+          <button class="go big" id="lobLaunch" type="button">Lancer la partie</button>
+          <p class="g-note" id="lobNote"></p>
+        </div>
+      </div>
+    </section>
+    </div>
+
     <div class="view" id="v-classement" hidden>
     <section class="rank-sec" aria-labelledby="ranked">
       <div class="rank-head">
@@ -317,6 +451,61 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
       </div>
     </section>
 
+    <section class="elo-sec" aria-labelledby="eloT">
+      <h2 id="eloT">Comment marche l'Elo</h2>
+      <div class="elo-grid">
+        <div class="es">
+          <h3>Le calcul</h3>
+          <p>Avant chaque partie, on estime tes chances de gagner d'après l'écart d'Elo. Gagner une partie qu'on te donnait perdante rapporte beaucoup. Battre un joueur bien plus faible ne rapporte presque rien.</p>
+          <div class="formula">chances = 1 / (1 + 10<sup>(Elo adverse − ton Elo) / 400</sup>)<br>points = K × (résultat − chances)<br><span>résultat = 1 si tu gagnes, 0 si tu perds</span></div>
+          <table>
+            <thead><tr><th scope="col" style="text-align:left">Parties classées jouées</th><th scope="col">K</th><th scope="col">À Elo égal</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">0 à 4 (placement)</th><td>80</td><td>±40</td></tr>
+              <tr><th scope="row">5 à 29</th><td>40</td><td>±20</td></tr>
+              <tr><th scope="row">30 et plus</th><td>28</td><td>±14</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="es sim">
+          <h3>Simulateur</h3>
+          <div class="sim-in">
+            <label for="simMe">Ton Elo<input id="simMe" type="number" value="1000" min="0" max="3500" step="10"></label>
+            <label for="simFoe">Elo adverse<input id="simFoe" type="number" value="1200" min="0" max="3500" step="10"></label>
+            <label for="simG">Parties jouées<select id="simG"><option value="0">0 à 4</option><option value="10" selected>5 à 29</option><option value="40">30 et plus</option></select></label>
+          </div>
+          <div class="sim-chance" id="simChance"></div>
+          <div class="sim-out">
+            <div class="sim-res win"><span>Si tu gagnes</span><b class="big" id="simWin">+30</b><span id="simWinR"></span></div>
+            <div class="sim-res loss"><span>Si tu perds</span><b class="big" id="simLoss">−10</b><span id="simLossR"></span></div>
+          </div>
+        </div>
+        <div class="es">
+          <h3>Trouver un adversaire</h3>
+          <table>
+            <tbody>
+              <tr><th scope="row">0 à 20 s d'attente</th><td>±100 Elo</td></tr>
+              <tr><th scope="row">20 à 40 s</th><td>±250 Elo</td></tr>
+              <tr><th scope="row">40 à 60 s</th><td>±500 Elo</td></tr>
+              <tr><th scope="row">Après 60 s</th><td>N'importe qui</td></tr>
+            </tbody>
+          </table>
+          <p style="margin-top:8px">Avec peu de joueurs, on finit toujours par jouer. L'écart d'Elo est compensé par le calcul.</p>
+        </div>
+        <div class="es">
+          <h3>Les règles</h3>
+          <ul>
+            <li>Tout le monde démarre à <b>1000 Elo</b> (Bois I) et joue 5 parties de placement.</li>
+            <li>1v1 et 2v2 ont chacun leur Elo. En 2v2, une équipe vaut la moyenne de ses deux seigneurs, et les deux coéquipiers gagnent ou perdent autant.</li>
+            <li>Quitter une partie classée compte comme une défaite.</li>
+            <li>Contre le même adversaire, à partir de la 4<sup>e</sup> partie classée de la journée, les gains et les pertes sont divisés par deux.</li>
+            <li>Pas de perte d'Elo pour inactivité.</li>
+            <li>Les parties privées et contre l'IA ne comptent jamais.</li>
+          </ul>
+        </div>
+      </div>
+      <p class="g-note">Ces règles s'appliqueront à l'ouverture du classement en ligne.</p>
+    </section>
     </div>
 
     <div class="view" id="v-guide" hidden>
@@ -432,12 +621,13 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
 <script>
 // ---- Navigation entre les pages de l'accueil ----
 (()=>{
-  const VIEWS=['jouer','classement','guide'],TITLES={jouer:'FightForLigeria',classement:'Classement · FightForLigeria',guide:'Comment jouer · FightForLigeria'};
+  const VIEWS=['jouer','classement','guide','file','lobby'],NAV={file:'jouer',lobby:'jouer'},TITLES={jouer:'FightForLigeria',classement:'Classement · FightForLigeria',guide:'Comment jouer · FightForLigeria',file:'Partie classée · FightForLigeria',lobby:'Partie privée · FightForLigeria'};
   const home=document.getElementById('home');
   function show(v,scroll){
     if(!VIEWS.includes(v))v='jouer';
     for(const id of VIEWS)document.getElementById('v-'+id).hidden=id!==v;
-    for(const a of document.querySelectorAll('.navlinks a'))a.dataset.view===v?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current');
+    for(const a of document.querySelectorAll('.navlinks a'))a.dataset.view===(NAV[v]||v)?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current');
+    window.dispatchEvent(new CustomEvent('ffl:view',{detail:v}));
     if(!home.hidden)document.title=TITLES[v];
     window.__homeView=v;
     if(scroll)home.scrollTo(0,0);
@@ -521,6 +711,80 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
     t.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){const n=tabs[(i+(e.key==='ArrowRight'?1:tabs.length-1))%tabs.length];n.focus();setMode(n.dataset.mode)}})});
   let m='1v1';try{const v=localStorage.getItem('ffl.rankMode');if(v==='2v2')m=v}catch(e){}
   setMode(m);
+})();
+// ---- Elo : calcul partagé par le simulateur (et plus tard par le serveur) ----
+const ELO={
+  START:1000,
+  expected:(me,foe)=>1/(1+Math.pow(10,(foe-me)/400)),
+  K:games=>games<5?80:games<30?40:28,
+  delta(me,foe,won,games){return Math.round(this.K(games)*((won?1:0)-this.expected(me,foe)))},
+  rank(elo){const R=['Bois','Pierre','Fer','Argent','Or','Rubis'],D=['III','II','I'];const i=elo<900?0:Math.min(17,Math.floor((elo-800)/100));return R[(i/3)|0]+' '+D[i%3]},
+};
+window.ELO=ELO;
+(()=>{
+  const $=id=>document.getElementById(id);
+  // ---- simulateur ----
+  function sim(){
+    const me=Math.max(0,+$('simMe').value||0),foe=Math.max(0,+$('simFoe').value||0),g=+$('simG').value;
+    const ch=ELO.expected(me,foe),w=ELO.delta(me,foe,true,g),l=ELO.delta(me,foe,false,g);
+    $('simChance').textContent=`Tes chances estimées : ${Math.round(ch*100)} % · K = ${ELO.K(g)}`;
+    $('simWin').textContent='+'+w;$('simLoss').textContent='−'+Math.abs(l);
+    $('simWinR').textContent=`${me} → ${me+w} · ${ELO.rank(me+w)}`;
+    $('simLossR').textContent=`${me} → ${Math.max(0,me+l)} · ${ELO.rank(Math.max(0,me+l))}`;
+  }
+  for(const id of ['simMe','simFoe','simG'])$(id).addEventListener('input',sim);
+  sim();
+
+  // ---- file classée (démonstration de l'élargissement) ----
+  let qMode='1v1',qT=0,qTimer=null;
+  const WIN=[[20,'±100'],[40,'±250'],[60,'±500'],[Infinity,"Tous"]];
+  const fmt=t=>Math.floor(t/60)+':'+String(t%60).padStart(2,'0');
+  function qRender(){
+    const wi=WIN.findIndex(([lim])=>qT<lim);
+    $('qTimer').textContent=fmt(qT);$('qWindow').textContent=WIN[wi][1]==='Tous'?"N'importe qui":WIN[wi][1]+' Elo';
+    $('qBar').style.width=Math.min(100,qT/60*100)+'%';
+    for(const tr of $('qRules').children)tr.classList.toggle('on',!!qTimer&&+tr.dataset.w===wi);
+    if(qTimer)$('qStatus').textContent=qT<60?`Recherche d'un adversaire ${qMode}…`:"Aucun seigneur en ligne pour l'instant. Le classé ouvrira avec le jeu en ligne.";
+    $('qAi').hidden=!qTimer||qT<8;
+  }
+  function qStop(){clearInterval(qTimer);qTimer=null;qT=0;$('qStart').hidden=false;$('qCancel').hidden=true;$('qStatus').textContent='Prêt à chercher un adversaire.';qRender()}
+  $('qStart').addEventListener('click',()=>{qT=0;qTimer=setInterval(()=>{qT++;qRender()},1000);$('qStart').hidden=true;$('qCancel').hidden=false;qRender()});
+  $('qCancel').addEventListener('click',qStop);
+  $('qAi').addEventListener('click',()=>{qStop();window.__startGame&&window.__startGame({})});
+  for(const b of document.querySelectorAll('.qtab'))b.addEventListener('click',()=>{qMode=b.dataset.q;
+    for(const o of document.querySelectorAll('.qtab'))o.setAttribute('aria-selected',o===b);
+    $('qModeLbl').textContent=`File ${qMode} · ton Elo ${ELO.START} (${ELO.rank(ELO.START)})`;if(qTimer)qRender()});
+  addEventListener('ffl:view',e=>{if(e.detail!=='file'&&qTimer)qStop();if(e.detail==='lobby')lobRender()});
+
+  // ---- lobby privé ----
+  const L={mode:'1v1',stock:'normal',speed:'1',slots:{'1v1':[['me'],['ia']],'2v2':[['me','ami'],['ia','ia']]}};
+  const pick=a=>a[Math.random()*a.length|0],AL='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  $('lobCode').textContent=pick(['LOIRE','CHER','VIENNE','TOURS','CHINON'])+'-'+Array.from({length:4},()=>pick([...AL])).join('');
+  function segSet(box,v){for(const b of $(box).children)b.setAttribute('aria-pressed',b.dataset.v===v)}
+  function lobRender(){
+    const sl=L.slots[L.mode],cs=getComputedStyle(document.documentElement);
+    const col=[cs.getPropertyValue('--me').trim(),cs.getPropertyValue('--foe').trim()];
+    $('teams').innerHTML=sl.map((team,ti)=>`<div class="team"><h4><i style="background:${col[ti]}"></i>${ti===0?'Ton royaume':'Royaume adverse'}</h4>`+
+      team.map((t,si)=>t==='me'?`<div class="slot me"><span class="who">Toi</span><span class="st">Hôte du lobby</span></div>`:
+        `<div class="slot"><span class="who">${t==='ia'?'IA':'Ami'}</span><span class="st">${t==='ia'?'Contrôlé par l\'ordinateur':'En attente : envoie-lui le code'}</span>
+         <div class="seg" data-t="${ti}" data-s="${si}"><button type="button" data-v="ami" aria-pressed="${t==='ami'}">Ami</button><button type="button" data-v="ia" aria-pressed="${t==='ia'}">IA</button></div></div>`).join('')+`</div>`).join('');
+    for(const sg of $('teams').querySelectorAll('.seg'))for(const b of sg.children)b.addEventListener('click',()=>{L.slots[L.mode][+sg.dataset.t][+sg.dataset.s]=b.dataset.v;lobRender()});
+    segSet('lobMode',L.mode);segSet('lobStock',L.stock);segSet('lobSpeed',L.speed);
+    let mp='amboise';try{mp=window.__getMap?window.__getMap():(localStorage.getItem('ffl.map')||'amboise')}catch(e){}segSet('lobMap',mp);
+    const ok=L.mode==='1v1'&&sl[1][0]==='ia';
+    $('lobLaunch').disabled=!ok;
+    $('lobNote').textContent=ok?'Partie non classée contre l\'IA, avec tes réglages.':(L.mode==='2v2'?'Le 2v2 arrivera avec le jeu en ligne.':'Pour jouer contre un ami, il faudra le jeu en ligne.')+' Mets une IA en face en 1v1 pour lancer tout de suite.';
+  }
+  for(const [box,key] of [['lobMode','mode'],['lobStock','stock'],['lobSpeed','speed']])
+    for(const b of $(box).children)b.addEventListener('click',()=>{L[key]=b.dataset.v;lobRender()});
+  for(const b of $('lobMap').children)b.addEventListener('click',()=>{window.__pickMap&&window.__pickMap(b.dataset.v);lobRender()});
+  $('lobLaunch').addEventListener('click',()=>{if(!$('lobLaunch').disabled&&window.__startGame)window.__startGame({rich:L.stock==='riche',speed:+L.speed,priv:true})});
+  $('copyCode').addEventListener('click',()=>{const c=$('lobCode').textContent,b=$('copyCode');
+    const done=()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1500)};
+    try{navigator.clipboard.writeText(c).then(done,()=>{getSelection().selectAllChildren($('lobCode'));b.textContent='Code sélectionné'})}catch(e){getSelection().selectAllChildren($('lobCode'))}});
+  $('joinForm').addEventListener('submit',e=>{e.preventDefault();const c=$('joinCode').value.trim().toUpperCase();
+    $('joinMsg').textContent=c?`Le jeu en ligne n'est pas encore ouvert : impossible de rejoindre le lobby ${c} pour l'instant.`:'Entre le code que ton ami t\'a envoyé.'});
+  lobRender();
 })();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -1719,10 +1983,15 @@ function lineChart(a,e,label){
     ${line(e,TEAMC[1].m)}${line(a,TEAMC[0].m)}</svg>`;
 }
 function showHome(on){$('home').hidden=!on;$('play').hidden=on;if(on&&window.__showView)window.__showView(window.__homeView||'jouer');else document.title='FightForLigeria · partie'}
-function start(){showHome(false);applyColors();if(MAPID!==selMap)setMap(selMap);newGame();running=true;$('end').hidden=true;resize();refreshHud();toast('Place ta réserve (1) et ton grenier (2) près du donjon : ils sont gratuits')}
+let gameOpts={},timeScale=1;
+function start(opts){gameOpts=opts||{};timeScale=gameOpts.speed||1;showHome(false);applyColors();if(MAPID!==selMap)setMap(selMap);newGame();
+  if(gameOpts.rich)for(const tm of G.teams)Object.assign(tm.res,{bois:120,pierre:60,ble:90,fleche:16});
+  running=true;$('end').hidden=true;resize();refreshHud();
+  if(gameOpts.priv)toast('Partie privée'+(timeScale>1?' · vitesse rapide':'')+(gameOpts.rich?' · stock généreux':''));toast('Place ta réserve (1) et ton grenier (2) près du donjon : ils sont gratuits')}
 function goHome(){running=false;aim.charging=false;placing=null;box=null;$('end').hidden=true;showHome(true);$('start').focus()}
-$('start').addEventListener('click',start);
-$('again').addEventListener('click',start);
+$('start').addEventListener('click',()=>start({}));
+$('again').addEventListener('click',()=>start(gameOpts));
+window.__startGame=start;window.__getMap=()=>selMap;window.__pickMap=id=>pickMap(id);
 $('toMenu').addEventListener('click',goHome);
 $('quit').addEventListener('click',goHome);
 
@@ -1813,7 +2082,7 @@ applyColors();setMap(selMap);newGame();refreshHud();
 let last=performance.now(),hudT=0,miniT=0;
 function frame(now){
   const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
-  if(running)update(dt);
+  if(running){const n=timeScale>1?2:1;for(let i=0;i<n&&running;i++)update(dt*timeScale/n)}
   if($('play').hidden){requestAnimationFrame(frame);return}
   updateCam(dt);syncScene(dt);
   renderer.render(scene,camera);drawOverlay();
