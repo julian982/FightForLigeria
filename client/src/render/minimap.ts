@@ -1,4 +1,4 @@
-import { G, IRON, MAP, STONES, W, inBridge, rawWater, trees, wDist } from '@ffl/shared';
+import { G, H, IRON, MAP, STONES, W, inBridge, rawWater, trees, wDist } from '@ffl/shared';
 import { TEAMC } from './engine';
 import { screenToWorld } from './sync';
 import { $, view } from '../state';
@@ -16,9 +16,12 @@ export function drawMapBase(g,cw,ch,treeList){
   if(treeList){g.fillStyle='#24421d';const z=Math.max(1.5,cw/110);for(const t of treeList)g.fillRect(t.x*s-z/2,t.y*s-z/2,z,z);
     g.fillStyle='#e3d6b5';g.strokeStyle='#3a2f22';g.lineWidth=1;for(const kx of [300,W-300]){g.fillRect(kx*s-4,780*s-4,8,8);g.strokeRect(kx*s-4,780*s-4,8,8)}}
 }
-export function makeMiniBase(){miniBase.width=192;miniBase.height=128;drawMapBase(miniBase.getContext('2d'),192,128,null)}
+// la minicarte garde les proportions de la carte (hauteur fixe de 112 px)
+export const MINI_W=Math.round(112*W/H),MINI_H=112;
+mm.width=MINI_W;mm.height=MINI_H;mm.style.width=MINI_W+'px';
+export function makeMiniBase(){miniBase.width=MINI_W;miniBase.height=MINI_H;drawMapBase(miniBase.getContext('2d'),MINI_W,MINI_H,null)}
 export function renderMini(){
-  const s=192/W;mctx.drawImage(miniBase,0,0);
+  const s=MINI_W/W;mctx.drawImage(miniBase,0,0);
   mctx.fillStyle='#24421d';for(const t of trees)mctx.fillRect(t.x*s-1,t.y*s-1,2,2);
   for(const b of G.buildings){mctx.fillStyle=TEAMC[b.team].m;mctx.fillRect(b.bx*s,b.by*s,Math.max(2,b.bw*s),Math.max(2,b.bh*s))}
   for(const u of G.units){if(u.dead)continue;const lord=u.type==='lord',z=lord?4:2;mctx.fillStyle=lord?'#ffe08a':(u.team?'#ffb9ad':'#b6cbff');mctx.fillRect(u.x*s-z/2,u.y*s-z/2,z,z)}

@@ -1,18 +1,20 @@
 // Clavier et souris : ZQSD + arc pour le seigneur, placement des bâtiments, sélection et ordres.
 import { BUILD_LIST, G, cancelCharge, orderAttack, orderMove, placeBuilding, releaseCharge, startCharge, steer } from '@ffl/shared';
 import { cv } from '../render/engine';
+import { enterFps, exitFps, fpsLook } from '../render/fps';
 import { addMark, ghostTile, screenToWorld, toScreen } from '../render/sync';
 import { $, ME, keys, mouse, sel, tilt, ui, view } from '../state';
 import { askRecruit, refreshHud, selectBuild, toast } from './hud';
 export function setMouse(e){mouse.sx=e.clientX;mouse.sy=e.clientY;mouse.in=true;const w=screenToWorld(mouse.sx,mouse.sy);mouse.wx=w.x;mouse.wy=w.y}
 cv.addEventListener('contextmenu',e=>e.preventDefault());
-addEventListener('mousemove',e=>{if(view.rotDrag){view.yawTarget+=(e.clientX-view.rotDrag.x)*.008;tilt((e.clientY-view.rotDrag.y)*.006);view.rotDrag.x=e.clientX;view.rotDrag.y=e.clientY}setMouse(e)});
+addEventListener('mousemove',e=>{if(ui.fps){fpsLook(e.movementX||0,e.movementY||0);return}if(view.rotDrag){view.yawTarget+=(e.clientX-view.rotDrag.x)*.008;tilt((e.clientY-view.rotDrag.y)*.006);view.rotDrag.x=e.clientX;view.rotDrag.y=e.clientY}setMouse(e)});
 addEventListener('mouseup',e=>{if(e.button===1)view.rotDrag=null});
-cv.addEventListener('wheel',e=>{e.preventDefault();
+cv.addEventListener('wheel',e=>{e.preventDefault();if(ui.fps)return;
   // Maj + molette : incliner la caméra ; molette seule : zoomer
   if(e.shiftKey){tilt((e.deltaY||e.deltaX)>0?-.08:.08);return}
-  view.ppu=Math.max(30,Math.min(72,view.ppu*(e.deltaY>0?.9:1.1)))},{passive:false});
+  view.ppu=Math.max(40,Math.min(72,view.ppu*(e.deltaY>0?.9:1.1)))},{passive:false});
 cv.addEventListener('mousedown',e=>{
+  if(ui.fps){if(e.button===0&&ui.running){const c:any=cv;if(!document.pointerLockElement)try{c.requestPointerLock()}catch(er){}const err=startCharge(ME);if(err)toast(err,'warn')}return}
   setMouse(e);if(!ui.running)return;
   if(e.button===1){e.preventDefault();view.rotDrag={x:e.clientX,y:e.clientY};return}
   if(e.button===0){
@@ -24,7 +26,7 @@ cv.addEventListener('mousedown',e=>{
     orderSelected();
   }
 });
-addEventListener('mouseup',e=>{if(e.button!==0)return;if(ui.box){selectBox(e.shiftKey||e.ctrlKey||e.metaKey);ui.box=null}});
+addEventListener('mouseup',e=>{if(e.button!==0)return;if(ui.fps){releaseShot();return}if(ui.box){selectBox(e.shiftKey||e.ctrlKey||e.metaKey);ui.box=null}});
 export function tryPlace(keep){
   const g=ghostTile(),err=placeBuilding(ME,ui.placing,g.tx,g.ty);
   if(err){toast(err);return}
@@ -59,6 +61,9 @@ addEventListener('keydown',(e:any)=>{
   if(e.code==='Space'||e.code.startsWith('Digit'))e.preventDefault();
   // Espace maintenue : bander l'arc ; relâchée : tirer
   if(e.code==='Space'){if(!e.repeat){const err=startCharge(ME);if(err)toast(err,'warn')}return}
+  // V : vue seigneur, rien d'autre que le tir à l'arc tant qu'on y est
+  if(e.code==='KeyV'){if(ui.fps)exitFps();else enterFps();return}
+  if(ui.fps){if(e.code==='Escape')exitFps();return}
   const m=/^(?:Digit|Numpad)([0-9])$/.exec(e.code);
   if(m){selectBuild(BUILD_LIST[m[1]==='0'?9:+m[1]-1]);return}
   if(e.code==='Minus'){selectBuild(BUILD_LIST[10]);return}
@@ -76,6 +81,7 @@ export function releaseShot(){if(!G)return;if(!ui.running){cancelCharge(ME);retu
 /** direction ZQSD (écran) convertie en direction monde selon l'orientation de la caméra */
 export function steerLord(){
   if(!G)return;
+  if(ui.fps){steer(ME,0,0,{x:G.teams[ME].lord.x+Math.cos(view.fpsYaw)*200,y:G.teams[ME].lord.y+Math.sin(view.fpsYaw)*200});return}
   const dx=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
   const dy=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0);
   const cy=Math.cos(view.camYaw),sy=Math.sin(view.camYaw);

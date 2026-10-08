@@ -266,6 +266,7 @@
             <dt><kbd>Espace</kbd></dt><dd>Maintiens pour bander l'arc, relâche pour tirer. Une charge complète (environ 1 seconde) tire jusqu'à 3 fois plus loin et fait jusqu'à 60 dégâts. Chaque tir coûte une flèche : tu en as 8 au départ.</dd>
             <dt><kbd>Molette</kbd></dt><dd>Zoomer ou dézoomer.</dd>
             <dt><kbd>A</kbd> <kbd>E</kbd></dt><dd>Tourner la caméra autour de ton seigneur (Q et E en clavier QWERTY). Tu peux aussi maintenir le clic molette et glisser.</dd>
+            <dt><kbd>V</kbd></dt><dd>Vue seigneur : tu vois par ses yeux pour viser à l'arc. La souris oriente le regard, Espace ou clic gauche tire. On ne peut ni marcher ni construire dans cette vue : appuie de nouveau sur V (ou Échap) pour revenir.</dd>
             <dt><kbd>Page ↑</kbd> <kbd>Page ↓</kbd></dt><dd>Incliner la caméra, de la vue rasante à la vue de dessus. Aussi avec Maj + molette, ou clic molette en glissant vers le haut ou le bas.</dd>
           </dl>
           <p class="g-note">Tu marches moins vite pendant que tu bandes l'arc. Les arbres, les bâtiments et les rochers arrêtent les flèches. Les rivières (Loire, Cher, Vienne) ne se traversent qu'aux ponts, mais les flèches passent au-dessus.</p>
@@ -291,7 +292,7 @@
           <p class="g-sub">15 soldats au maximum.</p>
           <dl class="keys">
             <dt><kbd>R</kbd> <kbd>T</kbd> <kbd>Y</kbd></dt><dd>Recruter un archer (1 arc), un lancier (1 lance) ou un spadassin (1 épée). Il faut une caserne.</dd>
-            <dt><kbd>Clic gauche</kbd></dt><dd>Sur un soldat : le sélectionne seul. Glisser : encadrer des soldats pour les sélectionner. Avec Maj ou Ctrl, on ajoute à la sélection.</dd>
+            <dt><kbd>Clic gauche</kbd></dt><dd>Sur un soldat : le sélectionne seul. Glisser : encadrer des soldats pour les sélectionner. Avec Maj ou Ctrl, on ajoute à la sélection. La barre « Sélection » au-dessus du menu compte tes soldats par type : clique sur un type pour ne garder que lui (Maj + clic pour le retirer).</dd>
             <dt><kbd>F</kbd></dt><dd>Sélectionner toute ton armée. Échap désélectionne.</dd>
             <dt><kbd>Clic droit</kbd></dt><dd>Sur le sol : la sélection y marche et contourne les obstacles. Sur un ennemi ou un bâtiment ennemi : elle l'attaque.</dd>
           </dl>
@@ -344,6 +345,7 @@
 </div>
 
 <div class="hud-bot" id="hudBot">
+  <div id="selBar" hidden></div>
   <div class="group grow"><h3>Construire</h3><div class="btns" id="buildBtns"></div></div>
   <div class="group"><h3>Caserne</h3><div class="btns">
     <button class="btn" id="bArcher" type="button"><kbd>R</kbd><span class="n">Archer</span><span class="c">1 arc</span></button>

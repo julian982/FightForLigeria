@@ -7,23 +7,23 @@ export const MAPS: Record<string, any> = {
     seed:42,treeSeed:1337,amp:.55,
     south:x=>1470+25*Math.sin(x/230)+14*Math.sin(x/97+1),
     path:x=>800+Math.sin(x/260)*70*Math.sin(clamp01((x-300)/(W-600))*Math.PI),
-    clusters:[[150,260,120,18],[520,470,80,10],[130,1180,110,16],[470,1420,120,16],[880,720,120,18],[820,250,100,14],[900,1190,110,14],[1130,430,80,8],[1130,1270,80,8]],
-    scatter:0,clearings:[],vines:[[1200,190],[1200,1080]],sand:[[620,1545,3.2],[1280,1565,4],[1930,1535,2.6]],bridges:[],
+    clusters:[[150,260,120,18],[520,470,80,10],[130,1180,110,16],[470,1420,120,16],[966,720,120,18],[878,250,100,14],[996,1190,110,14],[1336,430,80,8],[1336,1270,80,8]],
+    scatter:0,clearings:[],vines:[[1440,190],[1440,1080]],sand:[[620,1545,3.2],[1558,1565,4],[2410,1535,2.6]],bridges:[],
     grass:[0x5f8f3e,0x689c45,0x5a8a3a,0x71a54b,0x638f40]},
   cher:{name:'Confluence du Cher',desc:"Le Cher coupe la carte en deux avant de rejoindre la Loire. Trois passages seulement, et le fer au cœur d'une île que chacun voudra tenir.",
     seed:7,treeSeed:2024,amp:.45,cher:true,
     south:x=>1500+18*Math.cos((x-W/2)/260)+10*Math.cos((x-W/2)/90),
     path:x=>780+60*Math.sin(clamp01((x-300)/(W-600))*Math.PI),
-    clusters:[[150,250,120,18],[520,430,90,12],[140,1160,110,16],[470,1320,100,12],[840,560,100,14],[800,210,100,14],[860,1130,110,14],[1040,1010,40,5],[1050,520,45,6]],
-    scatter:0,clearings:[],vines:[[640,170],[W-640,170]],sand:[[700,1565,3],[1700,1565,3]],
-    bridges:[{x:1130,y:256,w:140,h:84},{x:972,y:798,w:92,h:84},{x:W-972-92,y:798,w:92,h:84},{x:1130,y:1190,w:140,h:84}],
+    clusters:[[150,250,120,18],[520,430,90,12],[140,1160,110,16],[470,1320,100,12],[907,560,100,14],[848,210,100,14],[937,1130,110,14],[1203,1010,40,5],[1218,520,45,6]],
+    scatter:0,clearings:[],vines:[[640,170],[W-640,170]],sand:[[700,1565,3],[2180,1565,3]],
+    bridges:[{x:W/2-70,y:256,w:140,h:84},{x:W/2-228,y:798,w:92,h:84},{x:W/2+228-92,y:798,w:92,h:84},{x:W/2-70,y:1190,w:140,h:84}],
     grass:[0x5c8e3d,0x66994a,0x588a3a,0x6fa34c,0x619242]},
   chinon:{name:'Forêt de Chinon',desc:"Une forêt dense percée de clairières, la Vienne au sud. Le bois abonde, mais on voit mal venir l'ennemi et les flèches s'arrêtent dans les arbres.",
     seed:13,treeSeed:777,amp:.7,
     south:x=>1530+16*Math.cos((x-W/2)/200)+9*Math.cos((x-W/2)/70),
     path:x=>{const t=clamp01((x-300)/(W-600));return 790+70*Math.sin(t*Math.PI)*Math.cos(t*Math.PI*4)},
-    clusters:[[150,250,140,22],[520,450,110,16],[140,1170,130,20],[480,1380,120,16],[860,640,140,22],[820,240,130,20],[880,1180,130,20],[1120,420,90,12],[1120,1240,90,12]],
-    scatter:420,clearings:[[1200,840,190],[700,980,100],[W-700,980,100],[560,640,110],[W-560,640,110]],vines:[[1200,200]],sand:[[900,1585,2.4],[1500,1585,2.4]],bridges:[],
+    clusters:[[150,250,140,22],[520,450,110,16],[140,1170,130,20],[480,1380,120,16],[937,640,140,22],[878,240,130,20],[966,1180,130,20],[1322,420,90,12],[1322,1240,90,12]],
+    scatter:420,clearings:[[1440,840,190],[700,980,100],[W-700,980,100],[560,640,110],[W-560,640,110]],vines:[[1440,200]],sand:[[996,1585,2.4],[1884,1585,2.4]],bridges:[],
     grass:[0x4f8036,0x5a8b3c,0x4a7832,0x63964a,0x55873a]},
 };
 export const MAP_IDS = Object.keys(MAPS);
@@ -40,7 +40,7 @@ export const walkWater = (x, y) => rawWater(x, y) && !inBridge(x, y);
 export const wHit = (x, y, r) => walkWater(x, y) || walkWater(x + r, y) || walkWater(x - r, y) || walkWater(x, y + r) || walkWater(x, y - r);
 
 // ---- relief + distance à l'eau, précalculés sur une grille de 20 px ----
-export const GXV = 121, GZV = 81, HC = 20, hgrid = new Float32Array(GXV * GZV), dgrid = new Float32Array(GXV * GZV);
+export const HC = 20, GXV = W / HC + 1, GZV = H / HC + 1, hgrid = new Float32Array(GXV * GZV), dgrid = new Float32Array(GXV * GZV);
 function buildTerrain() {
   for (let iz = 0; iz < GZV; iz++) for (let ix = 0; ix < GXV; ix++) dgrid[iz * GXV + ix] = rawWater(ix * HC, iz * HC) ? 0 : 1e9;
   const D1 = HC, D2 = HC * 1.4142;
@@ -57,7 +57,7 @@ function buildTerrain() {
     if (dw === 0) { hgrid[i] = -.25; continue }
     const n = (Math.sin(x * 1.7 + z * .9) * .5 + .5) * .05 + (Math.sin(x * .37 - z * .71) * .5 + .5) * .06;
     const h = .26 * Math.sin(x * .17 + .6) * Math.cos(z * .21) + .16 * Math.sin(x * .09 - z * .13 + 1.3) + .08 * Math.sin(x * .31 + z * .27);
-    const k = f(Math.min(Math.hypot(px - 300, pz - 780), Math.hypot(px - W + 300, pz - 780)), 140, 320) * f(Math.min(x, 60 - x, z), 0, 2.5) * f(dw, 30, 160);
+    const k = f(Math.min(Math.hypot(px - 300, pz - 780), Math.hypot(px - W + 300, pz - 780)), 140, 320) * f(Math.min(x, W * S - x, z), 0, 2.5) * f(dw, 30, 160);
     hgrid[i] = dw <= HC * 1.01 ? .02 : .03 + n * (dw < 40 ? .4 : 1) + (h + .5) * MAP.amp * k }
 }
 /** charge une carte (eau + relief). Renvoie l'identifiant retenu. */

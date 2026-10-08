@@ -1,7 +1,7 @@
 // Le décor d'une carte : sol, rivières, ponts, vignes, gisements, territoires.
 // ---- Sol, bordure, gisements, décor ----
 import * as THREE from 'three';
-import { BRIDGE_Y, GXV, H, IRON, MAP, ROCKS, S, STONES, T, TERR, W, dist, gh, hgrid, inBridge, rng, wDist, walkWater } from '@ffl/shared';
+import { BRIDGE_Y, GH, GW, GXV, H, IRON, MAP, ROCKS, S, STONES, T, TERR, W, dist, gh, hgrid, inBridge, rng, wDist, walkWater } from '@ffl/shared';
 import { B, I, M, TEAMC, TM, VC, boxM, cylM, merge, mk, world } from './engine';
 export const terrRing=[];
 export let groundMesh:any=null;
@@ -9,7 +9,7 @@ export let groundMesh:any=null;
 export function drape(geo,lift=0){const p=geo.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,p.getY(i)+gh(p.getX(i)*T,p.getZ(i)*T)+lift);p.needsUpdate=true;geo.computeVertexNormals();return geo}
 export function buildWorld(){
   const r=rng(MAP.seed);
-  const pg=new THREE.PlaneGeometry(60,40,120,80);pg.rotateX(-Math.PI/2);pg.translate(30,0,20);
+  const pg=new THREE.PlaneGeometry(GW,GH,GW*2,GH*2);pg.rotateX(-Math.PI/2);pg.translate(GW/2,0,GH/2);
   const pa=pg.attributes.position;for(let i=0;i<pa.count;i++){const ix=Math.round(pa.getX(i)*2),iz=Math.round(pa.getZ(i)*2);pa.setY(i,hgrid[iz*GXV+ix])}
   const g=pg.toNonIndexed();g.computeVertexNormals();
   const p=g.attributes.position.array,col=[],c=new THREE.Color(),grass=MAP.grass;
@@ -27,7 +27,7 @@ export function buildWorld(){
   g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
   const ground=new THREE.Mesh(g,VC);ground.receiveShadow=true;world.add(ground);groundMesh=ground;
   // rivières : une nappe d'eau, des reflets, des bancs de sable
-  {const wp=new THREE.PlaneGeometry(60,40,1,1);wp.rotateX(-Math.PI/2);wp.translate(30,0,20);
+  {const wp=new THREE.PlaneGeometry(GW,GH,1,1);wp.rotateX(-Math.PI/2);wp.translate(GW/2,0,GH/2);
     const water=new THREE.Mesh(wp,new THREE.MeshStandardMaterial({color:0x4b86ad,roughness:.3,metalness:.1,transparent:true,opacity:.93,flatShading:true}));
     water.receiveShadow=true;world.add(water);
     const rip=[];for(let i=0;i<500&&rip.length<90;i++){const x=r()*W,y=r()*H;if(walkWater(x,y)&&wDist(x+30,y)===0&&wDist(x-30,y)===0)rip.push([B(.3+r()*.6,.01,.035).translate(x*S,.02,y*S),0x9cc7e0])}
@@ -46,8 +46,8 @@ export function buildWorld(){
       v.push([B(.02,.22,.02).translate(x*S,.11,y*S),0x6b4a28],[I(.075).translate(x*S,.22,y*S),r()<.5?0x4e7f34:0x5f8f3e]);if(r()<.25)v.push([I(.03).translate(x*S+.05,.18,y*S),0x5a2a5a])}
     const vm=mk(drape(merge(v)),VC);vm.castShadow=false;world.add(vm);}
   // bordure de diorama
-  world.add(mk(B(60,1.4,40),M(0x6b4b2e),30,-.72,20));
-  world.add(mk(B(60.6,2.2,40.6),M(0x5b5850),30,-2.5,20));
+  world.add(mk(B(GW,1.4,GH),M(0x6b4b2e),GW/2,-.72,GH/2));
+  world.add(mk(B(GW+.6,2.2,GH+.6),M(0x5b5850),GW/2,-2.5,GH/2));
   // gisements de pierre
   for(const s of STONES){
     const parts=[];

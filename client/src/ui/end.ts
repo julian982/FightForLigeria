@@ -1,10 +1,11 @@
 // L'écran de fin : bilan détaillé et courbes de la partie.
 import { G, MAP, T } from '@ffl/shared';
 import { TEAMC, tr } from '../render/engine';
+import { exitFps } from '../render/fps';
 import { $, ME, keys, ui } from '../state';
 import { refreshHud } from './hud';
 export function endGame(winner){
-  const win=winner===ME;ui.running=false;ui.placing=null;ui.box=null;
+  const win=winner===ME;exitFps();ui.running=false;ui.placing=null;ui.box=null;
   const m=Math.floor(G.t/60),s=String(Math.floor(G.t%60)).padStart(2,'0');
   $('endTitle').textContent=win?'Victoire':'Défaite';
   $('endText').textContent=(win?'Le seigneur ennemi est tombé. ':'Ton seigneur est tombé. ')+`Partie de ${m} min ${s} s sur ${MAP.name}.`;

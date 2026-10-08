@@ -45,7 +45,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 .btn kbd{position:absolute;left:7px;top:6px;font:700 11px var(--f-body);color:var(--gold)}
 .btn .n{font-weight:700;font-size:14px;line-height:1.1}
 .btn .c{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
-#mini{flex:none;width:192px;height:128px;border:1px solid var(--rule);border-radius:2px;background:#2d4a24}
+#mini{flex:none;height:112px;border:1px solid var(--rule);border-radius:2px;background:#2d4a24}
 #toast{position:fixed;left:50%;top:calc(76px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:6;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;width:min(92vw,460px)}
 #toast div{padding:6px 14px;background:rgba(20,17,13,.92);border:1px solid var(--rule);border-radius:3px;font-weight:500;text-align:center;animation:fade 2.6s forwards}
 #toast div.warn{border-color:var(--gueules)}
@@ -59,3 +59,12 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 .go:hover{filter:brightness(1.08)} .go:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 .go[disabled]{background:transparent;color:var(--muted);border-color:var(--rule);cursor:default}
 #nogl{color:var(--bad)}
+/* sélection en cours : un bouton par type de soldat */
+#selBar{position:absolute;left:16px;bottom:calc(100% + 8px);display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;background:rgba(31,26,21,.88);border:1px solid var(--rule);border-radius:3px}
+#selBar>span{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted,#a99d87);margin-right:2px}
+#selBar button{font:inherit;font-size:14px;color:var(--text);background:var(--wood2);border:1px solid var(--rule);border-radius:3px;padding:4px 10px;cursor:pointer;display:flex;align-items:center;gap:6px}
+#selBar button:hover{border-color:var(--gold)}
+#selBar button b{color:var(--gold);font-variant-numeric:tabular-nums}
+/* vue seigneur : on ne garde que le bandeau du haut */
+#play.fps .hud-bot{display:none}
+#play.fps #game{cursor:none}

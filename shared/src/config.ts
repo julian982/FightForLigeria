@@ -1,6 +1,7 @@
 // Règles du jeu : toutes les valeurs d'équilibrage, partagées par le client et (plus tard) le serveur.
 
-export const T = 40, GW = 60, GH = 40, W = GW * T, H = GH * T, TERR = 520, S = 1 / T;
+// la carte fait 72 × 40 cases : les deux donjons sont à 2280 px l'un de l'autre
+export const T = 40, GW = 72, GH = 40, W = GW * T, H = GH * T, TERR = 520, S = 1 / T;
 
 export const DEF: Record<string, any> = {
   keep:    {name:'Donjon',w:3,h:3,hp:1500},

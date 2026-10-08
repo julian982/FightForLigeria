@@ -1,5 +1,6 @@
 import { DEF, G, RESN, T, afford, canPlace, missing } from '@ffl/shared';
 import { TEAMC, octx } from './engine';
+import { drawFpsOverlay } from './fps';
 import { ghostTile, toScreen } from './sync';
 import { mouse, ui, view } from '../state';
 export function bar(x,y,w,frac,col){octx.fillStyle='rgba(0,0,0,.6)';octx.fillRect(x-w/2-1,y-1,w+2,5);octx.fillStyle=col;octx.fillRect(x-w/2,y,w*Math.max(0,frac),3)}
@@ -19,6 +20,7 @@ export function idleBadge(x,y,sec,z){
 export function drawOverlay(){
   octx.setTransform(view.DPR,0,0,view.DPR,0,0);octx.clearRect(0,0,view.VW,view.VH);
   if(!ui.running&&!G.over)return;
+  if(ui.fps){drawFpsOverlay();return}
   const z=view.ppu/46;
   for(const u of G.units){if(u.dead)continue;const lord=u.type==='lord';if(!lord&&u.hp>=u.maxhp)continue;
     const p=toScreen(u.x,u.y,lord?1.35:1.05);if(!lord||u.team===0)bar(p.x,p.y,(lord?38:22)*z,u.hp/u.maxhp,TEAMC[u.team].m);

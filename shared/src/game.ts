@@ -29,7 +29,7 @@ export function newGame(opts: GameOptions = {}) {
   for (const id of [0, 1]) {
     const tm = { id, res: { ...START_RES }, keep: null, lord: null, starving: false };
     G.teams.push(tm);
-    tm.keep = addBuilding(id, 'keep', id === 0 ? 6 : 51, 18);
+    tm.keep = addBuilding(id, 'keep', id === 0 ? 6 : GW - 9, 18);
     tm.lord = spawnUnit(id, 'lord', { x: tm.keep.x + (id === 0 ? 110 : -110), y: tm.keep.y });
   }
   buildNav();

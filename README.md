@@ -59,10 +59,12 @@ Clavier et souris requis.
 | A · E (Q · E en QWERTY) | Tourner la caméra autour du seigneur |
 | Clic molette maintenu | Tourner (gauche/droite) et incliner (haut/bas) la caméra |
 | Page ↑ · Page ↓, Maj + molette | Incliner la caméra |
+| V | Vue seigneur (première personne) pour tirer à l'arc ; V ou Échap pour revenir |
 | 1 à 9, 0, ) | Choisir un bâtiment, clic gauche pour le poser |
 | R · T · Y | Recruter un archer, un lancier, un spadassin |
 | Clic gauche | Sélectionner un soldat ; glisser pour en encadrer plusieurs (Maj ou Ctrl pour ajouter) |
 | F | Sélectionner toute l'armée |
+| Barre « Sélection » | Clic sur un type (archers…) pour ne garder que lui, Maj + clic pour le retirer |
 | Clic droit | Déplacer la sélection, ou attaquer la cible visée |
 | Échap | Annuler la construction ou la sélection |
 

@@ -10,7 +10,8 @@ import { applyColors } from './render/models';
 import { syncScene, updateCam, onRemoved, onReset, toScreen } from './render/sync';
 import { drawOverlay } from './render/overlay';
 import { drawMapBase, makeMiniBase, renderMini } from './render/minimap';
-import { toast, refreshHud } from './ui/hud';
+import { toast, refreshHud, renderSelBar } from './ui/hud';
+import { fpsCam, updateFps, exitFps } from './render/fps';
 import { endGame } from './ui/end';
 import { steerLord } from './ui/input';
 
@@ -39,7 +40,7 @@ let gameOpts:any={},timeScale=1;
 function start(opts){gameOpts=opts||{};timeScale=gameOpts.speed||1;showHome(false);applyColors();if(worldMap!==selMap)setMap(selMap);startGame(gameOpts);
   ui.running=true;$('end').hidden=true;resize();refreshHud();
   if(gameOpts.priv)toast('Partie privée'+(timeScale>1?' · vitesse rapide':'')+(gameOpts.rich?' · stock généreux':''));toast('Place ta réserve (1) et ton grenier (2) près du donjon : ils sont gratuits')}
-function goHome(){ui.running=false;if(G)G.ctrl[ME].charging=false;ui.placing=null;ui.box=null;$('end').hidden=true;showHome(true);$('start').focus()}
+function goHome(){exitFps();ui.running=false;if(G)G.ctrl[ME].charging=false;ui.placing=null;ui.box=null;$('end').hidden=true;showHome(true);$('start').focus()}
 $('start').addEventListener('click',()=>start({}));
 $('again').addEventListener('click',()=>start(gameOpts));
 window.__startGame=start;window.__getMap=()=>selMap;window.__pickMap=id=>pickMap(id);
@@ -52,7 +53,7 @@ let selMap='amboise';try{const v=localStorage.getItem('ffl.map');if(MAPS[v])selM
   for(const [i,id] of ids.entries()){
     loadMap(id);const tl=genTrees();
     const b=document.createElement('button');b.type='button';b.className='mapcard';b.dataset.id=id;b.setAttribute('role','radio');
-    const cvs=document.createElement('canvas');cvs.width=150;cvs.height=100;drawMapBase(cvs.getContext('2d'),150,100,tl);
+    const cvs=document.createElement('canvas');cvs.width=180;cvs.height=100;drawMapBase(cvs.getContext('2d'),180,100,tl);
     const nm=document.createElement('span');nm.textContent=MAPS[id].name;b.append(cvs,nm);
     b.addEventListener('click',()=>pickMap(id));
     b.addEventListener('keydown',e=>{const d={ArrowRight:1,ArrowDown:1,ArrowLeft:-1,ArrowUp:-1}[e.key];if(d){e.preventDefault();pickMap(ids[(i+d+ids.length)%ids.length],true)}});
@@ -73,7 +74,8 @@ function frame(now){
   for(const u of [...sel])if(u.dead)sel.delete(u);
   if($('play').hidden){requestAnimationFrame(frame);return}
   updateCam(dt);syncScene(dt);
-  renderer.render(scene,camera);drawOverlay();
+  if(ui.fps){updateFps();renderer.render(scene,fpsCam)}else renderer.render(scene,camera);
+  drawOverlay();renderSelBar();
   hudT+=dt;if(hudT>.15&&ui.running){hudT=0;refreshHud()}
   miniT+=dt;if(miniT>.2){miniT=0;renderMini()}
   requestAnimationFrame(frame);

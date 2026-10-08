@@ -1,6 +1,6 @@
 // Le bandeau du haut (ressources, vie du seigneur) et celui du bas (bâtiments, recrutement).
 import { BUILD_LIST, DEF, G, RESN, afford, armySize, cancelCharge, missing, recruit } from '@ffl/shared';
-import { $, ME, ui } from '../state';
+import { $, ME, sel, ui } from '../state';
 
 export const SHORT={ferme:'Ferme',fleches:'Flèches',arcs:'Arcs',lances:'Lances',mine:'Mine de fer'};
 export const RESCOL={bois:'#9a6a35',pierre:'#e3d9c0',fer:'#b8622e',ble:'#e0bd4a'};
@@ -31,3 +31,19 @@ export function refreshHud(){
   $('bArcher').classList.toggle('poor',!cas||r.arc<1);$('bLancier').classList.toggle('poor',!cas||r.lance<1);$('bSpad').classList.toggle('poor',!cas||r.epee<1);
   const L=tm.lord,el=$('hpP');el.querySelector('b').textContent=Math.max(0,Math.ceil(L.hp));el.querySelector('.fill').style.width=Math.max(0,L.hp/L.maxhp*100)+'%';
 }
+
+// ---- barre de sélection : « 2 Lanciers · 3 Archers », un clic garde un seul type ----
+export const SEL_NAMES={archer:['Archer','Archers'],lancier:['Lancier','Lanciers'],spadassin:['Spadassin','Spadassins']};
+export const selBar=$('selBar');let selKey='';
+export function renderSelBar(){
+  const n:Record<string,number>={};for(const u of sel)if(!u.dead)n[u.type]=(n[u.type]||0)+1;
+  const types=Object.keys(SEL_NAMES).filter(t=>n[t]);
+  const key=types.map(t=>t+n[t]).join(',');if(key===selKey)return;selKey=key;
+  selBar.hidden=!types.length;if(!types.length){selBar.innerHTML='';return}
+  selBar.innerHTML='<span>Sélection</span>'+types.map(t=>`<button type="button" data-t="${t}" title="Ne garder que les ${SEL_NAMES[t][1].toLowerCase()} (Maj : les retirer)"><b>${n[t]}</b>${SEL_NAMES[t][n[t]>1?1:0]}</button>`).join('');
+}
+selBar.addEventListener('click',(e:any)=>{
+  const b=e.target.closest('button');if(!b)return;const t=b.dataset.t;
+  for(const u of [...sel])if(e.shiftKey?u.type===t:u.type!==t)sel.delete(u);
+  b.blur();renderSelBar();
+});
