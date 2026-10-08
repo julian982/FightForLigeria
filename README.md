@@ -19,7 +19,7 @@ Clavier et souris requis.
 | Molette | Zoomer |
 | A · E (Q · E en QWERTY) | Tourner la caméra autour du seigneur |
 | Clic molette maintenu | Tourner la caméra en glissant la souris |
-| 1 à 9 | Choisir un bâtiment, clic gauche pour le poser |
+| 1 à 9, 0, ) | Choisir un bâtiment, clic gauche pour le poser |
 | R · T · Y | Recruter un archer, un lancier, un spadassin |
 | Maj + glisser | Sélectionner des soldats (Ctrl + Maj pour ajouter à la sélection) |
 | F | Sélectionner toute l'armée |
@@ -29,7 +29,8 @@ Clavier et souris requis.
 ## Règles
 
 - **Victoire** : abattre le seigneur ennemi. Sa vie n'est pas affichée.
-- **Ressources** : bois, pierre (tuffeau), blé, fer. Les ouvriers sortent seuls du donjon et rapportent tout au stock.
+- **Ressources** : bois, pierre (tuffeau), blé, fer. Petit stock au départ (40 bois, 15 pierre, 30 blé, 8 flèches).
+- **Stockage** : réserve et grenier, gratuits, un de chaque. Bois, pierre et fer vont à la réserve, le blé au grenier, les armes et flèches au donjon. Si la réserve ou le grenier est détruit, son stock est perdu.
 - **Nourriture** : ouvriers et soldats mangent 1 blé toutes les 12 s pour 4 bouches. En famine (blé à 0), ils perdent 50 % de vitesse et 25 % de vie.
 - **Flèches du seigneur** : 8 au départ, une par tir. L'atelier de flèches en fabrique d'autres avec du bois. Les archers n'en consomment pas.
 - **Fer** : un seul gisement, au centre de la carte, à égale distance des deux joueurs. La mine est le seul bâtiment qui se pose hors de ton territoire.
@@ -41,15 +42,17 @@ Clavier et souris requis.
 
 | Touche | Bâtiment | Coût | Produit |
 |---|---|---|---|
-| 1 | Bûcheron | 6 bois | 3 bois par voyage |
-| 2 | Carrière | 12 bois | 2 pierre par voyage |
-| 3 | Ferme à blé | 15 bois | 5 blé par récolte |
-| 4 | Atelier d'arcs | 15 bois · 8 pierre | 1 arc pour 3 bois |
-| 5 | Atelier de lances | 15 bois · 8 pierre | 1 lance pour 3 bois |
-| 6 | Caserne | 15 bois · 23 pierre | Transforme les armes en soldats |
-| 7 | Mine de fer | 30 bois · 15 pierre | 1 fer par voyage |
-| 8 | Forge | 20 bois · 20 pierre | 1 épée pour 2 fer et 3 bois |
-| 9 | Atelier de flèches | 12 bois | 4 flèches pour 2 bois |
+| 1 | Réserve | Gratuit | Stocke bois, pierre et fer |
+| 2 | Grenier | Gratuit | Stocke le blé |
+| 3 | Bûcheron | 6 bois | 3 bois par voyage |
+| 4 | Carrière | 12 bois | 2 pierre par voyage |
+| 5 | Ferme à blé | 15 bois | 5 blé par récolte |
+| 6 | Atelier de flèches | 12 bois | 4 flèches pour 2 bois |
+| 7 | Atelier d'arcs | 15 bois · 8 pierre | 1 arc pour 3 bois |
+| 8 | Atelier de lances | 15 bois · 8 pierre | 1 lance pour 3 bois |
+| 9 | Caserne | 15 bois · 23 pierre | Transforme les armes en soldats |
+| 0 | Mine de fer | 30 bois · 15 pierre | 1 fer par voyage |
+| ) | Forge | 20 bois · 20 pierre | 1 épée pour 2 fer et 3 bois |
 
 ### Unités (15 soldats maximum)
 

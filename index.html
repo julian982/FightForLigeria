@@ -41,15 +41,20 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 .group.grow{flex:1}
 .group h3{margin:0;font-family:var(--f-display);font-weight:400;font-size:15px;color:var(--gold);letter-spacing:.03em}
 .btns{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
-#buildBtns{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible;max-width:880px}
+#buildBtns{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));overflow:visible;max-width:900px}
 #buildBtns .btn{min-width:0}
 #buildBtns .n,#buildBtns .c{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 #buildBtns .btn{padding-right:6px}
+.ci{display:inline-flex;align-items:center;gap:3px;margin-right:8px}
+.ci i{width:8px;height:8px;border-radius:2px;display:inline-block}
 .btn{position:relative;flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:96px;padding:6px 9px 6px 26px;background:var(--wood2);border:1px solid var(--rule);border-radius:3px;color:var(--text);font:inherit;text-align:left;cursor:pointer;transition:border-color .12s,background .12s}
 .btn:hover{border-color:var(--gold)}
 .btn:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
 .btn.active{border-color:var(--gold);background:#3a2f22}
 .btn.poor{opacity:.45}
+.btn.need{border-color:var(--gold);animation:needpulse 1.4s ease-in-out infinite}
+@keyframes needpulse{50%{box-shadow:0 0 0 3px rgba(217,164,65,.35)}}
+@media (prefers-reduced-motion:reduce){.btn.need{animation:none}}
 .btn kbd{position:absolute;left:7px;top:6px;font:700 11px var(--f-body);color:var(--gold)}
 .btn .n{font-weight:700;font-size:14px;line-height:1.1}
 .btn .c{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -312,16 +317,17 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
           <h3>Ton domaine</h3>
           <p class="g-sub">Appuie sur la touche, puis clique pour poser le bâtiment dans ton territoire (cercle bleu). Seule la mine se pose hors de ton territoire.</p>
           <ol class="steps">
-            <li><b>Bûcheron</b> <kbd>1</kbd> près des arbres. Le bois sert à tout construire.</li>
-            <li><b>Ferme à blé</b> <kbd>3</kbd>. Le blé nourrit tes ouvriers et tes soldats. En famine, ils perdent 50 % de vitesse et 25 % de vie.</li>
-            <li><b>Carrière</b> <kbd>2</kbd>, posée sur un gisement de tuffeau, la pierre blanche de Touraine.</li>
-            <li><b>Atelier d'arcs</b> <kbd>4</kbd> et <b>atelier de lances</b> <kbd>5</kbd>. Chacun transforme 3 bois en une arme.</li>
-            <li><b>Caserne</b> <kbd>6</kbd>. Elle transforme chaque arme en soldat.</li>
-            <li><b>Mine de fer</b> <kbd>7</kbd> sur l'unique gisement de fer, au centre de la carte, à mi-chemin de l'ennemi. Ton mineur rapporte 1 fer par voyage.</li>
-            <li><b>Forge</b> <kbd>8</kbd>. Elle transforme 2 fer et 3 bois en une épée.</li>
-            <li><b>Atelier de flèches</b> <kbd>9</kbd>. Il transforme 2 bois en 4 flèches pour ton seigneur. Construis-le tôt : sans flèches, ton seigneur ne peut plus tirer.</li>
+            <li><b>Réserve</b> <kbd>1</kbd> et <b>grenier</b> <kbd>2</kbd>, gratuits, à placer en premier. Le bois, la pierre et le fer vont à la réserve, le blé au grenier. S'ils sont détruits, leur stock est perdu.</li>
+            <li><b>Bûcheron</b> <kbd>3</kbd> près des arbres. Le bois sert à tout construire.</li>
+            <li><b>Ferme à blé</b> <kbd>5</kbd>. Le blé nourrit tes ouvriers et tes soldats. En famine, ils perdent 50 % de vitesse et 25 % de vie.</li>
+            <li><b>Carrière</b> <kbd>4</kbd>, posée sur un gisement de tuffeau, la pierre blanche de Touraine.</li>
+            <li><b>Atelier d'arcs</b> <kbd>7</kbd> et <b>atelier de lances</b> <kbd>8</kbd>. Chacun transforme 3 bois en une arme.</li>
+            <li><b>Caserne</b> <kbd>9</kbd>. Elle transforme chaque arme en soldat.</li>
+            <li><b>Mine de fer</b> <kbd>0</kbd> sur l'unique gisement de fer, au centre de la carte, à mi-chemin de l'ennemi. Ton mineur rapporte 1 fer par voyage.</li>
+            <li><b>Forge</b> <kbd>)</kbd>. Elle transforme 2 fer et 3 bois en une épée.</li>
+            <li><b>Atelier de flèches</b> <kbd>6</kbd>. Il transforme 2 bois en 4 flèches pour ton seigneur. Construis-le tôt : sans flèches, ton seigneur ne peut plus tirer.</li>
           </ol>
-          <p class="g-note">Les ouvriers sortent seuls du donjon et rapportent tout au stock. Si un ouvrier est tué, son bâtiment s'arrête (icône rouge) et un remplaçant sort du donjon 20 s plus tard. Clic droit ou Échap annule la construction.</p>
+          <p class="g-note">Les ouvriers sortent seuls du donjon et rapportent leur récolte à la réserve ou au grenier. Les armes et les flèches sont rangées au donjon. Tu commences avec un petit stock. Si un ouvrier est tué, son bâtiment s'arrête (icône rouge) et un remplaçant sort du donjon 20 s plus tard. Clic droit ou Échap annule la construction.</p>
         </article>
         <article class="g">
           <h3>Ton armée</h3>
@@ -506,6 +512,8 @@ if(!window.THREE){$('nogl').hidden=false;$('start').disabled=true;return}
 const T=40, GW=60, GH=40, W=GW*T, H=GH*T, TERR=520, S=1/T;
 const DEF={
   keep:    {name:'Donjon',w:3,h:3,hp:1500},
+  reserve: {name:'Réserve',w:2,h:2,cost:{},hp:300,store:'goods'},
+  grenier: {name:'Grenier',w:2,h:2,cost:{},hp:250,store:'food'},
   bucheron:{name:'Bûcheron',w:2,h:2,cost:{bois:6},hp:180,key:1,work:3,out:['bois',3]},
   carriere:{name:'Carrière',w:2,h:2,cost:{bois:12},hp:220,key:2,work:5,out:['pierre',2]},
   ferme:   {name:'Ferme à blé',w:3,h:3,cost:{bois:15},hp:160,key:3,work:9,out:['ble',5]},
@@ -517,7 +525,11 @@ const DEF={
   fleches: {name:'Atelier de flèches',w:2,h:2,cost:{bois:12},hp:180,key:9,work:10,out:['fleche',4],input:{bois:2}},
 };
 const ARMY_MAX=15;
-const BUILD_LIST=['bucheron','carriere','ferme','arcs','lances','caserne','mine','forge','fleches'];
+const BUILD_LIST=['reserve','grenier','bucheron','carriere','ferme','fleches','arcs','lances','caserne','mine','forge'];
+const BUILD_KEYS=['1','2','3','4','5','6','7','8','9','0',')'];
+BUILD_LIST.forEach((t,i)=>DEF[t].key=BUILD_KEYS[i]);
+// stockage : le blé va au grenier, bois/pierre/fer à la réserve, les armes et flèches au donjon
+const STORE_OF={ble:'grenier',bois:'reserve',pierre:'reserve',fer:'reserve'};
 const START_ARROWS=8;
 const UT={
   lord:{hp:300,speed:125,r:13},
@@ -529,7 +541,7 @@ const RESN={bois:'bois',pierre:'pierre',ble:'blé',fer:'fer',arc:'arc',lance:'la
 const NEED={archer:'arc',lancier:'lance',spadassin:'epee'};
 const TEAMC=[{m:'#3f6fd8',hex:0x3f6fd8,dark:0x1f3c86,light:0xb6cbff},{m:'#c9402e',hex:0xc9402e,dark:0x6e1f15,light:0xffb9ad}];
 function teamColor(css){const c=new THREE.Color(css),d=c.clone().multiplyScalar(.5),l=c.clone().lerp(new THREE.Color(0xffffff),.6);return{m:css,hex:c.getHex(),dark:d.getHex(),light:l.getHex()}}
-const AI_ORDER=['bucheron','ferme','bucheron','fleches','carriere','bucheron','arcs','lances','caserne','ferme','bucheron','mine','forge'];
+const AI_ORDER=['reserve','grenier','bucheron','ferme','bucheron','fleches','carriere','bucheron','arcs','lances','caserne','ferme','bucheron','mine','forge'];
 const STONES=[{x:580,y:1010,r:80},{x:W-580,y:1010,r:80}];
 // gisement de fer unique, à égale distance des deux donjons
 const IRON={x:W/2,y:840,r:75,iron:true};
@@ -603,7 +615,10 @@ const dE=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function rng(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function rectDist(px,py,b){const dx=Math.max(b.bx-px,0,px-(b.bx+b.bw)),dy=Math.max(b.by-py,0,py-(b.by+b.bh));return Math.hypot(dx,dy)}
 function rectClamp(px,py,b){return{x:Math.max(b.bx,Math.min(px,b.bx+b.bw)),y:Math.max(b.by,Math.min(py,b.by+b.bh))}}
-function costStr(c){return Object.entries(c).map(([k,v])=>v+' '+RESN[k]).join(' · ')}
+const SHORT={ferme:'Ferme',fleches:'Flèches',arcs:'Arcs',lances:'Lances',mine:'Mine de fer'};
+const RESCOL={bois:'#9a6a35',pierre:'#e3d9c0',fer:'#b8622e',ble:'#e0bd4a'};
+function costHtml(c){const e=Object.entries(c);return e.length?e.map(([k,v])=>`<span class="ci"><i style="background:${RESCOL[k]}"></i>${v}</span>`).join(''):'Gratuit'}
+function costStr(c){const e=Object.entries(c);return e.length?e.map(([k,v])=>v+' '+RESN[k]).join(' · '):'Gratuit'}
 
 // ================= Moteur 3D =================
 const cv=$('game'), ov=$('ov'), octx=ov.getContext('2d');
@@ -850,6 +865,25 @@ const BUILD={
     for(let i=0;i<4;i++)g.add(mk(I(.07),M(i%2?0x5a4a44:0xc8642c),.47+(i%2)*.15,.3+(i>>1)*.04,.45+(i>>1)*.07));
     flag(g,b,.95,-.8,-.8);
   },
+  reserve(g,b){
+    g.add(boxM(1.8,.06,1.8,TM('planks',3,3,0xb59a76)));
+    const wd=M(0x6b4a28);
+    for(const [x,z] of [[-.85,-.85],[.85,-.85],[-.85,.85],[.85,.85]])g.add(boxM(.08,.4,.08,wd,x,0,z));
+    for(const sd of [-1,1]){g.add(boxM(1.78,.05,.05,wd,0,.3,sd*.85));g.add(boxM(.05,.05,1.78,wd,sd*.85,.3,0))}
+    flag(g,b,1,-.85,-.85);
+    b.pile=new THREE.Group();g.add(b.pile);
+  },
+  grenier(g,b){
+    g.add(boxM(1.5,.28,1.3,TM('stone',2,1),-.1,0,-.15));
+    for(const [x,z] of [[-.75,-.72],[.55,-.72],[-.75,.42],[.55,.42]])g.add(cylM(.06,.07,.28,6,M(0x6b4a28),x,0,z));
+    g.add(boxM(1.4,.62,1.2,TM('timber',2,1),-.1,.28,-.15));
+    g.add(mk(gableGeo(1.38,1.6,.7).rotateY(Math.PI/2),TM('tile',2,2),-.1,.9,-.15));
+    g.add(boxM(.3,.36,.04,TM('planks',1,1,0x8a7a6a),-.1,.36,.46));
+    g.add(mk(B(.04,.6,.04).rotateX(.35),M(0x6b4a28),-.22,.18,.62));g.add(mk(B(.04,.6,.04).rotateX(.35),M(0x6b4a28),.02,.18,.62));
+    g.add(boxM(.1,.3,.02,M(TEAMC[b.team].hex),.42,.42,.46));
+    flag(g,b,1,.8,-.75);
+    b.pile=new THREE.Group();b.pile.position.set(.62,0,.62);g.add(b.pile);
+  },
   fleches(g,b){
     hut(g,b,{x:-.25,z:-.3,w:1.15,d:.95,wall:'timber',roof:'thatch'});
     g.add(cylM(.17,.15,.32,8,TM('planks',2,1),.55,0,.45));
@@ -986,7 +1020,7 @@ function newGame(){
   G={t:0,teams:[],buildings:[],units:[],workers:[],arrows:[],fx:[],sel:new Set(),over:null,foodT:0,nid:1,
      ai:{i:0,t:0,wave:5,next:240},stats:{kills:0,recruits:0}};
   for(const id of [0,1]){
-    const tm={id,res:{bois:40,pierre:10,ble:40,fer:0,arc:0,lance:0,epee:0,fleche:START_ARROWS},keep:null,lord:null,pile:null,pileKey:''};
+    const tm={id,res:{bois:40,pierre:15,ble:30,fer:0,arc:0,lance:0,epee:0,fleche:START_ARROWS},keep:null,lord:null,pile:null,pileKey:''};
     G.teams.push(tm);
     tm.keep=addBuilding(id,'keep',id===0?6:51,18);
     tm.lord=spawnUnit(id,'lord',{x:tm.keep.x+(id===0?110:-110),y:tm.keep.y});
@@ -1033,6 +1067,7 @@ function canPlace(team,type,tx,ty){
   for(let sx=x-16;sx<=x+w+16;sx+=20)for(let sy=y-16;sy<=y+h+16;sy+=20)if(rawWater(sx,sy))return 'Trop près de l\'eau';
   const k=G.teams[team].keep;
   if(type!=='mine'&&dist(cx,cy,k.x,k.y)>TERR)return 'Hors de ton territoire';
+  if(d.store&&G.buildings.some(o=>o.team===team&&o.type===type&&!o.dead))return 'Tu as déjà un'+(type==='reserve'?'e réserve':' grenier');
   for(const b of G.buildings)if(!b.dead&&x<b.bx+b.bw&&x+w>b.bx&&y<b.by+b.bh&&y+h>b.by)return 'Emplacement occupé';
   for(const e of [...G.units,...G.workers])if(!e.dead&&e.x>x-e.r&&e.x<x+w+e.r&&e.y>y-e.r&&e.y<y+h+e.r)return 'Des personnes sont sur l\'emplacement';
   const sp=stockPt(team);if(sp.x>x-30&&sp.x<x+w+30&&sp.y>y-10&&sp.y<y+h+24)return 'Laisse libre l\'entrée du donjon';
@@ -1201,7 +1236,9 @@ function hit(e,dmg,showNum){
   if(e.hp<=0){
     e.dead=true;
     if(e.team===1&&e.kind!=='building')G.stats.kills++;
-    if(e.kind==='building'){if(e.worker)e.worker.dead=true;for(let i=0;i<9;i++)puff(e.bx+Math.random()*e.bw,e.by+Math.random()*e.bh,14,.4+Math.random());
+    if(e.kind==='building'){if(e.worker)e.worker.dead=true;
+      if(e.type==='grenier'||e.type==='reserve'){const r=G.teams[e.team].res,lost=e.type==='grenier'?['ble']:['bois','pierre','fer'];
+        for(const k of lost)r[k]=0;toast(e.team===0?(e.type==='grenier'?'Ton grenier est détruit : tout ton blé est perdu !':'Ta réserve est détruite : bois, pierre et fer perdus !'):(e.type==='grenier'?'Grenier ennemi détruit : l\'ennemi n\'a plus de blé':'Réserve ennemie détruite'),e.team===0?'warn':'');}for(let i=0;i<9;i++)puff(e.bx+Math.random()*e.bw,e.by+Math.random()*e.bh,14,.4+Math.random());
       toast((e.team===0?'Tu as perdu : ':'Détruit : ')+DEF[e.type].name.toLowerCase(),e.team===0?'warn':'');}
     else puff(e.x,e.y,e.r+4);
   }
@@ -1266,8 +1303,15 @@ function updWorker(w,dt){
       w.state='toStock';
     }
   }else if(w.state==='toStock'){
-    const sp=stockPt(w.team);
-    if(nav(w,sp.x+((w.b.id%5)-2)*7,sp.y,dt,4)){tm.res[w.carry.type]+=w.carry.n;w.carry=null;w.state='toWork'}
+    const kind=STORE_OF[w.carry.type];let dest;
+    if(kind){
+      const sb=G.buildings.find(o=>o.team===w.team&&o.type===kind&&!o.dead);
+      if(!sb){w.noStore=kind;nav(w,w.b.x,w.b.by+w.b.bh+12,dt,10);return}
+      w.noStore=null;
+      if(w.destB!==sb||w.destVer!==navVer){w.dest=doorSpot(sb);w.destB=sb;w.destVer=navVer}
+      dest=w.dest;
+    }else{const sp=stockPt(w.team);dest={x:sp.x+((w.b.id%5)-2)*7,y:sp.y}}
+    if(nav(w,dest.x,dest.y,dt,4)){tm.res[w.carry.type]+=w.carry.n;w.carry=null;w.state='toWork'}
   }
 }
 function stump(t){const m=mk(STUMPGEO,VC,t.x*S,gh(t.x,t.y),t.y*S);dyn.add(m);G.fx.push({k:'stump',x:t.x,y:t.y,t:0,life:45,obj:m});puff(t.x,t.y,18,.8)}
@@ -1291,7 +1335,7 @@ function releaseShot(){
   if(G.teams[0].res.fleche<1){L.charge=0;return}
   const ch=Math.min(1,(G.t-aim.start)/1.1);
   G.teams[0].res.fleche--;fireArrow(0,L.x,L.y,L.face,ch);L.cd=.35;L.charge=0;
-  if(G.teams[0].res.fleche===0)toast('Dernière flèche tirée : construis un atelier de flèches (touche 9)','warn');
+  if(G.teams[0].res.fleche===0)toast('Dernière flèche tirée : construis un atelier de flèches (touche 6)','warn');
 }
 function updEnemyLord(dt){
   const L=G.teams[1].lord;if(L.dead)return;
@@ -1338,6 +1382,7 @@ function findSpot(team,type){
 }
 function aiTick(dt){
   const A=G.ai,tm=G.teams[1];A.t+=dt;if(A.t<1.5)return;A.t=0;
+  for(const st of ['reserve','grenier'])if(A.i>2&&!G.buildings.some(b=>b.team===1&&b.type===st&&!b.dead)){const sp=findSpot(1,st);if(sp)addBuilding(1,st,sp.tx,sp.ty)}
   if(A.i<AI_ORDER.length){const type=AI_ORDER[A.i];if(afford(tm,type)){const s=findSpot(1,type);if(s){pay(tm,type);addBuilding(1,type,s.tx,s.ty)}A.i++}}
   else{const cap={bucheron:5,ferme:4,carriere:2,arcs:2,lances:2};for(const type of ['bucheron','ferme','arcs','lances','carriere']){const n=G.buildings.filter(b=>b.team===1&&b.type===type).length;if(n<cap[type]&&afford(tm,type)){const s=findSpot(1,type);if(s){pay(tm,type);addBuilding(1,type,s.tx,s.ty)}break}}}
   const cas=G.buildings.find(b=>b.team===1&&b.type==='caserne'&&!b.dead);
@@ -1475,14 +1520,21 @@ function syncScene(dt){
     if(b.wheat){b.wheat.scale.y=.35+.65*b.grow;b.wheat.material.color.setRGB(.48+.4*b.grow,.66+.06*b.grow,.24-.02*b.grow)}
   }
   for(const tm of G.teams){
-    const r=tm.res,n=[Math.min(9,Math.ceil(r.bois/6)),Math.min(6,Math.ceil(r.pierre/4)),Math.min(5,Math.ceil(r.ble/12)),Math.min(4,r.arc),Math.min(4,r.lance),Math.min(6,r.fer),Math.min(3,r.epee),Math.min(5,Math.ceil(r.fleche/4))],key=n.join();
+    const r=tm.res,res=G.buildings.find(o=>o.team===tm.id&&o.type==='reserve'&&!o.dead),gre=G.buildings.find(o=>o.team===tm.id&&o.type==='grenier'&&!o.dead);
+    const n=[Math.min(12,Math.ceil(r.bois/6)),Math.min(9,Math.ceil(r.pierre/4)),Math.min(8,Math.ceil(r.ble/8)),Math.min(4,r.arc),Math.min(4,r.lance),Math.min(9,r.fer),Math.min(3,r.epee),Math.min(5,Math.ceil(r.fleche/4))];
+    // réserve : bois, pierre, fer
+    if(res){const key=n[0]+','+n[1]+','+n[5];if(res.pileKey!==key){res.pileKey=key;const g=res.pile;while(g.children.length)g.remove(g.children[0]);
+      let i=0;for(let row=0;row<3;row++)for(let j=0;j<4-row&&i<n[0];j++,i++)g.add(mk(C(.07,.07,.6,6).rotateX(Math.PI/2),M(0x8a5a2b),-.55+j*.15+row*.075,.1+row*.13,-.45));
+      for(let k=0;k<n[1];k++)g.add(boxM(.2,.15,.2,M(k%2?0xe9e0c8:0xd9ceb3),.2+(k%3)*.22,.06+(k/3|0)*.15,-.45));
+      for(let k=0;k<n[5];k++)g.add(boxM(.17,.08,.1,M(k%2?0x4f5358:0x5d4a40),-.5+(k%3)*.2,.06+(k/3|0)*.08,.4))}}
+    // grenier : sacs de blé
+    if(gre){const key=''+n[2];if(gre.pileKey!==key){gre.pileKey=key;const g=gre.pile;while(g.children.length)g.remove(g.children[0]);
+      for(let k=0;k<n[2];k++){const sk=new THREE.DodecahedronGeometry(.11,0);sk.scale(1,1.2,1);g.add(mk(sk,M(k%2?0xd9b452:0xc9a446),(k%3)*.2-.2,.13+(k/3|0)*.2,(k%2)*.08))}}}
+    // donjon : armes et flèches
+    const key=n.slice(3,5).join()+','+n[6]+','+n[7];
     if(key!==tm.pileKey){tm.pileKey=key;const g=tm.pile;while(g.children.length)g.remove(g.children[0]);
-      let i=0;for(let row=0;row<3;row++)for(let j=0;j<4-row&&i<n[0];j++,i++)g.add(mk(C(.06,.06,.5,6).rotateX(Math.PI/2),M(0x8a5a2b),-.75+j*.13+row*.065,.06+row*.11,0));
-      for(let k=0;k<n[1];k++)g.add(boxM(.16,.12,.16,M(k%2?0xe9e0c8:0xd9ceb3),-.05+(k%3)*.17,(k/3|0)*.12,-.05));
-      for(let k=0;k<n[2];k++)g.add(mk(I(.11),M(0xd9b452),.55+(k%3)*.15,.1+(k/3|0)*.14,.05));
       for(let k=0;k<n[3];k++)g.add(mk(new THREE.TorusGeometry(.14,.015,3,8,Math.PI*.8).rotateX(-Math.PI/2),M(0x6b4520),-.5+k*.1,.03+k*.02,.35));
       for(let k=0;k<n[4];k++)g.add(mk(C(.012,.012,.6,4).rotateZ(Math.PI/2),M(0x8a6a40),.2,.03+k*.03,.32+k*.04));
-      for(let k=0;k<n[5];k++)g.add(boxM(.14,.07,.08,M(k%2?0x4f5358:0x5d4a40),1.0+(k%3)*.15,(k/3|0)*.07,-.05));
       for(let k=0;k<n[6];k++)g.add(mk(B(.5,.03,.04),M(0xd8dde2),.8,.04+k*.04,.35+k*.05));
       for(let k=0;k<n[7];k++)g.add(mk(C(.05,.05,.4,6).rotateZ(Math.PI/2),M(0xc9b48a),-1.0,.05+k*.06,.2+(k%2)*.06));
     }
@@ -1523,7 +1575,7 @@ function drawOverlay(){
   octx.font='700 13px "Alegreya Sans", sans-serif';octx.textAlign='center';octx.lineWidth=3;octx.strokeStyle='rgba(0,0,0,.65)';
   for(const b of G.buildings){
     if(b.hp<b.maxhp){const p=toScreen(b.x,b.y,b.type==='caserne'?2:1.7);bar(p.x,p.y,50*z,b.hp/b.maxhp,TEAMC[b.team].m)}
-    const w=b.worker;if(b.team===0&&w&&!w.dead&&((w.state==='working'&&w.need)||w.idle)){const p=toScreen(b.x,b.y,1.9);const s=w.idle?'Plus d\'arbres':'Manque de '+Object.keys(DEF[b.type].input).filter(k=>G.teams[0].res[k]<DEF[b.type].input[k]).map(k=>RESN[k]).join(' et ');octx.fillStyle='#ffd98a';octx.strokeText(s,p.x,p.y-8);octx.fillText(s,p.x,p.y-8)}
+    const w=b.worker;if(b.team===0&&w&&!w.dead&&((w.state==='working'&&w.need)||w.idle||w.noStore)){const p=toScreen(b.x,b.y,1.9);const s=w.noStore?(w.noStore==='grenier'?'Pas de grenier':'Pas de réserve'):w.idle?'Plus d\'arbres':'Manque de '+Object.keys(DEF[b.type].input).filter(k=>G.teams[0].res[k]<DEF[b.type].input[k]).map(k=>RESN[k]).join(' et ');octx.fillStyle='#ffd98a';octx.strokeText(s,p.x,p.y-8);octx.fillText(s,p.x,p.y-8)}
   }
   for(const b of G.buildings)if(b.team===0&&b.respawn!=null&&!b.dead){const p=toScreen(b.x,b.y,2.1);idleBadge(p.x,p.y,Math.ceil(b.respawn),z)}
   octx.font='800 16px "Alegreya Sans", sans-serif';
@@ -1564,7 +1616,7 @@ const toastBox=$('toast');
 function toast(msg,kind=''){const d=document.createElement('div');d.textContent=msg;if(kind)d.className=kind;toastBox.appendChild(d);while(toastBox.children.length>3)toastBox.firstChild.remove();setTimeout(()=>d.remove(),2700)}
 const bb=$('buildBtns');
 for(const t of BUILD_LIST){const d=DEF[t],b=document.createElement('button');b.className='btn';b.type='button';b.dataset.b=t;
-  b.innerHTML=`<kbd>${d.key}</kbd><span class="n">${d.name}</span><span class="c">${costStr(d.cost)}</span>`;
+  b.title=d.name+" : "+costStr(d.cost);b.innerHTML=`<kbd>${d.key}</kbd><span class="n">${SHORT[t]||d.name}</span><span class="c">${costHtml(d.cost)}</span>`;
   b.addEventListener('click',()=>selectBuild(t));bb.appendChild(b)}
 function selectBuild(t){if(!running)return;placing=placing===t?null:t;aim.charging=false;refreshHud()}
 function recruit(type){
@@ -1583,7 +1635,7 @@ function refreshHud(){
   const tm=G.teams[0],r=tm.res;
   setChip('cBois',r.bois);setChip('cPierre',r.pierre);setChip('cBle',r.ble,r.ble<=0);setChip('cFer',r.fer);setChip('cArc',r.arc);setChip('cLance',r.lance);setChip('cEpee',r.epee);setChip('cFleche',r.fleche,r.fleche<=2);
   setChip('cArmy',G.units.filter(u=>u.team===0&&u.type!=='lord'&&!u.dead).length);
-  for(const b of bb.children){b.classList.toggle('poor',!afford(tm,b.dataset.b));b.classList.toggle('active',placing===b.dataset.b)}
+  for(const b of bb.children){const t=b.dataset.b,missing=DEF[t].store&&!G.buildings.some(o=>o.team===0&&o.type===t&&!o.dead);b.classList.toggle('poor',!afford(tm,t)||(DEF[t].store&&!missing));b.classList.toggle('active',placing===t);b.classList.toggle('need',!!missing)}
   const cas=G.buildings.some(b=>b.team===0&&b.type==='caserne');
   $('bArcher').classList.toggle('poor',!cas||r.arc<1);$('bLancier').classList.toggle('poor',!cas||r.lance<1);$('bSpad').classList.toggle('poor',!cas||r.epee<1);
   for(const [id,L] of [['hpP',G.teams[0].lord]]){const el=$(id);el.querySelector('b').textContent=Math.max(0,Math.ceil(L.hp));el.querySelector('.fill').style.width=Math.max(0,L.hp/L.maxhp*100)+'%'}
@@ -1596,7 +1648,7 @@ function endGame(win){
   refreshHud();setTimeout(()=>{$('end').hidden=false;$('again').focus()},900);
 }
 function showHome(on){$('home').hidden=!on;$('play').hidden=on;if(on&&window.__showView)window.__showView(window.__homeView||'jouer');else document.title='FightForLigeria · partie'}
-function start(){showHome(false);applyColors();if(MAPID!==selMap)setMap(selMap);newGame();running=true;$('end').hidden=true;resize();refreshHud();toast('Pose une cabane de bûcheron près des arbres (touche 1)')}
+function start(){showHome(false);applyColors();if(MAPID!==selMap)setMap(selMap);newGame();running=true;$('end').hidden=true;resize();refreshHud();toast('Place ta réserve (1) et ton grenier (2) près du donjon : ils sont gratuits')}
 function goHome(){running=false;aim.charging=false;placing=null;box=null;$('end').hidden=true;showHome(true);$('start').focus()}
 $('start').addEventListener('click',start);
 $('again').addEventListener('click',start);
@@ -1615,7 +1667,7 @@ cv.addEventListener('mousedown',e=>{
   if(e.button===0){
     if(placing){tryPlace(e.shiftKey);return}
     if(e.shiftKey){box={sx:mouse.sx,sy:mouse.sy};return}
-    const L=G.teams[0].lord;if(!L.dead&&L.cd<=0){if(G.teams[0].res.fleche<1){toast('Plus de flèches : construis un atelier de flèches (touche 9)','warn');return}aim.charging=true;aim.start=G.t}
+    const L=G.teams[0].lord;if(!L.dead&&L.cd<=0){if(G.teams[0].res.fleche<1){toast('Plus de flèches : construis un atelier de flèches (touche 6)','warn');return}aim.charging=true;aim.start=G.t}
   }else if(e.button===2){
     if(placing){placing=null;refreshHud();return}
     orderSelected();
@@ -1655,8 +1707,9 @@ addEventListener('keydown',e=>{
   if(e.code.startsWith('Arrow'))e.preventDefault();
   if(!running)return;
   if(e.code==='Space'||e.code.startsWith('Digit'))e.preventDefault();
-  const m=/^(?:Digit|Numpad)([1-9])$/.exec(e.code);
-  if(m){selectBuild(BUILD_LIST[+m[1]-1]);return}
+  const m=/^(?:Digit|Numpad)([0-9])$/.exec(e.code);
+  if(m){selectBuild(BUILD_LIST[m[1]==='0'?9:+m[1]-1]);return}
+  if(e.code==='Minus'){selectBuild(BUILD_LIST[10]);return}
   if(e.code==='Escape'){placing=null;G.sel.clear();refreshHud()}
   if(e.code==='KeyF'){G.sel.clear();for(const u of G.units)if(u.team===0&&u.type!=='lord'&&!u.dead)G.sel.add(u)}
   if(e.code==='KeyR')recruit('archer');
