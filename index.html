@@ -41,9 +41,10 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 .group.grow{flex:1}
 .group h3{margin:0;font-family:var(--f-display);font-weight:400;font-size:15px;color:var(--gold);letter-spacing:.03em}
 .btns{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
-#buildBtns{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible;max-width:680px}
+#buildBtns{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible;max-width:880px}
 #buildBtns .btn{min-width:0}
-#buildBtns .n{white-space:nowrap}
+#buildBtns .n,#buildBtns .c{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+#buildBtns .btn{padding-right:6px}
 .btn{position:relative;flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:96px;padding:6px 9px 6px 26px;background:var(--wood2);border:1px solid var(--rule);border-radius:3px;color:var(--text);font:inherit;text-align:left;cursor:pointer;transition:border-color .12s,background .12s}
 .btn:hover{border-color:var(--gold)}
 .btn:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
@@ -301,7 +302,7 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
           <dl class="keys">
             <dt><kbd>Z Q S D</kbd></dt><dd>Se déplacer. Z le fait monter à l'écran, S descendre, Q et D aller à gauche et à droite. La caméra le suit.</dd>
             <dt><kbd>Souris</kbd></dt><dd>Viser. Ton seigneur se tourne vers le curseur.</dd>
-            <dt><kbd>Clic gauche</kbd></dt><dd>Maintiens pour bander l'arc, relâche pour tirer. Une charge complète (environ 1 seconde) tire jusqu'à 3 fois plus loin et fait jusqu'à 60 dégâts.</dd>
+            <dt><kbd>Clic gauche</kbd></dt><dd>Maintiens pour bander l'arc, relâche pour tirer. Une charge complète (environ 1 seconde) tire jusqu'à 3 fois plus loin et fait jusqu'à 60 dégâts. Chaque tir coûte une flèche : tu en as 8 au départ.</dd>
             <dt><kbd>Molette</kbd></dt><dd>Zoomer ou dézoomer.</dd>
             <dt><kbd>A</kbd> <kbd>E</kbd></dt><dd>Tourner la caméra autour de ton seigneur (Q et E en clavier QWERTY). Tu peux aussi maintenir le clic molette et glisser.</dd>
           </dl>
@@ -312,12 +313,13 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
           <p class="g-sub">Appuie sur la touche, puis clique pour poser le bâtiment dans ton territoire (cercle bleu). Seule la mine se pose hors de ton territoire.</p>
           <ol class="steps">
             <li><b>Bûcheron</b> <kbd>1</kbd> près des arbres. Le bois sert à tout construire.</li>
-            <li><b>Ferme à blé</b> <kbd>3</kbd>. Sans blé, tes ouvriers travaillent deux fois moins vite.</li>
+            <li><b>Ferme à blé</b> <kbd>3</kbd>. Le blé nourrit tes ouvriers et tes soldats. En famine, ils perdent 50 % de vitesse et 25 % de vie.</li>
             <li><b>Carrière</b> <kbd>2</kbd>, posée sur un gisement de tuffeau, la pierre blanche de Touraine.</li>
             <li><b>Atelier d'arcs</b> <kbd>4</kbd> et <b>atelier de lances</b> <kbd>5</kbd>. Chacun transforme 3 bois en une arme.</li>
             <li><b>Caserne</b> <kbd>6</kbd>. Elle transforme chaque arme en soldat.</li>
             <li><b>Mine de fer</b> <kbd>7</kbd> sur l'unique gisement de fer, au centre de la carte, à mi-chemin de l'ennemi. Ton mineur rapporte 1 fer par voyage.</li>
             <li><b>Forge</b> <kbd>8</kbd>. Elle transforme 2 fer et 3 bois en une épée.</li>
+            <li><b>Atelier de flèches</b> <kbd>9</kbd>. Il transforme 2 bois en 4 flèches pour ton seigneur. Construis-le tôt : sans flèches, ton seigneur ne peut plus tirer.</li>
           </ol>
           <p class="g-note">Les ouvriers sortent seuls du donjon et rapportent tout au stock. Si un ouvrier est tué, son bâtiment s'arrête (icône rouge) et un remplaçant sort du donjon 20 s plus tard. Clic droit ou Échap annule la construction.</p>
         </article>
@@ -368,6 +370,7 @@ dl.keys dd{margin:3px 0 0;font-size:14px;line-height:1.45}
     <div class="chip" id="cFer"><i style="background:#b8622e;border-radius:3px 3px 1px 1px"></i><b>0</b><small>fer</small></div>
     <div class="chip" id="cArc"><i style="background:#6b4520;border-radius:50% 50% 0 0"></i><b>0</b><small>arcs</small></div>
     <div class="chip" id="cLance"><i style="background:#c3c7cc;width:3px;height:12px"></i><b>0</b><small>lances</small></div>
+    <div class="chip" id="cFleche"><i style="background:#d8c49a;width:3px;height:13px;box-shadow:3px 0 0 #d8c49a"></i><b>0</b><small>flèches</small></div>
     <div class="chip" id="cEpee"><i style="background:#d8dde2;width:3px;height:13px"></i><b>0</b><small>épées</small></div>
     <div class="chip" id="cArmy"><i style="background:var(--me);border-radius:50%"></i><b>0</b><small>/ 15 soldats</small></div>
   </div>
@@ -511,20 +514,22 @@ const DEF={
   caserne: {name:'Caserne',w:3,h:2,cost:{bois:15,pierre:23},hp:450,key:6},
   mine:    {name:'Mine de fer',w:2,h:2,cost:{bois:30,pierre:15},hp:300,key:7,work:12,out:['fer',1]},
   forge:   {name:'Forge',w:2,h:2,cost:{bois:20,pierre:20},hp:260,key:8,work:30,out:['epee',1],input:{fer:2,bois:3}},
+  fleches: {name:'Atelier de flèches',w:2,h:2,cost:{bois:12},hp:180,key:9,work:10,out:['fleche',4],input:{bois:2}},
 };
 const ARMY_MAX=15;
-const BUILD_LIST=['bucheron','carriere','ferme','arcs','lances','caserne','mine','forge'];
+const BUILD_LIST=['bucheron','carriere','ferme','arcs','lances','caserne','mine','forge','fleches'];
+const START_ARROWS=8;
 const UT={
   lord:{hp:300,speed:125,r:13},
   archer:{hp:55,speed:78,r:9,range:240,dmg:9,cd:1.5,aggro:290},
   lancier:{hp:120,speed:88,r:10,range:16,dmg:13,cd:1.0,aggro:250},
   spadassin:{hp:420,speed:80,r:11,range:18,dmg:34,cd:.9,aggro:260},
 };
-const RESN={bois:'bois',pierre:'pierre',ble:'blé',fer:'fer',arc:'arc',lance:'lance',epee:'épée'};
+const RESN={bois:'bois',pierre:'pierre',ble:'blé',fer:'fer',arc:'arc',lance:'lance',epee:'épée',fleche:'flèche'};
 const NEED={archer:'arc',lancier:'lance',spadassin:'epee'};
 const TEAMC=[{m:'#3f6fd8',hex:0x3f6fd8,dark:0x1f3c86,light:0xb6cbff},{m:'#c9402e',hex:0xc9402e,dark:0x6e1f15,light:0xffb9ad}];
 function teamColor(css){const c=new THREE.Color(css),d=c.clone().multiplyScalar(.5),l=c.clone().lerp(new THREE.Color(0xffffff),.6);return{m:css,hex:c.getHex(),dark:d.getHex(),light:l.getHex()}}
-const AI_ORDER=['bucheron','ferme','bucheron','carriere','bucheron','arcs','lances','caserne','ferme','bucheron','mine','forge'];
+const AI_ORDER=['bucheron','ferme','bucheron','fleches','carriere','bucheron','arcs','lances','caserne','ferme','bucheron','mine','forge'];
 const STONES=[{x:580,y:1010,r:80},{x:W-580,y:1010,r:80}];
 // gisement de fer unique, à égale distance des deux donjons
 const IRON={x:W/2,y:840,r:75,iron:true};
@@ -845,6 +850,14 @@ const BUILD={
     for(let i=0;i<4;i++)g.add(mk(I(.07),M(i%2?0x5a4a44:0xc8642c),.47+(i%2)*.15,.3+(i>>1)*.04,.45+(i>>1)*.07));
     flag(g,b,.95,-.8,-.8);
   },
+  fleches(g,b){
+    hut(g,b,{x:-.25,z:-.3,w:1.15,d:.95,wall:'timber',roof:'thatch'});
+    g.add(cylM(.17,.15,.32,8,TM('planks',2,1),.55,0,.45));
+    for(let i=0;i<9;i++){const a=i/9*Math.PI*2,rr=.08*(i%3?1:.4);g.add(mk(C(.008,.008,.42,3).rotateZ((Math.random()-.5)*.2),M(0xd8c49a),.55+Math.cos(a)*rr,.5,.45+Math.sin(a)*rr));g.add(mk(B(.05,.06,.01),M(TEAMC[b.team].light),.55+Math.cos(a)*rr,.68,.45+Math.sin(a)*rr))}
+    g.add(mk(C(.24,.24,.06,12).rotateX(Math.PI/2),M(0xe9dcb8),.6,.42,-.55));g.add(mk(C(.15,.15,.065,12).rotateX(Math.PI/2),M(0xc0392b),.6,.42,-.55));g.add(mk(C(.06,.06,.07,10).rotateX(Math.PI/2),M(0xe9dcb8),.6,.42,-.55));
+    g.add(boxM(.04,.42,.04,M(0x5a3a1e),.48,0,-.6));g.add(boxM(.04,.42,.04,M(0x5a3a1e),.72,0,-.6));
+    flag(g,b,.95,-.85,.7);
+  },
   forge(g,b){
     hut(g,b,{x:-.25,z:-.25,w:1.2,d:1,wall:'stone',roof:'slate'});
     g.add(boxM(.26,.75,.26,TM('stone',1,2),.12,.75,-.5));g.add(boxM(.3,.06,.3,M(0x3d3d40),.12,1.5,-.5));
@@ -911,6 +924,7 @@ function unitGeo(type,team){
   return UGEO[k]=g;
 }
 const CARRY={
+  fleche:merge([[C(.01,.01,.5,3).rotateZ(Math.PI/2),0xd8c49a],[C(.01,.01,.5,3).rotateZ(Math.PI/2).translate(0,.03,.02),0xd8c49a],[C(.01,.01,.5,3).rotateZ(Math.PI/2).translate(0,.015,-.02),0xd8c49a],[B(.05,.05,.07).translate(-.26,.015,0),0xeeeeee]]),
   bois:merge([[C(.06,.06,.45,5).rotateX(Math.PI/2),0x8a5a2b],[C(.06,.06,.45,5).rotateX(Math.PI/2).translate(0,.1,.03),0x9a6a35]]),
   pierre:merge([[B(.2,.16,.2),0xe3d9c0]]),
   ble:merge([[I(.13),0xe0bd4a],[K(.05,.1,4).translate(0,.13,0),0xc9a63e]]),
@@ -972,7 +986,7 @@ function newGame(){
   G={t:0,teams:[],buildings:[],units:[],workers:[],arrows:[],fx:[],sel:new Set(),over:null,foodT:0,nid:1,
      ai:{i:0,t:0,wave:5,next:240},stats:{kills:0,recruits:0}};
   for(const id of [0,1]){
-    const tm={id,res:{bois:40,pierre:10,ble:40,fer:0,arc:0,lance:0,epee:0},keep:null,lord:null,pile:null,pileKey:''};
+    const tm={id,res:{bois:40,pierre:10,ble:40,fer:0,arc:0,lance:0,epee:0,fleche:START_ARROWS},keep:null,lord:null,pile:null,pileKey:''};
     G.teams.push(tm);
     tm.keep=addBuilding(id,'keep',id===0?6:51,18);
     tm.lord=spawnUnit(id,'lord',{x:tm.keep.x+(id===0?110:-110),y:tm.keep.y});
@@ -995,13 +1009,18 @@ const RESPAWN=20;
 function spawnWorker(b){
   const sp=stockPt(b.team);
   const w={kind:'worker',team:b.team,x:sp.x,y:sp.y,r:7,hp:30,maxhp:30,speed:76,b,state:'toWork',timer:0,carry:null,tree:null,need:false,flash:0,dead:false,vx:0,vy:0,face:0};
-  b.worker=w;b.respawn=null;G.workers.push(w);unitObj(w);
+  b.worker=w;b.respawn=null;G.workers.push(w);unitObj(w);if(G.teams[b.team].starving)setStarve(w,true);
+}
+function setStarve(e,on){
+  if(e.baseHp===undefined)e.baseHp=e.maxhp;
+  if(!!e.starve===on)return;e.starve=on;
+  if(on){e.maxhp=Math.round(e.baseHp*.75);e.hp=Math.max(1,e.hp*.75)}else{e.maxhp=e.baseHp;e.hp=Math.min(e.maxhp,e.hp/.75)}
 }
 function stockPt(team){const k=G.teams[team].keep;return{x:k.x,y:k.by+k.bh+12}}
 function spawnUnit(team,type,at){
   const s=UT[type];
   const u={kind:'unit',team,type,x:at.x+(Math.random()-.5)*20,y:at.y+(Math.random()-.5)*10,r:s.r,hp:s.hp,maxhp:s.hp,speed:s.speed,order:null,cd:Math.random(),face:team===0?0:Math.PI,flash:0,dead:false,vx:0,vy:0,ai:0,charge:0};
-  u.guard={x:u.x,y:u.y};G.units.push(u);unitObj(u);return u;
+  u.guard={x:u.x,y:u.y};G.units.push(u);unitObj(u);if(type!=='lord'&&G.teams[team].starving)setStarve(u,true);return u;
 }
 function afford(tm,type){const c=DEF[type].cost;return Object.keys(c).every(k=>tm.res[k]>=c[k])}
 function missing(tm,type){const c=DEF[type].cost;return Object.keys(c).filter(k=>tm.res[k]<c[k]).map(k=>(c[k]-tm.res[k])+' '+RESN[k]).join(', ')}
@@ -1155,7 +1174,7 @@ function doorSpot(b){
 function moveTo(e,x,y,dt,tol=4,mul=1){
   const dx=x-e.x,dy=y-e.y,d=Math.hypot(dx,dy);
   if(d<=tol)return true;
-  const st=Math.min(d,e.speed*mul*dt);e.x+=dx/d*st;e.y+=dy/d*st;e.face=Math.atan2(dy,dx);
+  const st=Math.min(d,e.speed*mul*(e.starve?.5:1)*dt);e.x+=dx/d*st;e.y+=dy/d*st;e.face=Math.atan2(dy,dx);
   return d-st<=tol;
 }
 function clampWorld(e){e.x=Math.max(e.r,Math.min(W-e.r,e.x));e.y=Math.max(e.r,Math.min(H-e.r,e.y))}
@@ -1220,7 +1239,7 @@ function updUnit(u,dt){
 }
 function updWorker(w,dt){
   const b=w.b;if(!b||b.dead){w.dead=true;return}
-  const tm=G.teams[w.team],d=DEF[b.type],eff=tm.res.ble>0?1:.5;
+  const tm=G.teams[w.team],d=DEF[b.type],eff=1;
   w.working=false;
   if(w.state==='toWork'){
     if(!w.spot||w.spotVer!==navVer||(b.type==='bucheron'&&(!w.tree||w.tree.wood<=0))){
@@ -1235,6 +1254,7 @@ function updWorker(w,dt){
     w.idle=false;
     if(nav(w,w.spot.x,w.spot.y,dt,4)){w.state='working';w.timer=d.work;w.need=!!d.input;const f=b.type==='bucheron'?w.tree:b;w.face=Math.atan2(f.y-w.y,f.x-w.x)}
   }else if(w.state==='working'){
+    if(b.type==='fleches'&&b.team===1&&tm.res.fleche>=30)return; // l'IA ne stocke pas plus de 30 flèches
     if(w.need){const inp=d.input;if(Object.keys(inp).every(k=>tm.res[k]>=inp[k])){for(const k in inp)tm.res[k]-=inp[k];w.need=false}else return}
     if(b.type==='bucheron'&&(!w.tree||w.tree.wood<=0)){w.state='toWork';return}
     w.timer-=dt*eff;w.anim=(w.anim||0)+dt;w.working=true;
@@ -1268,8 +1288,10 @@ function releaseShot(){
   if(!aim.charging)return;aim.charging=false;
   const L=G&&G.teams[0].lord;
   if(!L||L.dead||!running)return;
+  if(G.teams[0].res.fleche<1){L.charge=0;return}
   const ch=Math.min(1,(G.t-aim.start)/1.1);
-  fireArrow(0,L.x,L.y,L.face,ch);L.cd=.35;L.charge=0;
+  G.teams[0].res.fleche--;fireArrow(0,L.x,L.y,L.face,ch);L.cd=.35;L.charge=0;
+  if(G.teams[0].res.fleche===0)toast('Dernière flèche tirée : construis un atelier de flèches (touche 9)','warn');
 }
 function updEnemyLord(dt){
   const L=G.teams[1].lord;if(L.dead)return;
@@ -1288,7 +1310,7 @@ function updEnemyLord(dt){
     else{const m=Math.hypot(mx,my);if(m>.01){const sp=L.speed*.5;L.x+=mx/m*sp*dt;L.y+=my/m*sp*dt}pushOut(L)}
     L.face=Math.atan2(foe.y-L.y,foe.x-L.x);
     L.ai+=dt;const need=1.4;L.charge=Math.min(1,L.ai/need);
-    if(L.ai>=need&&L.cd<=0&&los){
+    if(L.ai>=need&&L.cd<=0&&los&&G.teams[1].res.fleche>0){G.teams[1].res.fleche--;
       const ch=Math.min(1,.45+d/900),sp=380+560*ch,tt=d/sp;
       const px=foe.x+(foe.vx||0)*tt*.85,py=foe.y+(foe.vy||0)*tt*.85;
       fireArrow(1,L.x,L.y,Math.atan2(py-L.y,px-L.x)+(Math.random()-.5)*.14,ch);
@@ -1367,7 +1389,12 @@ function update(dt){
   for(const f of G.fx)f.t+=dt;
   for(const e of [...G.units,...G.workers,...G.buildings])if(e.flash>0)e.flash-=dt;
   G.foodT+=dt;
-  if(G.foodT>=12){G.foodT=0;for(const tm of G.teams){const n=G.workers.filter(w=>w.team===tm.id&&!w.dead).length+G.units.filter(u=>u.team===tm.id&&!u.dead&&u.type!=='lord').length;const had=tm.res.ble;tm.res.ble=Math.max(0,tm.res.ble-Math.ceil(n/4));if(tm.id===0&&had>0&&tm.res.ble===0)toast('Plus de blé : tes ouvriers ralentissent','warn')}}
+  // le blé nourrit ouvriers et soldats : 1 blé toutes les 12 s pour 4 bouches
+  if(G.foodT>=12){G.foodT=0;for(const tm of G.teams){const n=G.workers.filter(w=>w.team===tm.id&&!w.dead).length+G.units.filter(u=>u.team===tm.id&&!u.dead&&u.type!=='lord').length;tm.res.ble=Math.max(0,tm.res.ble-Math.ceil(n/4))}}
+  // famine : vitesse −50 % et vie −25 % pour les ouvriers et les soldats
+  for(const tm of G.teams){const st=tm.res.ble<=0;if(st===!!tm.starving)continue;tm.starving=st;
+    for(const e of [...G.workers,...G.units])if(e.team===tm.id&&!e.dead&&e.type!=='lord')setStarve(e,st);
+    if(tm.id===0)toast(st?'Famine : plus de blé ! Ouvriers et soldats perdent 50 % de vitesse et 25 % de vie':'Le blé est revenu : tes gens retrouvent leurs forces',st?'warn':'')}
   aiTick(dt);
   for(const u of G.units)if(u.dead&&u.type!=='lord')rm(u);
   for(const w of G.workers)if(w.dead)rm(w);
@@ -1448,7 +1475,7 @@ function syncScene(dt){
     if(b.wheat){b.wheat.scale.y=.35+.65*b.grow;b.wheat.material.color.setRGB(.48+.4*b.grow,.66+.06*b.grow,.24-.02*b.grow)}
   }
   for(const tm of G.teams){
-    const r=tm.res,n=[Math.min(9,Math.ceil(r.bois/6)),Math.min(6,Math.ceil(r.pierre/4)),Math.min(5,Math.ceil(r.ble/12)),Math.min(4,r.arc),Math.min(4,r.lance),Math.min(6,r.fer),Math.min(3,r.epee)],key=n.join();
+    const r=tm.res,n=[Math.min(9,Math.ceil(r.bois/6)),Math.min(6,Math.ceil(r.pierre/4)),Math.min(5,Math.ceil(r.ble/12)),Math.min(4,r.arc),Math.min(4,r.lance),Math.min(6,r.fer),Math.min(3,r.epee),Math.min(5,Math.ceil(r.fleche/4))],key=n.join();
     if(key!==tm.pileKey){tm.pileKey=key;const g=tm.pile;while(g.children.length)g.remove(g.children[0]);
       let i=0;for(let row=0;row<3;row++)for(let j=0;j<4-row&&i<n[0];j++,i++)g.add(mk(C(.06,.06,.5,6).rotateX(Math.PI/2),M(0x8a5a2b),-.75+j*.13+row*.065,.06+row*.11,0));
       for(let k=0;k<n[1];k++)g.add(boxM(.16,.12,.16,M(k%2?0xe9e0c8:0xd9ceb3),-.05+(k%3)*.17,(k/3|0)*.12,-.05));
@@ -1457,6 +1484,7 @@ function syncScene(dt){
       for(let k=0;k<n[4];k++)g.add(mk(C(.012,.012,.6,4).rotateZ(Math.PI/2),M(0x8a6a40),.2,.03+k*.03,.32+k*.04));
       for(let k=0;k<n[5];k++)g.add(boxM(.14,.07,.08,M(k%2?0x4f5358:0x5d4a40),1.0+(k%3)*.15,(k/3|0)*.07,-.05));
       for(let k=0;k<n[6];k++)g.add(mk(B(.5,.03,.04),M(0xd8dde2),.8,.04+k*.04,.35+k*.05));
+      for(let k=0;k<n[7];k++)g.add(mk(C(.05,.05,.4,6).rotateZ(Math.PI/2),M(0xc9b48a),-1.0,.05+k*.06,.2+(k%2)*.06));
     }
   }
   const L=G.teams[0].lord;
@@ -1553,7 +1581,7 @@ $('bSpad').addEventListener('click',()=>recruit('spadassin'));
 function setChip(id,v,low){const el=$(id);el.querySelector('b').textContent=v;el.classList.toggle('low',!!low)}
 function refreshHud(){
   const tm=G.teams[0],r=tm.res;
-  setChip('cBois',r.bois);setChip('cPierre',r.pierre);setChip('cBle',r.ble,r.ble<=0);setChip('cFer',r.fer);setChip('cArc',r.arc);setChip('cLance',r.lance);setChip('cEpee',r.epee);
+  setChip('cBois',r.bois);setChip('cPierre',r.pierre);setChip('cBle',r.ble,r.ble<=0);setChip('cFer',r.fer);setChip('cArc',r.arc);setChip('cLance',r.lance);setChip('cEpee',r.epee);setChip('cFleche',r.fleche,r.fleche<=2);
   setChip('cArmy',G.units.filter(u=>u.team===0&&u.type!=='lord'&&!u.dead).length);
   for(const b of bb.children){b.classList.toggle('poor',!afford(tm,b.dataset.b));b.classList.toggle('active',placing===b.dataset.b)}
   const cas=G.buildings.some(b=>b.team===0&&b.type==='caserne');
@@ -1587,7 +1615,7 @@ cv.addEventListener('mousedown',e=>{
   if(e.button===0){
     if(placing){tryPlace(e.shiftKey);return}
     if(e.shiftKey){box={sx:mouse.sx,sy:mouse.sy};return}
-    const L=G.teams[0].lord;if(!L.dead&&L.cd<=0){aim.charging=true;aim.start=G.t}
+    const L=G.teams[0].lord;if(!L.dead&&L.cd<=0){if(G.teams[0].res.fleche<1){toast('Plus de flèches : construis un atelier de flèches (touche 9)','warn');return}aim.charging=true;aim.start=G.t}
   }else if(e.button===2){
     if(placing){placing=null;refreshHud();return}
     orderSelected();
@@ -1627,7 +1655,7 @@ addEventListener('keydown',e=>{
   if(e.code.startsWith('Arrow'))e.preventDefault();
   if(!running)return;
   if(e.code==='Space'||e.code.startsWith('Digit'))e.preventDefault();
-  const m=/^(?:Digit|Numpad)([1-8])$/.exec(e.code);
+  const m=/^(?:Digit|Numpad)([1-9])$/.exec(e.code);
   if(m){selectBuild(BUILD_LIST[+m[1]-1]);return}
   if(e.code==='Escape'){placing=null;G.sel.clear();refreshHud()}
   if(e.code==='KeyF'){G.sel.clear();for(const u of G.units)if(u.team===0&&u.type!=='lord'&&!u.dead)G.sel.add(u)}

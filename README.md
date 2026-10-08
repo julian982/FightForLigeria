@@ -19,7 +19,7 @@ Clavier et souris requis.
 | Molette | Zoomer |
 | A · E (Q · E en QWERTY) | Tourner la caméra autour du seigneur |
 | Clic molette maintenu | Tourner la caméra en glissant la souris |
-| 1 à 8 | Choisir un bâtiment, clic gauche pour le poser |
+| 1 à 9 | Choisir un bâtiment, clic gauche pour le poser |
 | R · T · Y | Recruter un archer, un lancier, un spadassin |
 | Maj + glisser | Sélectionner des soldats (Ctrl + Maj pour ajouter à la sélection) |
 | F | Sélectionner toute l'armée |
@@ -29,7 +29,9 @@ Clavier et souris requis.
 ## Règles
 
 - **Victoire** : abattre le seigneur ennemi. Sa vie n'est pas affichée.
-- **Ressources** : bois, pierre (tuffeau), blé, fer. Les ouvriers sortent seuls du donjon et rapportent tout au stock. Sans blé, ils travaillent deux fois moins vite.
+- **Ressources** : bois, pierre (tuffeau), blé, fer. Les ouvriers sortent seuls du donjon et rapportent tout au stock.
+- **Nourriture** : ouvriers et soldats mangent 1 blé toutes les 12 s pour 4 bouches. En famine (blé à 0), ils perdent 50 % de vitesse et 25 % de vie.
+- **Flèches du seigneur** : 8 au départ, une par tir. L'atelier de flèches en fabrique d'autres avec du bois. Les archers n'en consomment pas.
 - **Fer** : un seul gisement, au centre de la carte, à égale distance des deux joueurs. La mine est le seul bâtiment qui se pose hors de ton territoire.
 - **Ouvrier tué** : le bâtiment s'arrête (icône rouge) et un remplaçant sort du donjon 20 s plus tard.
 - **Collisions** : arbres, bâtiments et rochers bloquent les unités et les flèches. Les rivières bloquent les unités (sauf sur les ponts), pas les flèches.
@@ -47,6 +49,7 @@ Clavier et souris requis.
 | 6 | Caserne | 15 bois · 23 pierre | Transforme les armes en soldats |
 | 7 | Mine de fer | 30 bois · 15 pierre | 1 fer par voyage |
 | 8 | Forge | 20 bois · 20 pierre | 1 épée pour 2 fer et 3 bois |
+| 9 | Atelier de flèches | 12 bois | 4 flèches pour 2 bois |
 
 ### Unités (15 soldats maximum)
 
