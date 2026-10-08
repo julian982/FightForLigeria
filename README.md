@@ -72,7 +72,7 @@ Clavier et souris requis.
 ## Règles
 
 - **Victoire** : abattre le seigneur ennemi. Sa vie n'est pas affichée.
-- **Ressources** : bois, pierre (tuffeau), blé, fer. Petit stock au départ (30 bois, 10 pierre, 20 blé, 8 flèches).
+- **Ressources** : bois, pierre (tuffeau), blé, fer. Petit stock au départ (30 bois, 10 pierre, 20 blé, 8 flèches) : le bois et la pierre n'arrivent qu'une fois la réserve posée, le blé une fois le grenier posé.
 - **Stockage** : réserve et grenier, gratuits, un de chaque. Bois, pierre et fer vont à la réserve, le blé au grenier, les armes et flèches au donjon. Si la réserve ou le grenier est détruit, son stock est perdu.
 - **Nourriture** : ouvriers et soldats mangent 1 blé toutes les 12 s pour 4 bouches. En famine (blé à 0), ils perdent 50 % de vitesse et 25 % de vie.
 - **Flèches du seigneur** : 8 au départ, une par tir. L'atelier de flèches en fabrique d'autres avec du bois. Les archers n'en consomment pas.

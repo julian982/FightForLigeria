@@ -21,10 +21,12 @@ export function askRecruit(type){
 $('bArcher').addEventListener('click',()=>askRecruit('archer'));
 $('bLancier').addEventListener('click',()=>askRecruit('lancier'));
 $('bSpad').addEventListener('click',()=>askRecruit('spadassin'));
-export function setChip(id,v,low=false){const el=$(id);el.querySelector('b').textContent=v;el.classList.toggle('low',!!low)}
+export function setChip(id,v,low=false,wait=0){const el=$(id);el.querySelector('b').textContent=v;el.classList.toggle('low',!!low);
+  // stock en attente d'une réserve ou d'un grenier
+  let w=el.querySelector('em');if(wait>0){if(!w){w=document.createElement('em');el.appendChild(w)}const t='+'+wait;if(w.textContent!==t)w.textContent=t;el.title=wait+' en attente : pose '+(id==='cBle'?'ton grenier':'ta réserve')}else if(w){w.remove();el.title=''}}
 export function refreshHud(){
   const tm=G.teams[ME],r=tm.res;
-  setChip('cBois',r.bois);setChip('cPierre',r.pierre);setChip('cBle',r.ble,r.ble<=0);setChip('cFer',r.fer);setChip('cArc',r.arc);setChip('cLance',r.lance);setChip('cEpee',r.epee);setChip('cFleche',r.fleche,r.fleche<=2);
+  const sh=tm.stash;setChip('cBois',r.bois,false,sh.bois);setChip('cPierre',r.pierre,false,sh.pierre);setChip('cBle',r.ble,r.ble<=0&&sh.ble<=0,sh.ble);setChip('cFer',r.fer,false,sh.fer);setChip('cArc',r.arc);setChip('cLance',r.lance);setChip('cEpee',r.epee);setChip('cFleche',r.fleche,r.fleche<=2);
   setChip('cArmy',armySize(ME));
   for(const b of bb.children){const t=b.dataset.b,missing=DEF[t].store&&!G.buildings.some(o=>o.team===ME&&o.type===t&&!o.dead);b.classList.toggle('poor',!afford(tm,t)||!!(DEF[t].store&&!missing));b.classList.toggle('active',ui.placing===t);b.classList.toggle('need',!!missing)}
   const cas=G.buildings.some(b=>b.team===ME&&b.type==='caserne');

@@ -27,20 +27,26 @@ export function newGame(opts: GameOptions = {}) {
     ai: { i: 0, t: 0, wave: 5, next: 240 }, stats: { kills: 0, recruits: 0 }, st: [newStats(), newStats()], histT: 0,
     ctrl: [newCtrl(ai[0]), newCtrl(ai[1])] });
   for (const id of [0, 1]) {
-    const tm = { id, res: { ...START_RES }, keep: null, lord: null, starving: false };
+    // le stock de départ attend dans les charrettes : il n'apparaît qu'une fois la réserve (bois, pierre, fer) ou le grenier (blé) posé
+    const tm = { id, res: { ...START_RES, bois: 0, pierre: 0, fer: 0, ble: 0 }, stash: { bois: START_RES.bois, pierre: START_RES.pierre, fer: START_RES.fer, ble: START_RES.ble }, keep: null, lord: null, starving: false };
     G.teams.push(tm);
     tm.keep = addBuilding(id, 'keep', id === 0 ? 6 : GW - 9, 18);
     tm.lord = spawnUnit(id, 'lord', { x: tm.keep.x + (id === 0 ? 110 : -110), y: tm.keep.y });
   }
   buildNav();
-  if (opts.rich) for (const tm of G.teams) Object.assign(tm.res, RICH_RES);
+  if (opts.rich) for (const tm of G.teams) for (const k in RICH_RES) (k in tm.stash ? tm.stash : tm.res)[k] = RICH_RES[k];
   return G;
 }
+/** ressources rangées dans chaque bâtiment de stockage */
+export const STORED: Record<string, string[]> = { reserve: ['bois', 'pierre', 'fer'], grenier: ['ble'] };
+/** le stock en attente rejoint la réserve ou le grenier qu'on vient de poser */
+function unstash(tm, type) { for (const k of STORED[type]) { tm.res[k] += tm.stash[k]; tm.stash[k] = 0 } }
 export function addBuilding(team, type, tx, ty) {
   const d = DEF[type];
   const b: any = { kind: 'building', id: G.nid++, team, type, tx, ty, bx: tx * T, by: ty * T, bw: d.w * T, bh: d.h * T, hp: d.hp, maxhp: d.hp, flash: 0, worker: null, dead: false, grow: 0 };
   b.x = b.bx + b.bw / 2; b.y = b.by + b.bh / 2; b.blocks = blocksOf(b);
   G.buildings.push(b); dirtyNav(); if (type !== 'keep' && G.st) G.st[team].built++;
+  if (d.store) unstash(G.teams[team], type);
   if (d.work) spawnWorker(b);
   return b;
 }
@@ -284,6 +290,8 @@ export function demolish(team, b): string | null {
   const res = G.teams[team].res, r = refundOf(b.type);
   for (const k in r) res[k] += r[k];
   b.dead = true; b.demolished = true;
+  // démolir une réserve ou un grenier : le stock repart dans les charrettes, il reviendra avec le prochain
+  if (DEF[b.type].store) { const tm = G.teams[team]; for (const k of STORED[b.type]) { tm.stash[k] += tm.res[k]; tm.res[k] = 0 } }
   if (b.worker) b.worker.dead = true;
   puff(b.x, b.y, 18, .5);
   return null;
@@ -336,11 +344,11 @@ export function update(dt) {
   for (const e of [...G.units, ...G.workers, ...G.buildings]) if (e.flash > 0) e.flash -= dt;
   G.foodT += dt;
   // le blé nourrit ouvriers et soldats : 1 blé toutes les 12 s pour 4 bouches
-  if (G.foodT >= 12) { G.foodT = 0; for (const tm of G.teams) { const n = G.workers.filter(w => w.team === tm.id && !w.dead).length + G.units.filter(u => u.team === tm.id && !u.dead && u.type !== 'lord').length; tm.res.ble = Math.max(0, tm.res.ble - Math.ceil(n / 4)) } }
+  if (G.foodT >= 12) { G.foodT = 0; for (const tm of G.teams) { const n = G.workers.filter(w => w.team === tm.id && !w.dead).length + G.units.filter(u => u.team === tm.id && !u.dead && u.type !== 'lord').length; let eat = Math.ceil(n / 4); const a = Math.min(eat, tm.res.ble); tm.res.ble -= a; eat -= a; tm.stash.ble = Math.max(0, tm.stash.ble - eat) } }
   for (const tm of G.teams) if (tm.starving) G.st[tm.id].starve += dt;
   G.histT -= dt; if (G.histT <= 0) { G.histT = 10; for (const id of [0, 1]) { G.st[id].army.push(armySize(id)); G.st[id].resH.push({ ...G.st[id].prod }) } }
   // famine : vitesse −50 % et vie −25 % pour les ouvriers et les soldats
-  for (const tm of G.teams) { const st = tm.res.ble <= 0; if (st === !!tm.starving) continue; tm.starving = st;
+  for (const tm of G.teams) { const st = tm.res.ble <= 0 && tm.stash.ble <= 0; if (st === !!tm.starving) continue; tm.starving = st;
     for (const e of [...G.workers, ...G.units]) if (e.team === tm.id && !e.dead && e.type !== 'lord') setStarve(e, st);
     hooks.notify(tm.id, st ? 'Famine : plus de blé ! Ouvriers et soldats perdent 50 % de vitesse et 25 % de vie' : 'Le blé est revenu : tes gens retrouvent leurs forces', st ? 'warn' : '') }
   if (G.ctrl[1].ai) aiTick(dt);

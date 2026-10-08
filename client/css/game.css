@@ -81,3 +81,4 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 #bldPanel .demo{margin-top:10px;width:100%;font:inherit;font-weight:700;color:#fff1c9;background:#6e2a1f;border:1px solid #a8452f;border-radius:3px;padding:6px 8px;cursor:pointer}
 #bldPanel .demo:hover{background:#86331f}
 #bldPanel .demo small{font-weight:500;opacity:.85}
+.chip em{font-style:normal;font-size:12px;font-weight:700;color:#a99d87;margin-left:-2px}

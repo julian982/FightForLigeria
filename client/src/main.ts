@@ -39,7 +39,7 @@ function showHome(on){$('home').hidden=!on;$('play').hidden=on;if(on&&window.__s
 let gameOpts:any={},timeScale=1;
 function start(opts){gameOpts=opts||{};timeScale=gameOpts.speed||1;showHome(false);applyColors();if(worldMap!==selMap)setMap(selMap);startGame(gameOpts);
   ui.running=true;$('end').hidden=true;resize();refreshHud();
-  if(gameOpts.priv)toast('Partie privée'+(timeScale>1?' · vitesse rapide':'')+(gameOpts.rich?' · stock généreux':''));toast('Place ta réserve (1) et ton grenier (2) près du donjon : ils sont gratuits')}
+  if(gameOpts.priv)toast('Partie privée'+(timeScale>1?' · vitesse rapide':'')+(gameOpts.rich?' · stock généreux':''));toast('Ton stock attend dans les charrettes : pose ta réserve (1) et ton grenier (2), ils sont gratuits')}
 function goHome(){exitFps();ui.running=false;if(G)G.ctrl[ME].charging=false;ui.placing=null;ui.box=null;$('end').hidden=true;showHome(true);$('start').focus()}
 $('start').addEventListener('click',()=>start({}));
 $('again').addEventListener('click',()=>start(gameOpts));

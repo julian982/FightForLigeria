@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   loadMap, newGame, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater,
   placeBuilding, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
-  START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish,
+  START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES,
 } from '../src/index';
 
 const DT = 1 / 60;
@@ -72,6 +72,7 @@ describe('arc du seigneur', () => {
 describe('économie et stockage', () => {
   it('sans réserve le bois n\'arrive pas ; avec, il s\'accumule', () => {
     loadMap('amboise'); newGame();
+    G.teams[0].res.bois = 20;
     expect(build('bucheron')).toBeNull();
     const w = G.workers.find(w => w.team === 0);
     run(20);
@@ -114,6 +115,22 @@ describe('bûcheron', () => {
   });
 });
 
+describe('stock de départ', () => {
+  it('n\'apparaît qu\'avec la réserve et le grenier', () => {
+    loadMap('amboise'); newGame();
+    const tm = G.teams[0];
+    expect(tm.res.bois).toBe(0); expect(tm.res.ble).toBe(0); expect(tm.starving).toBeFalsy();
+    expect(build('reserve')).toBeNull();
+    expect(tm.res.bois).toBe(START_RES.bois); expect(tm.res.pierre).toBe(START_RES.pierre); expect(tm.res.ble).toBe(0);
+    expect(build('grenier')).toBeNull();
+    expect(tm.res.ble).toBe(START_RES.ble);
+    // démolir la réserve remet le bois en attente, il revient avec la suivante
+    const r = G.buildings.find(b => b.team === 0 && b.type === 'reserve');
+    expect(demolish(0, r)).toBeNull(); expect(tm.res.bois).toBe(0);
+    update(DT); expect(build('reserve')).toBeNull(); expect(tm.res.bois).toBe(START_RES.bois);
+  });
+});
+
 describe('démolition', () => {
   it('rend la moitié du coût, sauf si le bâtiment est abîmé', () => {
     loadMap('amboise'); newGame();
@@ -142,7 +159,7 @@ describe('famine', () => {
     expect(recruit(0, 'lancier')).toBeNull();
     const u = G.units.find(u => u.team === 0 && u.type === 'lancier');
     expect(u.maxhp).toBe(UT.lancier.hp);
-    G.teams[0].res.ble = 0; update(DT);
+    G.teams[0].res.ble = 0; G.teams[0].stash.ble = 0; update(DT);
     expect(u.starve).toBe(true);
     expect(u.maxhp).toBe(Math.round(UT.lancier.hp * .75));
     expect(notes.some(([t, m]) => t === 0 && /Famine/.test(m))).toBe(true);
