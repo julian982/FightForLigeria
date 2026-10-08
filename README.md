@@ -17,6 +17,8 @@ Clavier et souris requis.
 | Z Q S D | Déplacer ton seigneur (la caméra le suit) |
 | Clic gauche maintenu | Bander l'arc, relâcher pour tirer (la charge augmente portée et dégâts) |
 | Molette | Zoomer |
+| A · E (Q · E en QWERTY) | Tourner la caméra autour du seigneur |
+| Clic molette maintenu | Tourner la caméra en glissant la souris |
 | 1 à 8 | Choisir un bâtiment, clic gauche pour le poser |
 | R · T · Y | Recruter un archer, un lancier, un spadassin |
 | Maj + glisser | Sélectionner des soldats (Ctrl + Maj pour ajouter à la sélection) |
