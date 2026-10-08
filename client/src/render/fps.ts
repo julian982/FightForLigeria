@@ -52,7 +52,7 @@ export function drawFpsOverlay() {
     octx.beginPath(); octx.arc(cx, cy, 22, -Math.PI / 2, -Math.PI / 2 + ch * Math.PI * 2); octx.stroke();
   }
   octx.font = '700 14px "Alegreya Sans", sans-serif'; octx.textAlign = 'center'; octx.lineWidth = 3; octx.strokeStyle = 'rgba(0,0,0,.6)'; octx.fillStyle = '#efe7d6';
-  const s = `${G.teams[ME].res.fleche} flèches · Espace ou clic : tirer · V : quitter la vue seigneur`;
+  const s = `${G.teams[ME].res.fleche} flèches · ZQSD : marcher · Espace ou clic : tirer · V : quitter`;
   octx.strokeText(s, cx, view.VH - 28); octx.fillText(s, cx, view.VH - 28);
   octx.restore();
 }

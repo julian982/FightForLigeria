@@ -81,7 +81,11 @@ export function releaseShot(){if(!G)return;if(!ui.running){cancelCharge(ME);retu
 /** direction ZQSD (écran) convertie en direction monde selon l'orientation de la caméra */
 export function steerLord(){
   if(!G)return;
-  if(ui.fps){steer(ME,0,0,{x:G.teams[ME].lord.x+Math.cos(view.fpsYaw)*200,y:G.teams[ME].lord.y+Math.sin(view.fpsYaw)*200});return}
+  if(ui.fps){
+    // vue seigneur : Z/S avancent et reculent dans la direction du regard, Q/D se décalent de côté
+    const L=G.teams[ME].lord,fx=Math.cos(view.fpsYaw),fy=Math.sin(view.fpsYaw);
+    const f=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0),r=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
+    steer(ME,fx*f-fy*r,fy*f+fx*r,{x:L.x+fx*200,y:L.y+fy*200});return}
   const dx=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
   const dy=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0);
   const cy=Math.cos(view.camYaw),sy=Math.sin(view.camYaw);
