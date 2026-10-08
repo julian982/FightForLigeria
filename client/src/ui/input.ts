@@ -14,14 +14,14 @@ cv.addEventListener('mousedown',e=>{
   if(e.button===1){e.preventDefault();view.rotDrag={x:e.clientX};return}
   if(e.button===0){
     if(ui.placing){tryPlace(e.shiftKey);return}
-    if(e.shiftKey){ui.box={sx:mouse.sx,sy:mouse.sy};return}
-    const err=startCharge(ME);if(err)toast(err,'warn');
+    // clic simple : un soldat ; glisser : encadrer plusieurs soldats
+    ui.box={sx:mouse.sx,sy:mouse.sy};
   }else if(e.button===2){
     if(ui.placing){ui.placing=null;refreshHud();return}
     orderSelected();
   }
 });
-addEventListener('mouseup',e=>{if(e.button!==0)return;if(ui.box){selectBox(e.ctrlKey||e.metaKey);ui.box=null}releaseShot()});
+addEventListener('mouseup',e=>{if(e.button!==0)return;if(ui.box){selectBox(e.shiftKey||e.ctrlKey||e.metaKey);ui.box=null}});
 export function tryPlace(keep){
   const g=ghostTile(),err=placeBuilding(ME,ui.placing,g.tx,g.ty);
   if(err){toast(err);return}
@@ -46,11 +46,16 @@ export function orderSelected(){
   addMark(mouse.wx,mouse.wy);
 }
 addEventListener('keydown',(e:any)=>{
-  if(e.target.closest&&e.target.closest('button')&&(e.code==='Enter'||e.code==='Space'))return;
+  if(e.target.closest&&e.target.closest('button')&&(e.code==='Enter'||e.code==='Space')){
+    // en partie, Espace sert à l'arc : on retire le focus du bouton au lieu de le cliquer
+    if(ui.running&&e.code==='Space'){e.preventDefault();e.target.blur()}else return;
+  }
   keys[e.code]=true;
   if(e.code.startsWith('Arrow'))e.preventDefault();
   if(!ui.running)return;
   if(e.code==='Space'||e.code.startsWith('Digit'))e.preventDefault();
+  // Espace maintenue : bander l'arc ; relâchée : tirer
+  if(e.code==='Space'){if(!e.repeat){const err=startCharge(ME);if(err)toast(err,'warn')}return}
   const m=/^(?:Digit|Numpad)([0-9])$/.exec(e.code);
   if(m){selectBuild(BUILD_LIST[m[1]==='0'?9:+m[1]-1]);return}
   if(e.code==='Minus'){selectBuild(BUILD_LIST[10]);return}
@@ -60,7 +65,7 @@ addEventListener('keydown',(e:any)=>{
   if(e.code==='KeyT')askRecruit('lancier');
   if(e.code==='KeyY')askRecruit('spadassin');
 });
-addEventListener('keyup',e=>{keys[e.code]=false});
+addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='Space')releaseShot()});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;releaseShot()});
 
 /** relâche l'arc (si la partie est en pause, on annule simplement la charge) */

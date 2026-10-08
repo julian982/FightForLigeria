@@ -7,7 +7,7 @@ import { initHome } from './ui/home';
 import { glOk, renderer, scene, camera, resize, camT } from './render/engine';
 import { rebuildWorld } from './render/world';
 import { applyColors } from './render/models';
-import { syncScene, updateCam, onRemoved, onReset } from './render/sync';
+import { syncScene, updateCam, onRemoved, onReset, toScreen } from './render/sync';
 import { drawOverlay } from './render/overlay';
 import { drawMapBase, makeMiniBase, renderMini } from './render/minimap';
 import { toast, refreshHud } from './ui/hud';
@@ -80,4 +80,4 @@ function frame(now){
 }
 requestAnimationFrame(frame);
 // accès pour le débogage et les tests de bout en bout
-window.__fief={get G(){return G},get trees(){return trees},setMap,pickMap,pushOut,update,start,findSpot,addBuilding,pay,afford,spawnUnit,syncScene,frame:()=>frame(performance.now())};
+window.__fief={get G(){return G},get trees(){return trees},setMap,pickMap,pushOut,update,start,findSpot,addBuilding,pay,afford,spawnUnit,syncScene,sel,toScreen,frame:()=>frame(performance.now())};
