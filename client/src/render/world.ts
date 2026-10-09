@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { BRIDGE_Y, GH, GW, GXV, H, IRON, MAP, ROCKS, S, STONES, T, TERR, W, dist, gh, hgrid, inBridge, rng, wDist, walkWater } from '@ffl/shared';
 import { B, I, M, TEAMC, TM, VC, boxM, cylM, merge, mk, world } from './engine';
+import { buildGrass, resetLife, rippleMat, setRipples, waterMat } from './life';
 export const terrRing=[];
 export let groundMesh:any=null;
 /** pose une géométrie sur le relief */
@@ -27,11 +28,11 @@ export function buildWorld(){
   g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
   const ground=new THREE.Mesh(g,VC);ground.receiveShadow=true;world.add(ground);groundMesh=ground;
   // rivières : une nappe d'eau, des reflets, des bancs de sable
-  {const wp=new THREE.PlaneGeometry(GW,GH,1,1);wp.rotateX(-Math.PI/2);wp.translate(GW/2,0,GH/2);
-    const water=new THREE.Mesh(wp,new THREE.MeshStandardMaterial({color:0x4b86ad,roughness:.3,metalness:.1,transparent:true,opacity:.93,flatShading:true}));
+  {const wp=new THREE.PlaneGeometry(GW,GH,GW*2,GH*2);wp.rotateX(-Math.PI/2);wp.translate(GW/2,0,GH/2);
+    const water=new THREE.Mesh(wp,waterMat);
     water.receiveShadow=true;world.add(water);
     const rip=[];for(let i=0;i<500&&rip.length<90;i++){const x=r()*W,y=r()*H;if(walkWater(x,y)&&wDist(x+30,y)===0&&wDist(x-30,y)===0)rip.push([B(.3+r()*.6,.01,.035).translate(x*S,.02,y*S),0x9cc7e0])}
-    if(rip.length)world.add(new THREE.Mesh(merge(rip),new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:.55})));
+    if(rip.length){const rm=new THREE.Mesh(merge(rip),rippleMat);world.add(rm);setRipples(rm)}
     for(const [x,y,l] of MAP.sand){const sb=new THREE.DodecahedronGeometry(.5,0);sb.scale(l,.12,1);world.add(mk(sb,M(0xe3d3a0),x*S,.06,y*S))}
   }
   // ponts de tuffeau au tablier de bois
@@ -46,7 +47,7 @@ export function buildWorld(){
       v.push([B(.02,.22,.02).translate(x*S,.11,y*S),0x6b4a28],[I(.075).translate(x*S,.22,y*S),r()<.5?0x4e7f34:0x5f8f3e]);if(r()<.25)v.push([I(.03).translate(x*S+.05,.18,y*S),0x5a2a5a])}
     const vm=mk(drape(merge(v)),VC);vm.castShadow=false;world.add(vm);}
   // bordure de diorama
-  world.add(mk(B(GW,1.4,GH),M(0x6b4b2e),GW/2,-.72,GH/2));
+  world.add(mk(B(GW,1.4,GH),M(0x6b4b2e),GW/2,-.8,GH/2));
   world.add(mk(B(GW+.6,2.2,GH+.6),M(0x5b5850),GW/2,-2.5,GH/2));
   // gisements de pierre
   for(const s of STONES){
@@ -78,6 +79,8 @@ export function buildWorld(){
     else{for(let j=0;j<3;j++)deco.push([B(.06,.06,.06).translate(x*S+(r()-.5)*.3,.08,y*S+(r()-.5)*.3),[0xf2e27a,0xe8e3d6,0xd47ab0][r()*3|0]])}
   }
   const dm=mk(drape(merge(deco)),VC);dm.castShadow=false;world.add(dm);
+  // herbe qui ondule au vent
+  world.add(buildGrass(r));
   // cercles de territoire
   for(const [id,kx] of [[0,300],[1,W-300]]){
     const rg=new THREE.RingGeometry(TERR*S-.07,TERR*S,160);rg.rotateX(-Math.PI/2);rg.translate(kx*S,0,780*S);drape(rg,.1);
@@ -89,5 +92,5 @@ export function buildWorld(){
 /** reconstruit tout le décor pour la carte chargée */
 export function rebuildWorld(){
   while(world.children.length){const o=world.children[world.children.length-1];world.remove(o);o.traverse((n:any)=>{if(n.geometry)n.geometry.dispose()})}
-  buildWorld();
+  resetLife();buildWorld();
 }

@@ -9,6 +9,7 @@ import { rebuildWorld } from './render/world';
 import { applyColors } from './render/models';
 import { syncScene, updateCam, onRemoved, onReset, toScreen } from './render/sync';
 import { drawOverlay } from './render/overlay';
+import { updateLife, lifeDebug } from './render/life';
 import { drawMapBase, makeMiniBase, renderMini } from './render/minimap';
 import { toast, refreshHud, renderSelBar, renderBldPanel } from './ui/hud';
 import { fpsCam, updateFps, exitFps } from './render/fps';
@@ -73,7 +74,7 @@ function frame(now){
   if(ui.running){steerLord();const n=timeScale>1?2:1;for(let i=0;i<n&&ui.running;i++)update(dt*timeScale/n)}
   for(const u of [...sel])if(u.dead)sel.delete(u);
   if($('play').hidden){requestAnimationFrame(frame);return}
-  updateCam(dt);syncScene(dt);
+  updateCam(dt);syncScene(dt);updateLife(dt);
   if(ui.fps){updateFps();renderer.render(scene,fpsCam)}else renderer.render(scene,camera);
   drawOverlay();renderSelBar();renderBldPanel();updateCursor();
   hudT+=dt;if(hudT>.15&&ui.running){hudT=0;refreshHud()}
@@ -82,4 +83,4 @@ function frame(now){
 }
 requestAnimationFrame(frame);
 // accès pour le débogage et les tests de bout en bout
-window.__fief={get G(){return G},get trees(){return trees},setMap,pickMap,pushOut,update,start,findSpot,addBuilding,pay,afford,spawnUnit,syncScene,sel,toScreen,frame:()=>frame(performance.now())};
+window.__fief={get G(){return G},get trees(){return trees},setMap,pickMap,pushOut,update,start,findSpot,addBuilding,pay,afford,spawnUnit,syncScene,sel,toScreen,lifeDebug,frame:()=>frame(performance.now())};

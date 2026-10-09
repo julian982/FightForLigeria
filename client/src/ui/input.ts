@@ -52,8 +52,8 @@ export function targetUnderMouse(){
   return tgt;
 }
 // curseur « épées croisées » quand des soldats sont sélectionnés et qu'on survole un ennemi
-const SWORDS='url("data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><g stroke="#1a0d08" stroke-width="5" stroke-linecap="round"><path d="M5 5 L23 23"/><path d="M27 5 L9 23"/><path d="M19 27 L27 19"/><path d="M5 19 L13 27"/></g><g stroke-linecap="round"><path d="M5 5 L23 23" stroke="#f2ede4" stroke-width="2.5"/><path d="M27 5 L9 23" stroke="#f2ede4" stroke-width="2.5"/><path d="M19 27 L27 19" stroke="#e3634f" stroke-width="3"/><path d="M5 19 L13 27" stroke="#e3634f" stroke-width="3"/></g></svg>')+'") 16 16, crosshair';
-let curMode='';
+export const SWORDS='url("data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><g stroke="#1a0d08" stroke-width="5" stroke-linecap="round"><path d="M5 5 L23 23"/><path d="M27 5 L9 23"/><path d="M19 27 L27 19"/><path d="M5 19 L13 27"/></g><g stroke-linecap="round"><path d="M5 5 L23 23" stroke="#f2ede4" stroke-width="2.5"/><path d="M27 5 L9 23" stroke="#f2ede4" stroke-width="2.5"/><path d="M19 27 L27 19" stroke="#e3634f" stroke-width="3"/><path d="M5 19 L13 27" stroke="#e3634f" stroke-width="3"/></g></svg>')+'") 16 16, crosshair';
+export let curMode='';
 export function updateCursor(){
   const attack=ui.running&&!ui.fps&&!ui.placing&&!ui.box&&sel.size>0&&mouse.in&&!!targetUnderMouse();
   const m=attack?'attack':'';if(m===curMode)return;curMode=m;cv.style.cursor=attack?SWORDS:'';

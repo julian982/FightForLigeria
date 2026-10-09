@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { DEF, G, S, T, afford, canPlace, gh, stockPt, trees } from '@ffl/shared';
 import { B, C, CAM_D, I, ISO, M, SUN_OFF, VC, VCF, boxM, camT, camera, dyn, mk, scene, sun } from './engine';
+import { birdsTakeOff, life } from './life';
 import { AGEO, CARRY, RINGGEO, RINGMAT, STUMPGEO, arrowObj, buildingObj, treeObj, unitObj } from './models';
 import { groundMesh, terrRing } from './world';
 import { $, ME, keys, mouse, sel, tilt, ui, view } from '../state';
@@ -111,6 +112,8 @@ export function fxObj(f){
 }
 /** une entité quitte la partie : on retire son maillage */
 export function onRemoved(e){
+  // un arbre abattu : quelques oiseaux s'en envolent
+  if(e.wood!==undefined&&!e.kind&&e.obj&&Math.random()<.6)birdsTakeOff(e.x,e.y);
   if(e.obj){dyn.remove(e.obj);if(e.k==='puff')e.obj.material.dispose();e.obj=null}
   if(e.ring){dyn.remove(e.ring);e.ring=null}
 }
