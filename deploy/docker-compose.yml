@@ -1,5 +1,5 @@
 # Serveur de jeu FightForLigeria sur le VPS : projet Docker séparé de TTS.
-# À placer dans /opt/fightforligeria/docker-compose.yml (voir deploy/README.md).
+# Placé automatiquement dans /opt/fightforligeria/ par la GitHub Action (voir deploy/README.md).
 name: fightforligeria
 
 services:
@@ -9,11 +9,10 @@ services:
     restart: unless-stopped
     environment:
       PORT: "2567"
-    # aucun port publié sur internet : seul le Nginx de TTS le joint, par le réseau « ffl-proxy »
-    expose:
-      - "2567"
-    networks:
-      - ffl-proxy
+    # écoute seulement sur la machine elle-même : le Nginx de TTS (en réseau « host ») le joint sur 127.0.0.1:2567,
+    # internet ne peut pas le joindre directement
+    ports:
+      - "127.0.0.1:2567:2567"
     # garde-fous : il ne peut pas prendre les ressources de TTS
     mem_limit: 512m
     cpus: 1.0
@@ -28,8 +27,4 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-
-networks:
-  # réseau partagé uniquement entre ce conteneur et le Nginx de TTS (créé une fois : docker network create ffl-proxy)
-  ffl-proxy:
-    external: true
+# pas de réseau partagé : ce projet a son propre réseau Docker, sans accès à celui de TTS (tts-net, MariaDB…)
