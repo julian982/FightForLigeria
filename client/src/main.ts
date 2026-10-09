@@ -13,7 +13,7 @@ import { drawMapBase, makeMiniBase, renderMini } from './render/minimap';
 import { toast, refreshHud, renderSelBar, renderBldPanel } from './ui/hud';
 import { fpsCam, updateFps, exitFps } from './render/fps';
 import { endGame } from './ui/end';
-import { steerLord } from './ui/input';
+import { steerLord, updateCursor } from './ui/input';
 
 initHome();
 if(!glOk){$('nogl').hidden=false;$('start').disabled=true}
@@ -75,7 +75,7 @@ function frame(now){
   if($('play').hidden){requestAnimationFrame(frame);return}
   updateCam(dt);syncScene(dt);
   if(ui.fps){updateFps();renderer.render(scene,fpsCam)}else renderer.render(scene,camera);
-  drawOverlay();renderSelBar();renderBldPanel();
+  drawOverlay();renderSelBar();renderBldPanel();updateCursor();
   hudT+=dt;if(hudT>.15&&ui.running){hudT=0;refreshHud()}
   miniT+=dt;if(miniT>.2){miniT=0;renderMini()}
   requestAnimationFrame(frame);

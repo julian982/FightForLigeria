@@ -45,10 +45,22 @@ export function selectBox(add){
   if(!add||!pick.length)sel.clear();
   for(const u of pick)sel.add(u);
 }
+/** l'ennemi (soldat, ouvrier, seigneur ou bâtiment) sous le curseur */
+export function targetUnderMouse(){
+  let tgt=pickNear([...G.units,...G.workers].filter(e=>e.team!==ME&&!e.dead),34*view.ppu/46);
+  if(!tgt)for(const b of G.buildings){if(b.team!==ME&&!b.dead&&b.type!=='keep'&&mouse.wx>b.bx&&mouse.wx<b.bx+b.bw&&mouse.wy>b.by&&mouse.wy<b.by+b.bh){tgt=b;break}}
+  return tgt;
+}
+// curseur « épées croisées » quand des soldats sont sélectionnés et qu'on survole un ennemi
+const SWORDS='url("data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><g stroke="#1a0d08" stroke-width="5" stroke-linecap="round"><path d="M5 5 L23 23"/><path d="M27 5 L9 23"/><path d="M19 27 L27 19"/><path d="M5 19 L13 27"/></g><g stroke-linecap="round"><path d="M5 5 L23 23" stroke="#f2ede4" stroke-width="2.5"/><path d="M27 5 L9 23" stroke="#f2ede4" stroke-width="2.5"/><path d="M19 27 L27 19" stroke="#e3634f" stroke-width="3"/><path d="M5 19 L13 27" stroke="#e3634f" stroke-width="3"/></g></svg>')+'") 16 16, crosshair';
+let curMode='';
+export function updateCursor(){
+  const attack=ui.running&&!ui.fps&&!ui.placing&&!ui.box&&sel.size>0&&mouse.in&&!!targetUnderMouse();
+  const m=attack?'attack':'';if(m===curMode)return;curMode=m;cv.style.cursor=attack?SWORDS:'';
+}
 export function orderSelected(){
   const units=[...sel];if(!units.length)return;
-  let tgt=pickNear([...G.units,...G.workers].filter(e=>e.team!==0&&!e.dead),34*view.ppu/46);
-  if(!tgt)for(const b of G.buildings){if(b.team!==0&&b.type!=='keep'&&mouse.wx>b.bx&&mouse.wx<b.bx+b.bw&&mouse.wy>b.by&&mouse.wy<b.by+b.bh){tgt=b;break}}
+  const tgt=targetUnderMouse();
   if(tgt){orderAttack(ME,units,tgt);addMark(tgt.x,tgt.y);return}
   orderMove(ME,units,mouse.wx,mouse.wy);
   addMark(mouse.wx,mouse.wy);
