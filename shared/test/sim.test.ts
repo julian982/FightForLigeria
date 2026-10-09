@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   loadMap, newGame, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater,
   placeBuilding, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
-  START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRON, shotClear, fireArrow,
+  START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRON, shotClear, fireArrow, orderAttack,
 } from '../src/index';
 
 const DT = 1 / 60;
@@ -200,6 +200,30 @@ describe('gisements', () => {
     const a = G.arrows[G.arrows.length - 1];
     run(.4);
     expect(a.x).toBeGreaterThan(st.x + st.r);
+  });
+});
+
+describe('soldats du joueur en position', () => {
+  function setup() { loadMap('amboise'); newGame(); G.ai.next = 1e9; G.teams[1].lord.x = 2700; G.teams[0].lord.x = 100 }
+  it('un archer ne poursuit pas : il tire seulement ce qui est à portée', () => {
+    setup();
+    const a = spawnUnit(0, 'archer', { x: 1000, y: 600 }); const x0 = a.x, y0 = a.y;
+    const far = spawnUnit(1, 'lancier', { x: 1300, y: 600 }); far.speed = 0;
+    run(3);
+    expect(Math.hypot(a.x - x0, a.y - y0)).toBeLessThan(10);
+    expect(far.hp).toBe(far.maxhp);
+    far.x = 1180; far.guard = { x: 1180, y: far.y }; run(4);
+    expect(far.hp).toBeLessThan(far.maxhp);
+    expect(Math.hypot(a.x - x0, a.y - y0)).toBeLessThan(10);
+  });
+  it('un lancier attend au contact, mais va frapper sur ordre', () => {
+    setup();
+    const l = spawnUnit(0, 'lancier', { x: 1000, y: 600 }); const x0 = l.x;
+    const e = spawnUnit(1, 'archer', { x: 1080, y: 600 }); e.speed = 0; e.cd = 99;
+    run(2);
+    expect(Math.abs(l.x - x0)).toBeLessThan(10);
+    orderAttack(0, [l], e); run(4);
+    expect(e.dead || e.hp < e.maxhp).toBe(true);
   });
 });
 

@@ -160,14 +160,29 @@ function engage(u, t, dt) {
   const s = UT[u.type], d = edgeDist(u, t), range = rangeOf(u).range;
   if (u.noLos > 0) u.noLos -= dt;
   if (d > range || u.noLos > 0) { const p = t.kind === 'building' ? rectClamp(u.x, u.y, t) : t; nav(u, p.x, p.y, dt, 0) }
-  else {
-    u.face = Math.atan2(t.y - u.y, t.x - u.x);
-    if (u.cd <= 0) {
-      if (u.type === 'archer') { const p = t.kind === 'building' ? rectClamp(u.x, u.y, t) : t; if (!shotClear(u.x, u.y, p.x, p.y, t)) { u.noLos = .7; return } }
-      u.cd = s.cd * (.9 + Math.random() * .2);
-      if (u.type === 'archer') unitArrow(u, t);
-      else { hit(t, s.dmg, false); u.lunge = .15 } }
-  }
+  else if (!strike(u, t)) u.noLos = .7;
+}
+/** frappe ou tire sur une cible déjà à portée, sans bouger. Renvoie false si un obstacle cache la cible. */
+function strike(u, t) {
+  const s = UT[u.type];
+  u.face = Math.atan2(t.y - u.y, t.x - u.x);
+  if (u.cd > 0) return true;
+  if (u.type === 'archer') { const p = t.kind === 'building' ? rectClamp(u.x, u.y, t) : t; if (!shotClear(u.x, u.y, p.x, p.y, t)) return false }
+  u.cd = s.cd * (.9 + Math.random() * .2);
+  if (u.type === 'archer') unitArrow(u, t);
+  else { hit(t, s.dmg, false); u.lunge = .15 }
+  return true;
+}
+/** l'ennemi le plus proche déjà à portée (et visible pour un archer) */
+function enemyInRange(u) {
+  const range = rangeOf(u).range; let best = null, bd = range;
+  const consider = t => { const d = edgeDist(u, t); if (d > bd) return;
+    if (u.type === 'archer') { const p = t.kind === 'building' ? rectClamp(u.x, u.y, t) : t; if (!shotClear(u.x, u.y, p.x, p.y, t)) return }
+    bd = d; best = t };
+  for (const e of G.units) if (e.team !== u.team && !e.dead) consider(e);
+  for (const w of G.workers) if (w.team !== u.team && !w.dead) consider(w);
+  for (const b of G.buildings) if (b.team !== u.team && !b.dead && b.type !== 'keep') consider(b);
+  return best;
 }
 function updUnit(u, dt) {
   u.cd -= dt; if (u.lunge) u.lunge = Math.max(0, u.lunge - dt);
@@ -175,6 +190,13 @@ function updUnit(u, dt) {
   if (o && o.type === 'move') { if (nav(u, o.x, o.y, dt, 5)) { u.order = null; u.guard = { x: u.x, y: u.y } } return }
   if (o && o.type === 'attack') { if (o.target.dead) { u.order = null; u.guard = { x: u.x, y: u.y }; return } engage(u, o.target, dt); return }
   if (o && o.type === 'amove') { const e = nearestEnemy(u, aggro); if (e) { engage(u, e, dt); return } if (nav(u, o.x, o.y, dt, 12)) { u.order = null; u.guard = { x: u.x, y: u.y } } return }
+  // soldats du joueur : ils tiennent leur poste comme des tourelles et ne frappent que ce qui est à portée
+  if (!G.ctrl[u.team].ai) {
+    const t = enemyInRange(u);
+    if (t) strike(u, t);
+    else if (dist(u.x, u.y, u.guard.x, u.guard.y) > 8) nav(u, u.guard.x, u.guard.y, dt, 8, .8);
+    return;
+  }
   const e = nearestEnemy(u, aggro);
   if (e && dist(e.x, e.y, u.guard.x, u.guard.y) < 460) engage(u, e, dt);
   else if (dist(u.x, u.y, u.guard.x, u.guard.y) > 8) nav(u, u.guard.x, u.guard.y, dt, 8, .8);

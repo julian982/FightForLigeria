@@ -47,7 +47,7 @@ export function selectBox(add){
 }
 export function orderSelected(){
   const units=[...sel];if(!units.length)return;
-  let tgt=pickNear([...G.units,...G.workers].filter(e=>e.team!==0&&!e.dead),24*view.ppu/46);
+  let tgt=pickNear([...G.units,...G.workers].filter(e=>e.team!==0&&!e.dead),34*view.ppu/46);
   if(!tgt)for(const b of G.buildings){if(b.team!==0&&b.type!=='keep'&&mouse.wx>b.bx&&mouse.wx<b.bx+b.bw&&mouse.wy>b.by&&mouse.wy<b.by+b.bh){tgt=b;break}}
   if(tgt){orderAttack(ME,units,tgt);addMark(tgt.x,tgt.y);return}
   orderMove(ME,units,mouse.wx,mouse.wy);

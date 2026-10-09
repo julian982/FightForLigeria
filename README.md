@@ -66,7 +66,7 @@ Clavier et souris requis.
 | F | Sélectionner toute l'armée |
 | Clic sur un bâtiment | Fenêtre d'info ; « Démolir » le retire et rend la moitié du coût (s'il est intact) |
 | Barre « Sélection » | Clic sur un type (archers…) pour ne garder que lui, Maj + clic pour le retirer |
-| Clic droit | Déplacer la sélection, ou attaquer la cible visée |
+| Clic droit | Déplacer la sélection, ou attaquer la cible visée (ils s'en approchent juste à portée) |
 | Échap | Annuler la construction ou la sélection |
 
 ## Règles
@@ -98,6 +98,8 @@ Clavier et souris requis.
 | ) | Forge | 20 bois · 20 pierre | 1 épée pour 2 fer et 3 bois |
 
 ### Unités (15 soldats maximum)
+
+Sans ordre, tes soldats tiennent leur position : ils ne poursuivent personne et ne frappent que ce qui est à leur portée (tir pour les archers, contact pour les lanciers et spadassins).
 
 | Unité | Arme | PV | Dégâts | Particularité |
 |---|---|---|---|---|
