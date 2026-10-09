@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   loadMap, newGame, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater,
   placeBuilding, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
-  START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRON, shotClear, fireArrow, orderAttack,
+  START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRON, shotClear, fireArrow, orderAttack, applyCommand, makeSnapshot, B_TYPES, forfeit,
 } from '../src/index';
 
 const DT = 1 / 60;
@@ -248,5 +248,38 @@ describe('Elo', () => {
     expect(ELO.rank(1000)).toBe('Bois I');
     expect(ELO.rank(850)).toBe('Bois III');
     expect(ELO.rank(2600)).toBe('Rubis I');
+  });
+});
+
+describe('protocole réseau', () => {
+  it('applique les commandes et produit des instantanés cohérents', () => {
+    loadMap('amboise'); newGame({ ai: [false, false] });
+    expect(applyCommand(0, { c: 'place', type: 'reserve', tx: 10, ty: 16 })).toBeNull();
+    expect(applyCommand(0, { c: 'place', type: 'reserve', tx: 14, ty: 16 })).toMatch(/déjà/);
+    expect(applyCommand(1, { c: 'place', type: 'keep', tx: 30, ty: 16 })).toBeNull(); // interdit, ignoré
+    expect(G.buildings.filter(b => b.type === 'keep').length).toBe(2);
+    // commandes mal formées : ignorées sans planter
+    for (const bad of [null, {}, { c: 'nope' }, { c: 'move', ids: 'x' }, { c: 'steer', dx: 'a', dy: 1e9 }, { c: 'attack', ids: [1], k: 'u', id: 999 }]) expect(() => applyCommand(0, bad)).not.toThrow();
+    applyCommand(1, { c: 'steer', dx: -1, dy: 0 });
+    const x0 = G.teams[1].lord.x; run(1);
+    expect(G.teams[1].lord.x).toBeLessThan(x0 - 80);
+    // on ne commande pas les soldats de l'autre
+    const foe = spawnUnit(1, 'lancier', { x: 2000, y: 700 });
+    applyCommand(0, { c: 'move', ids: [foe.id], x: 100, y: 100 });
+    expect(foe.order).toBeNull();
+    const s = makeSnapshot([]);
+    expect(s.b.some(b => b[1] === 0 && B_TYPES[b[2]] === 'reserve')).toBe(true);
+    expect(s.u.find(u => u[0] === G.teams[1].lord.id)).toBeTruthy();
+    expect(s.tm[0].res.bois).toBe(START_RES.bois);
+    expect(JSON.parse(JSON.stringify(s))).toEqual(s);
+    // les effets ne partent qu'une fois
+    hit(G.teams[1].lord, 5, true);
+    expect(makeSnapshot([]).fx.length).toBeGreaterThan(0);
+    expect(makeSnapshot([]).fx.length).toBe(0);
+  });
+  it('l\'abandon donne la victoire à l\'autre', () => {
+    loadMap('amboise'); newGame({ ai: [false, false] });
+    forfeit(0);
+    expect(G.over).toBe(true); expect(G.winner).toBe(1);
   });
 });

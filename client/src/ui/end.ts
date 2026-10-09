@@ -16,13 +16,13 @@ export function endGame(winner){
 }
 // ---- statistiques de fin de partie ----
 export function statsHtml(){
-  const A=G.st[0],E=G.st[1],pct=s=>s.shot?Math.round(s.hit/s.shot*100)+' %':'—',cases=v=>v?(v/T).toFixed(1).replace('.',',')+' cases':'—';
+  const A=G.st[ME],E=G.st[1-ME],pct=s=>s.shot?Math.round(s.hit/s.shot*100)+' %':'—',cases=v=>v?(v/T).toFixed(1).replace('.',',')+' cases':'—';
   const mmss=v=>{v=Math.round(v);return v?Math.floor(v/60)+' min '+String(v%60).padStart(2,'0')+' s':'—'};
   // better : 1 = plus haut gagne, -1 = plus bas gagne, 0 = neutre
   const row=(label,a,e,better=1,fmt=v=>v)=>{
     const wa=better&&a!==e&&(better>0?a>e:a<e),we=better&&a!==e&&!wa;
     return `<tr><th scope="row">${label}</th><td class="${wa?'best':''}">${fmt(a)}</td><td class="${we?'best':''}">${fmt(e)}</td></tr>`};
-  const head=`<thead><tr><th></th><th><i style="background:${TEAMC[0].m}"></i>Toi</th><th><i style="background:${TEAMC[1].m}"></i>Ennemi</th></tr></thead>`;
+  const head=`<thead><tr><th></th><th><i style="background:${TEAMC[ME].m}"></i>Toi</th><th><i style="background:${TEAMC[1-ME].m}"></i>Ennemi</th></tr></thead>`;
   const sec=(title,rows,cls='')=>`<section class="es ${cls}"><h3>${title}</h3><table>${head}<tbody>${rows}</tbody></table></section>`;
   const combat=row('Soldats ennemis tués',A.killS,E.killS)+row('Ouvriers ennemis tués',A.killW,E.killW)+row('Soldats perdus',A.lostS,E.lostS,-1)+row('Ouvriers perdus',A.lostW,E.lostW,-1)+row('Soldats recrutés',A.recruits,E.recruits);
   const lord=row('Flèches tirées',A.shot,E.shot,0)+row('Flèches touchées',A.hit,E.hit)+`<tr><th scope="row">Précision</th><td class="${A.shot&&E.shot&&A.hit/A.shot>E.hit/E.shot?'best':''}">${pct(A)}</td><td class="${A.shot&&E.shot&&E.hit/E.shot>A.hit/A.shot?'best':''}">${pct(E)}</td></tr>`+row('Dégâts infligés',A.dmg,E.dmg)+row('Plus long tir réussi',A.longest,E.longest,1,cases);
@@ -35,7 +35,7 @@ export function statsHtml(){
 export const RES_CHART:Record<string,[string,string[]|null]>={total:['Total',null],bois:['Bois',['bois']],pierre:['Pierre',['pierre']],ble:['Blé',['ble']],fer:['Fer',['fer']]};
 export function showResChart(k){
   const keys=RES_CHART[k][1]||['bois','pierre','ble','fer'],sum=h=>keys.reduce((t,r)=>t+(h[r]||0),0);
-  const a=G.st[0].resH.map(sum),e=G.st[1].resH.map(sum);
+  const a=G.st[ME].resH.map(sum),e=G.st[1-ME].resH.map(sum);
   $('resChart').innerHTML=lineChart(a,e,'Ressources produites ('+RES_CHART[k][0].toLowerCase()+') cumulées, toutes les 10 secondes');
   for(const b of (Array.from(document.querySelectorAll('#resTabs button')) as any[]))b.setAttribute('aria-pressed',b.dataset.r===k);
 }
@@ -49,5 +49,5 @@ export function lineChart(a,e,label){
     <g stroke="rgba(239,231,214,.12)">${[0,.5,1].map(f=>`<line x1="${L}" x2="${W_-Rr}" y1="${Y(mx*f)}" y2="${Y(mx*f)}"/>`).join('')}</g>
     <g fill="#a99d87" font-size="11" font-family="Alegreya Sans, sans-serif">${[0,Math.round(mx/2),mx].map(v=>`<text x="${L-6}" y="${Y(v)+4}" text-anchor="end">${v}</text>`).join('')}
       <text x="${L}" y="${H_-6}">0 min</text><text x="${W_-Rr}" y="${H_-6}" text-anchor="end">${mins} min</text></g>
-    ${line(e,TEAMC[1].m)}${line(a,TEAMC[0].m)}</svg>`;
+    ${line(e,TEAMC[1-ME].m)}${line(a,TEAMC[ME].m)}</svg>`;
 }

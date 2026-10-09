@@ -29,6 +29,8 @@ jobs:
         run: npm run typecheck
       - name: Tests de la simulation
         run: npm test
+      - name: Test du serveur de jeu (deux joueurs en ligne)
+        run: npm run test:server
       - name: Construction du client
         run: npm run build
       - name: Préparation du site

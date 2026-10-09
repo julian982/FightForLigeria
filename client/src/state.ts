@@ -1,7 +1,8 @@
 // État propre au client : ce que voit et fait le joueur local (pas la simulation).
 
 /** l'équipe que contrôle ce client */
-export const ME = 0;
+export let ME = 0;
+export function setMe(team: number) { ME = team }
 export const ui = {
   /** une partie est en cours (pas en pause sur l'accueil, pas finie) */
   running: false,

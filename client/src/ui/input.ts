@@ -1,5 +1,6 @@
 // Clavier et souris : ZQSD + arc pour le seigneur, placement des bâtiments, sélection et ordres.
-import { BUILD_LIST, G, S, cancelCharge, orderAttack, orderMove, placeBuilding, releaseCharge, startCharge, steer } from '@ffl/shared';
+import { BUILD_LIST, G, S } from '@ffl/shared';
+import { act } from '../net/act';
 import { cv } from '../render/engine';
 import { enterFps, exitFps, fpsLook } from '../render/fps';
 import { addMark, ghostTile, screenToWorld, toScreen } from '../render/sync';
@@ -14,7 +15,7 @@ cv.addEventListener('wheel',e=>{e.preventDefault();if(ui.fps)return;
   if(e.shiftKey){tilt((e.deltaY||e.deltaX)>0?-.08:.08);return}
   view.ppu=Math.max(40,Math.min(72,view.ppu*(e.deltaY>0?.9:1.1)))},{passive:false});
 cv.addEventListener('mousedown',e=>{
-  if(ui.fps){if(e.button===0&&ui.running){const c:any=cv;if(!document.pointerLockElement)try{c.requestPointerLock()}catch(er){}const err=startCharge(ME);if(err)toast(err,'warn')}return}
+  if(ui.fps){if(e.button===0&&ui.running){const c:any=cv;if(!document.pointerLockElement)try{c.requestPointerLock()}catch(er){}const err=act.charge();if(err)toast(err,'warn')}return}
   setMouse(e);if(!ui.running)return;
   if(e.button===1){e.preventDefault();view.rotDrag={x:e.clientX,y:e.clientY};return}
   if(e.button===0){
@@ -28,14 +29,14 @@ cv.addEventListener('mousedown',e=>{
 });
 addEventListener('mouseup',e=>{if(e.button!==0)return;if(ui.fps){releaseShot();return}if(ui.box){selectBox(e.shiftKey||e.ctrlKey||e.metaKey);ui.box=null}});
 export function tryPlace(keep){
-  const g=ghostTile(),err=placeBuilding(ME,ui.placing,g.tx,g.ty);
+  const g=ghostTile(),err=act.place(ui.placing,g.tx,g.ty);
   if(err){toast(err);return}
   if(!keep)ui.placing=null;refreshHud();
 }
 export function pickNear(list,maxPx){let best=null,bd=maxPx;for(const e of list){const p=toScreen(e.x,e.y,.4),d=Math.hypot(p.x-mouse.sx,p.y-mouse.sy);if(d<bd){bd=d;best=e}}return best}
 export function selectBox(add){
   const x0=Math.min(ui.box.sx,mouse.sx),x1=Math.max(ui.box.sx,mouse.sx),y0=Math.min(ui.box.sy,mouse.sy),y1=Math.max(ui.box.sy,mouse.sy);
-  const mine=G.units.filter(u=>u.team===0&&u.type!=='lord'&&!u.dead);
+  const mine=G.units.filter(u=>u.team===ME&&u.type!=='lord'&&!u.dead);
   let pick;
   ui.selB=null;
   if(x1-x0<6&&y1-y0<6){const u=pickNear(mine,22*view.ppu/46);pick=u?[u]:[];
@@ -61,8 +62,8 @@ export function updateCursor(){
 export function orderSelected(){
   const units=[...sel];if(!units.length)return;
   const tgt=targetUnderMouse();
-  if(tgt){orderAttack(ME,units,tgt);addMark(tgt.x,tgt.y);return}
-  orderMove(ME,units,mouse.wx,mouse.wy);
+  if(tgt){act.attack(units,tgt);addMark(tgt.x,tgt.y);return}
+  act.move(units,mouse.wx,mouse.wy);
   addMark(mouse.wx,mouse.wy);
 }
 addEventListener('keydown',(e:any)=>{
@@ -75,7 +76,7 @@ addEventListener('keydown',(e:any)=>{
   if(!ui.running)return;
   if(e.code==='Space'||e.code.startsWith('Digit'))e.preventDefault();
   // Espace maintenue : bander l'arc ; relâchée : tirer
-  if(e.code==='Space'){if(!e.repeat){const err=startCharge(ME);if(err)toast(err,'warn')}return}
+  if(e.code==='Space'){if(!e.repeat){const err=act.charge();if(err)toast(err,'warn')}return}
   // V : vue seigneur, rien d'autre que le tir à l'arc tant qu'on y est
   if(e.code==='KeyV'){if(ui.fps)exitFps();else enterFps();return}
   if(ui.fps){if(e.code==='Escape')exitFps();return}
@@ -83,7 +84,7 @@ addEventListener('keydown',(e:any)=>{
   if(m){selectBuild(BUILD_LIST[m[1]==='0'?9:+m[1]-1]);return}
   if(e.code==='Minus'){selectBuild(BUILD_LIST[10]);return}
   if(e.code==='Escape'){ui.placing=null;ui.selB=null;sel.clear();refreshHud()}
-  if(e.code==='KeyF'){sel.clear();for(const u of G.units)if(u.team===0&&u.type!=='lord'&&!u.dead)sel.add(u)}
+  if(e.code==='KeyF'){sel.clear();for(const u of G.units)if(u.team===ME&&u.type!=='lord'&&!u.dead)sel.add(u)}
   if(e.code==='KeyR')askRecruit('archer');
   if(e.code==='KeyT')askRecruit('lancier');
   if(e.code==='KeyY')askRecruit('spadassin');
@@ -92,7 +93,7 @@ addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='Space')releaseShot(
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;releaseShot()});
 
 /** relâche l'arc (si la partie est en pause, on annule simplement la charge) */
-export function releaseShot(){if(!G)return;if(!ui.running){cancelCharge(ME);return}releaseCharge(ME)}
+export function releaseShot(){if(!G)return;if(!ui.running){act.cancel();return}act.release()}
 /** direction ZQSD (écran) convertie en direction monde selon l'orientation de la caméra */
 export function steerLord(){
   if(!G)return;
@@ -100,9 +101,9 @@ export function steerLord(){
     // vue seigneur : Z/S avancent et reculent dans la direction du regard, Q/D se décalent de côté
     const L=G.teams[ME].lord,fx=Math.cos(view.fpsYaw),fy=Math.sin(view.fpsYaw);
     const f=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0),r=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
-    steer(ME,fx*f-fy*r,fy*f+fx*r,{x:L.x+fx*200,y:L.y+fy*200});return}
+    act.steer(fx*f-fy*r,fy*f+fx*r,{x:L.x+fx*200,y:L.y+fy*200});return}
   const dx=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
   const dy=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0);
   const cy=Math.cos(view.camYaw),sy=Math.sin(view.camYaw);
-  steer(ME,dx*sy+dy*cy,dy*sy-dx*cy,mouse.in?{x:mouse.wx,y:mouse.wy}:null);
+  act.steer(dx*sy+dy*cy,dy*sy-dx*cy,mouse.in?{x:mouse.wx,y:mouse.wy}:null);
 }

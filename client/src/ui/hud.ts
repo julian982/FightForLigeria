@@ -1,5 +1,6 @@
 // Le bandeau du haut (ressources, vie du seigneur) et celui du bas (bâtiments, recrutement).
-import { BUILD_LIST, DEF, G, RESN, afford, armySize, cancelCharge, demolish, missing, recruit, refundOf } from '@ffl/shared';
+import { BUILD_LIST, DEF, G, RESN, afford, armySize, missing, refundOf } from '@ffl/shared';
+import { act } from '../net/act';
 import { $, ME, sel, ui } from '../state';
 
 export const SHORT={ferme:'Ferme',fleches:'Flèches',arcs:'Arcs',lances:'Lances',mine:'Mine de fer'};
@@ -12,10 +13,10 @@ export const bb=$('buildBtns');
 for(const t of BUILD_LIST){const d=DEF[t],b=document.createElement('button');b.className='btn';b.type='button';b.dataset.b=t;
   b.title=d.name+" : "+costStr(d.cost);b.innerHTML=`<kbd>${d.key}</kbd><span class="n">${SHORT[t]||d.name}</span><span class="c">${costHtml(d.cost)}</span>`;
   b.addEventListener('click',()=>selectBuild(t));bb.appendChild(b)}
-export function selectBuild(t){if(!ui.running)return;ui.placing=ui.placing===t?null:t;ui.selB=null;cancelCharge(ME);refreshHud()}
+export function selectBuild(t){if(!ui.running)return;ui.placing=ui.placing===t?null:t;ui.selB=null;act.cancel();refreshHud()}
 export function askRecruit(type){
   if(!ui.running)return;
-  const err=recruit(ME,type);if(err){toast(err);return}
+  const err=act.recruit(type);if(err){toast(err);return}
   refreshHud();
 }
 $('bArcher').addEventListener('click',()=>askRecruit('archer'));
@@ -68,5 +69,5 @@ export function renderBldPanel(){
 }
 bldPanel.addEventListener('click',(e:any)=>{
   if(e.target.closest('.x')){ui.selB=null;renderBldPanel();return}
-  if(e.target.closest('.demo')&&ui.selB){const err=demolish(ME,ui.selB);if(err)toast(err,'warn');else{toast(DEF[ui.selB.type].name+' démoli');ui.selB=null;refreshHud()}renderBldPanel()}
+  if(e.target.closest('.demo')&&ui.selB){const err=act.demolish(ui.selB);if(err)toast(err,'warn');else{toast(DEF[ui.selB.type].name+' démoli');ui.selB=null;refreshHud()}renderBldPanel()}
 });

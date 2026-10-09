@@ -21,9 +21,10 @@ export function newCtrl(ai: boolean) { return { ai, dx: 0, dy: 0, aim: null as n
 /** démarre une partie sur la carte chargée (voir loadMap) */
 export function newGame(opts: GameOptions = {}) {
   hooks.reset();
-  setTrees(genTrees());
+  // chaque arbre a un numéro stable : le serveur et les clients génèrent la même forêt
+  setTrees(genTrees().map((t, i) => (t.id = i, t)));
   const ai = opts.ai || [false, true];
-  setG({ t: 0, teams: [], buildings: [], units: [], workers: [], arrows: [], fx: [], over: null, winner: null, foodT: 0, nid: 1, uid: 1,
+  setG({ t: 0, teams: [], buildings: [], units: [], workers: [], arrows: [], fx: [], over: null, winner: null, foodT: 0, nid: 1, uid: 1, aid: 1,
     ai: { i: 0, t: 0, wave: 5, next: 240 }, stats: { kills: 0, recruits: 0 }, st: [newStats(), newStats()], histT: 0,
     ctrl: [newCtrl(ai[0]), newCtrl(ai[1])] });
   for (const id of [0, 1]) {
@@ -105,7 +106,7 @@ function doorSpot(b) {
 export function fireArrow(team, x, y, ang, charge) {
   const sp = 380 + 560 * charge, md = 200 + 520 * charge, dmg = Math.round(10 + 50 * charge);
   const a = { team, x: x + Math.cos(ang) * 15, y: y + Math.sin(ang) * 15, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, d: 0, md, dmg, lord: true, z: charge };
-  G.arrows.push(a); G.st[team].shot++;
+  (a as any).id = G.aid++; G.arrows.push(a); G.st[team].shot++;
 }
 function lordHit(a, dmg) { const s = G.st[a.team]; s.hit++; s.dmg += dmg; s.longest = Math.max(s.longest, a.d) }
 /** portée et rayon de détection d'une unité (les archers de l'IA voient et tirent plus loin) */
@@ -115,7 +116,7 @@ function unitArrow(u, t) {
   const d = dist(u.x, u.y, p.x, p.y), tt = d / sp, px = p.x + (t.vx || 0) * tt * .7, py = p.y + (t.vy || 0) * tt * .7;
   const ang = Math.atan2(py - u.y, px - u.x) + (Math.random() - .5) * .08; u.face = ang;
   const a = { team: u.team, x: u.x + Math.cos(ang) * 10, y: u.y + Math.sin(ang) * 10, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, d: 0, md: Math.min(rangeOf(u).range + 60, d + 40), dmg: s.dmg, lord: false, z: 0 };
-  G.arrows.push(a);
+  (a as any).id = G.aid++; G.arrows.push(a);
 }
 /** nuage de poussière (effet visuel, sans incidence sur le jeu) */
 function puff(x, y, r, h = .3) {
@@ -286,12 +287,17 @@ export function placeBuilding(team, type, tx, ty): string | null {
   pay(tm, type); addBuilding(team, type, tx, ty); return null;
 }
 /** recrute un soldat à la caserne. Renvoie la raison du refus, ou null. */
-export function recruit(team, type): string | null {
+/** pourquoi on ne peut pas recruter ce soldat (ou null si c'est possible) */
+export function recruitError(team, type): string | null {
   const tm = G.teams[team], need = NEED[type];
-  const cas = G.buildings.find(b => b.team === team && b.type === 'caserne' && !b.dead);
-  if (!cas) return 'Construis d\'abord une caserne';
+  if (!G.buildings.some(b => b.team === team && b.type === 'caserne' && !b.dead)) return 'Construis d\'abord une caserne';
   if (tm.res[need] < 1) return ({ archer: 'Il te faut un arc : construis un atelier d\'arcs', lancier: 'Il te faut une lance : construis un atelier de lances', spadassin: 'Il te faut une épée : prends le fer au centre de la carte (mine) puis forge-la' })[type];
   if (armySize(team) >= ARMY_MAX) return 'Armée complète : ' + ARMY_MAX + ' soldats maximum';
+  return null;
+}
+export function recruit(team, type): string | null {
+  const err = recruitError(team, type); if (err) return err;
+  const tm = G.teams[team], need = NEED[type], cas = G.buildings.find(b => b.team === team && b.type === 'caserne' && !b.dead);
   tm.res[need]--; spawnUnit(team, type, { x: cas.x, y: cas.by + cas.bh + 14 }); if (team === 0) G.stats.recruits++;
   return null;
 }
@@ -305,10 +311,15 @@ export function orderMove(team, units, x, y) {
 /** remboursement d'une démolition : la moitié du coût, arrondie en dessous */
 export function refundOf(type) { const c = DEF[type].cost || {}, r: Record<string, number> = {}; for (const k in c) { const v = Math.floor(c[k] / 2); if (v > 0) r[k] = v } return r }
 /** démolit un de ses bâtiments intact : il disparaît tout de suite et rend la moitié de son coût. Renvoie la raison du refus, ou null. */
-export function demolish(team, b): string | null {
+/** pourquoi on ne peut pas démolir ce bâtiment (ou null si c'est possible) */
+export function demolishError(team, b): string | null {
   if (!b || b.dead || b.team !== team) return 'Ce bâtiment ne t\'appartient pas';
   if (b.type === 'keep') return 'Le donjon ne peut pas être démoli';
   if (b.hp < b.maxhp) return 'Bâtiment endommagé : impossible de le démolir';
+  return null;
+}
+export function demolish(team, b): string | null {
+  const err = demolishError(team, b); if (err) return err;
   const res = G.teams[team].res, r = refundOf(b.type);
   for (const k in r) res[k] += r[k];
   b.dead = true; b.demolished = true;
@@ -331,6 +342,8 @@ function separate() {
       const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy), min = a.r + b.r;
       if (d < min && d > .01) { const p = (min - d) / 2, nx = dx / d, ny = dy / d; a.x -= nx * p; a.y -= ny * p; b.x += nx * p; b.y += ny * p } } }
 }
+/** un joueur abandonne (déconnexion, retour au menu) : l'autre gagne */
+export function forfeit(team) { if (!G.over) finish(1 - team) }
 function finish(winner) {
   G.over = true; G.winner = winner;
   for (const c of G.ctrl) c.charging = false;

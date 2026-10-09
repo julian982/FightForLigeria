@@ -24,7 +24,7 @@ fightforligeria/
 │   └── src/
 │       ├── render/     moteur 3D, décor, modèles, synchro scène, minicarte
 │       └── ui/         accueil, HUD, entrées clavier/souris, écran de fin
-├── server/      → le futur serveur multijoueur (pas encore développé)
+├── server/      → le serveur de jeu en ligne (Node.js + Colyseus) : lobbies privés 1v1
 └── .github/workflows/pages.yml → tests puis déploiement sur GitHub Pages à chaque push
 ```
 
@@ -45,7 +45,20 @@ npm test             # tests de la simulation
 npm run typecheck    # vérification des types
 npm run build        # site statique dans client/dist
 npm run build:single # un seul fichier HTML autonome dans client/dist-single
+npm run dev:server   # serveur de jeu en ligne sur ws://localhost:2567
+npm run test:server  # test de bout en bout : deux joueurs se connectent et jouent
 ```
+
+## Jouer en ligne avec un ami (serveur local)
+
+1. Sur ton PC : `npm install`, puis `npm run dev:server` (le serveur de jeu) et, dans un autre terminal, `npm run dev` (le jeu).
+2. Ouvre le jeu (`http://localhost:5173`), va dans **Partie privée**, mets **Ami** en face, puis **Créer la partie en ligne** : un code s'affiche (ex. `LOIRE-7K2M`).
+3. Ton ami entre ce code dans **Rejoindre un ami**. La partie démarre dès qu'il arrive : tu joues à gauche, lui à droite.
+   - Sur le même réseau (même box) : il ouvre `http://<ton-ip-locale>:5173`, le jeu trouve tout seul le serveur.
+   - À distance : il faut ouvrir le port 2567 (et 5173) de ta box vers ton PC, et qu'il mette `ws://<ton-ip-publique>:2567` dans le champ **Serveur** du lobby.
+4. Quitter la partie (ou perdre la connexion) compte comme un abandon : l'autre gagne.
+
+Le serveur fait autorité : il fait tourner la même simulation (`shared/`) et les navigateurs ne lui envoient que des commandes. Le solo contre l'IA reste entièrement dans le navigateur.
 
 Clavier et souris requis.
 

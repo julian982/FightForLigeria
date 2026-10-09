@@ -149,19 +149,25 @@ export function initHome(){
       for(const sg of $('teams').querySelectorAll('.seg'))for(const b of sg.children)b.addEventListener('click',()=>{L.slots[L.mode][+sg.dataset.t][+sg.dataset.s]=b.dataset.v;lobRender()});
       segSet('lobMode',L.mode);segSet('lobStock',L.stock);segSet('lobSpeed',L.speed);
       let mp='amboise';try{mp=window.__getMap?window.__getMap():(localStorage.getItem('ffl.map')||'amboise')}catch(e){}segSet('lobMap',mp);
-      const ok=L.mode==='1v1'&&sl[1][0]==='ia';
-      $('lobLaunch').disabled=!ok;
-      $('lobNote').textContent=ok?'Partie non classée contre l\'IA, avec tes réglages.':(L.mode==='2v2'?'Le 2v2 arrivera avec le jeu en ligne.':'Pour jouer contre un ami, il faudra le jeu en ligne.')+' Mets une IA en face en 1v1 pour lancer tout de suite.';
+      const vsAi=L.mode==='1v1'&&sl[1][0]==='ia',vsFriend=L.mode==='1v1'&&sl[1][0]==='ami',hosting=window.__onlineState&&window.__onlineState()==='hosting';
+      $('lobLaunch').disabled=!(vsAi||vsFriend);
+      $('lobLaunch').textContent=vsFriend?(hosting?'Annuler la partie en ligne':'Créer la partie en ligne'):'Lancer la partie';
+      $('srvRow').hidden=!vsFriend;
+      if(!hosting)$('lobNote').textContent=vsAi?'Partie non classée contre l\'IA, avec tes réglages.':vsFriend?'Partie en ligne non classée : crée-la, puis envoie le code à ton ami. Le serveur de jeu doit être lancé (voir le README).':'Le 2v2 arrivera plus tard. Mets une IA ou un ami en face en 1v1.';
     }
     for(const [box,key] of [['lobMode','mode'],['lobStock','stock'],['lobSpeed','speed']])
       for(const b of $(box).children)b.addEventListener('click',()=>{L[key]=b.dataset.v;lobRender()});
     for(const b of $('lobMap').children)b.addEventListener('click',()=>{window.__pickMap&&window.__pickMap(b.dataset.v);lobRender()});
-    $('lobLaunch').addEventListener('click',()=>{if(!$('lobLaunch').disabled&&window.__startGame)window.__startGame({rich:L.stock==='riche',speed:+L.speed,priv:true})});
+    $('lobLaunch').addEventListener('click',async()=>{if($('lobLaunch').disabled)return;
+      if(L.mode==='1v1'&&L.slots['1v1'][1][0]==='ami'){let mp='amboise';try{mp=window.__getMap()}catch(e){}if(window.__onlineHost)await window.__onlineHost({map:mp,rich:L.stock==='riche'});lobRender();return}
+      if(window.__startGame)window.__startGame({rich:L.stock==='riche',speed:+L.speed,priv:true})});
+    window.__lobRender=lobRender;
     $('copyCode').addEventListener('click',()=>{const c=$('lobCode').textContent,b=$('copyCode');
       const done=()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1500)};
       try{navigator.clipboard.writeText(c).then(done,()=>{getSelection().selectAllChildren($('lobCode'));b.textContent='Code sélectionné'})}catch(e){getSelection().selectAllChildren($('lobCode'))}});
     $('joinForm').addEventListener('submit',e=>{e.preventDefault();const c=$('joinCode').value.trim().toUpperCase();
-      $('joinMsg').textContent=c?`Le jeu en ligne n'est pas encore ouvert : impossible de rejoindre le lobby ${c} pour l'instant.`:'Entre le code que ton ami t\'a envoyé.'});
+      if(!c){$('joinMsg').textContent='Entre le code que ton ami t\'a envoyé.';return}
+      if(window.__onlineJoin)window.__onlineJoin(c)});
     lobRender();
   })();
 }

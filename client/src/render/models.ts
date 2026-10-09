@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { S, gh } from '@ffl/shared';
 import { B, C, I, K, M, TEAMC, TM, VC, boxM, cylM, dyn, gableGeo, merge, mk, teamColor } from './engine';
 import { terrRing } from './world';
+import { ME } from '../state';
 export const TREEGEO=[
   merge([[C(.06,.09,.45,5).translate(0,.22,0),0x6b4526],[K(.46,.72,6).translate(0,.75,0),0x2f5e2c],[K(.36,.6,6).translate(0,1.08,0),0x3a6e33],[K(.22,.45,6).translate(0,1.38,0),0x467d3a]]),
   merge([[C(.07,.1,.55,5).translate(0,.27,0),0x6b4526],[I(.46).translate(0,.9,0),0x4a8238],[I(.3).translate(.2,1.15,.1),0x5c9644],[I(.26).translate(-.22,.75,-.12),0x3f7231]]),
@@ -251,7 +252,7 @@ export let AGEO=[0,1].map(t=>merge([[C(.012,.012,.5,4).rotateZ(-Math.PI/2),0xd8c
 // applique la couleur choisie à tout le royaume (unités, bâtiments, flèches, territoire)
 export function applyColors(){
   const k=window.__kingdom||{me:'#3f6fd8',foe:'#c9402e'};
-  TEAMC[0]=teamColor(k.me);TEAMC[1]=teamColor(k.foe);
+  TEAMC[ME]=teamColor(k.me);TEAMC[1-ME]=teamColor(k.foe);
   for(const key in UGEO)delete UGEO[key];
   AGEO=[0,1].map(t=>merge([[C(.012,.012,.5,4).rotateZ(-Math.PI/2),0xd8c49a],[K(.03,.08,4).rotateZ(-Math.PI/2).translate(.29,0,0),0x9aa1a8],[B(.1,.01,.07).translate(-.21,0,0),TEAMC[t].light],[B(.1,.07,.01).translate(-.21,0,0),TEAMC[t].light]]));
   for(const id of [0,1])if(terrRing[id])terrRing[id].material.color.setHex(TEAMC[id].light);

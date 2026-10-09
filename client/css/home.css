@@ -187,3 +187,5 @@ a.go{text-decoration:none;display:inline-flex;align-items:center;justify-content
 .lords{align-items:center}
 @media (max-width:900px){.hero{grid-template-columns:1fr}.hero-art{max-width:520px}.guide{grid-template-columns:1fr}}
 @media (max-width:720px){#mini{display:none} .lords .hp{width:130px} .card h1{font-size:48px}}
+.srv{flex:1;min-width:0;font:inherit;font-size:14px;color:var(--text);background:var(--wood2);border:1px solid var(--rule);border-radius:3px;padding:6px 8px}
+.net-note{color:var(--gold);font-weight:700}

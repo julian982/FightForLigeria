@@ -1,19 +1,26 @@
-# Serveur FightForLigeria (à venir)
+# Serveur de jeu FightForLigeria
 
-Ce dossier accueillera le serveur multijoueur. Il n'est pas encore développé : le jeu actuel tourne entièrement dans le navigateur (`client/`), sur la simulation de `shared/`.
+Serveur Node.js + TypeScript (Colyseus) pour les parties en ligne. **Étape 2 : lobbies privés 1v1, en local.**
 
-## Rôle prévu
+```
+npm run dev:server     # construit puis lance le serveur sur ws://localhost:2567 (PORT=… pour changer)
+npm run test:server    # lance le serveur, deux faux joueurs créent/rejoignent un lobby et jouent
+```
 
-- **Serveur de jeu qui fait autorité** : il fait tourner la simulation, reçoit les commandes des joueurs (déplacement du seigneur, tirs, constructions, ordres aux soldats) et renvoie l'état de la partie.
-- **Lobbies** : parties privées avec code, places ami ou IA.
-- **File classée** : matchmaking 1v1 et 2v2 avec élargissement progressif de l'écart d'Elo.
-- **Elo et comptes** : calcul après chaque partie classée (avec `shared/src/elo.ts`), classement, historique.
+## Comment ça marche
 
-## Stack retenue
+- `src/index.ts` : le serveur Colyseus, une seule salle `ffl`.
+- `src/room.ts` : un lobby privé. Son identifiant est le code à partager (`LOIRE-7K2M`). Le créateur joue l'équipe 0 (à gauche), l'invité l'équipe 1. La partie démarre quand les deux sont là ; un départ en cours de partie = abandon.
+- `src/worker.ts` : chaque partie tourne dans son propre *worker thread* avec la simulation de `shared/` (60 pas par seconde), ce qui isole les parties entre elles.
+- `shared/src/net.ts` : le protocole commun.
+  - Le navigateur envoie des **commandes** (`steer`, `charge`, `release`, `place`, `recruit`, `move`, `attack`, `demolish`). Le serveur les vérifie avec les mêmes règles que le solo.
+  - Le serveur renvoie un **instantané** de la partie 20 fois par seconde (positions, vie, ressources, flèches, effets, arbres abattus), plus les messages pour chaque joueur et la fin de partie.
+- Côté navigateur, `client/src/net/` reconstruit la partie à partir des instantanés et lisse les mouvements.
 
-- Node.js + TypeScript, en important directement la simulation de `shared/`.
-- Colyseus pour les salles de jeu en WebSocket, Fastify pour l'API (comptes, classement).
-- MariaDB (ou PostgreSQL) avec Prisma pour les comptes et l'Elo.
-- Un VPS avec Docker Compose et Caddy (HTTPS), déployé par une GitHub Action à chaque push sur `main`.
+## Prochaines étapes
 
-Le client restera servi par GitHub Pages et se connectera au serveur en WebSocket.
+3. Netcode : prédiction du seigneur local et interpolation plus fine (moins de latence ressentie).
+4. Comptes et base de données (Fastify + Prisma + MariaDB ou PostgreSQL).
+5. File classée et Elo (`shared/src/elo.ts`).
+6. 2v2.
+7. Déploiement : VPS, Docker Compose, Caddy (HTTPS/WSS), GitHub Action.

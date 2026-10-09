@@ -2,7 +2,10 @@
 import '../css/game.css';
 import '../css/home.css';
 import { S, MAPS, loadMap, genTrees, newGame, update, setHooks, G, trees, pushOut, findSpot, addBuilding, pay, afford, spawnUnit } from '@ffl/shared';
-import { $, ui, sel, ME } from './state';
+import { $, ui, sel, ME, setMe, view } from './state';
+import { online, act } from './net/act';
+import { initMirror, netTick } from './net/mirror';
+import { setNetHandlers, hostGame, joinGame, leaveGame, netState, serverUrl, setServerUrl } from './net/online';
 import { initHome } from './ui/home';
 import { glOk, renderer, scene, camera, resize, camT } from './render/engine';
 import { rebuildWorld } from './render/world';
@@ -39,12 +42,14 @@ function startGame(opts){
 
 function showHome(on){$('home').hidden=!on;$('play').hidden=on;if(on&&window.__showView)window.__showView(window.__homeView||'jouer');else document.title='FightForLigeria · partie'}
 let gameOpts:any={},timeScale=1;
-function start(opts){gameOpts=opts||{};timeScale=gameOpts.speed||1;showHome(false);applyColors();if(worldMap!==selMap)setMap(selMap);startGame(gameOpts);
+/** oriente la caméra pour que son camp soit toujours en bas à gauche de l'écran */
+function faceTeam(){view.camYaw=view.yawTarget=Math.PI/4+(ME===1?Math.PI:0)}
+function start(opts){leaveGame();setMe(0);faceTeam();gameOpts=opts||{};timeScale=gameOpts.speed||1;showHome(false);applyColors();if(worldMap!==selMap)setMap(selMap);startGame(gameOpts);
   ui.running=true;$('end').hidden=true;resize();refreshHud();startAmbiance();
   if(gameOpts.priv)toast('Partie privée'+(timeScale>1?' · vitesse rapide':'')+(gameOpts.rich?' · stock généreux':''));toast('Ton stock attend dans les charrettes : pose ta réserve (1) et ton grenier (2), ils sont gratuits')}
-function goHome(){exitFps();stopAmbiance();ui.running=false;if(G)G.ctrl[ME].charging=false;ui.placing=null;ui.box=null;$('end').hidden=true;showHome(true);$('start').focus()}
+function goHome(){if(online())leaveGame();exitFps();stopAmbiance();ui.running=false;if(G)G.ctrl[ME].charging=false;ui.placing=null;ui.box=null;$('end').hidden=true;showHome(true);$('start').focus()}
 $('start').addEventListener('click',()=>start({}));
-$('again').addEventListener('click',()=>start(gameOpts));
+$('again').addEventListener('click',()=>{if(gameOpts.online){goHome();location.hash='lobby';return}start(gameOpts)});
 window.__startGame=start;window.__getMap=()=>selMap;window.__pickMap=id=>pickMap(id);
 $('toMenu').addEventListener('click',goHome);
 $('quit').addEventListener('click',goHome);
@@ -72,9 +77,10 @@ applyColors();setMap(selMap);startGame({});refreshHud();
 let last=performance.now(),hudT=0,miniT=0;
 function frame(now){
   const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
-  if(ui.running){steerLord();const n=timeScale>1?2:1;for(let i=0;i<n&&ui.running;i++)update(dt*timeScale/n)}
+  if(gameOpts.online){if(ui.running)steerLord();netTick(dt)}
+  else if(ui.running){steerLord();const n=timeScale>1?2:1;for(let i=0;i<n&&ui.running;i++)update(dt*timeScale/n)}
   for(const u of [...sel])if(u.dead)sel.delete(u);
-  if($('play').hidden){requestAnimationFrame(frame);return}
+  if($('play').hidden||(gameOpts.online&&!G.teams[ME].lord)){requestAnimationFrame(frame);return}
   updateCam(dt);syncScene(dt);updateLife(dt);
   if(ui.fps){updateFps();renderer.render(scene,fpsCam)}else renderer.render(scene,camera);
   drawOverlay();renderSelBar();renderBldPanel();updateCursor();
@@ -84,7 +90,7 @@ function frame(now){
 }
 requestAnimationFrame(frame);
 // accès pour le débogage et les tests de bout en bout
-window.__fief={get G(){return G},get trees(){return trees},setMap,pickMap,pushOut,update,start,findSpot,addBuilding,pay,afford,spawnUnit,syncScene,sel,toScreen,lifeDebug,audioState,frame:()=>frame(performance.now())};
+window.__fief={get G(){return G},get trees(){return trees},setMap,pickMap,pushOut,update,start,findSpot,addBuilding,pay,afford,spawnUnit,syncScene,sel,toScreen,lifeDebug,audioState,act,get ME(){return ME},frame:()=>frame(performance.now())};
 
 // ---- réglages du son ----
 const sndBtn=$('sndBtn'),sndPanel=$('sndPanel'),volAmb=$('volAmb'),muteBox=$('mute');
@@ -95,3 +101,21 @@ volAmb.addEventListener('input',()=>{setAmbianceVolume(+volAmb.value/100);if(aud
 muteBox.addEventListener('change',()=>{setMuted(muteBox.checked);syncSound()});
 addEventListener('keydown',(e:any)=>{if(!ui.running||e.repeat||(e.target&&e.target.tagName==='INPUT'))return;if(e.key==='m'||e.key==='M'){setMuted(!audio.muted);syncSound()}});
 addEventListener('mousedown',(e:any)=>{if(!sndPanel.hidden&&!e.target.closest('.snd'))sndPanel.hidden=true});
+
+// ---- partie en ligne (lobby privé 1v1) ----
+const lobStatus=(msg:string,code?:string)=>{$('netNote').textContent=msg;$('joinMsg').textContent=window.__homeView==='lobby'&&!code&&/introuvable|joindre|Connexion/.test(msg)?msg:'';if(code)$('lobCode').textContent=code;window.__lobRender&&window.__lobRender()};
+setNetHandlers({
+  lobby:lobStatus,
+  // le serveur lance la partie : on prépare la carte et un miroir vide, l'affichage démarre au premier instantané
+  start(m){setMe(m.team);faceTeam();gameOpts={online:true,code:m.code};timeScale=1;sel.clear();ui.placing=null;ui.box=null;ui.selB=null;ui.running=false;
+    applyColors();if(worldMap!==m.map)setMap(m.map);initMirror();showHome(false);$('end').hidden=true;resize();toast('Partie en ligne '+m.code+' : la partie commence !')},
+  first(){const L=G.teams[ME].lord;camT.set(L.x*S,0,L.y*S);ui.running=true;refreshHud();startAmbiance();
+    toast((ME===0?'Tu joues à gauche':'Tu joues à droite')+' · ton stock attend dans les charrettes : pose ta réserve (1) et ton grenier (2)')},
+  end(m){G.over=true;G.winner=m.winner;G.st=m.st;G.t=m.t;endGame(m.winner)},
+  note(msg,kind){toast(msg,kind)},
+  lost(){toast('Connexion au serveur perdue','warn');setTimeout(goHome,1500)},
+});
+window.__onlineHost=(o)=>{const v=$('srvUrl').value.trim();if(v)setServerUrl(v);return hostGame(o)};
+window.__onlineJoin=(code)=>{const v=$('srvUrl').value.trim();if(v)setServerUrl(v);$('joinMsg').textContent='Connexion…';return joinGame(code)};
+window.__onlineState=netState;
+$('srvUrl').value=serverUrl();

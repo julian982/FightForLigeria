@@ -6,6 +6,8 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 // `vite build --mode single` : un seul fichier HTML autonome (aperçu en artifact).
 export default defineConfig(({ mode }) => ({
   base: './',
+  // accessible depuis le réseau local (pour jouer en ligne avec un ami sur la même box)
+  server: { host: true, port: 5173 },
   resolve: { alias: { '@ffl/shared': fileURLToPath(new URL('../shared/src/index.ts', import.meta.url)) } },
   plugins: mode === 'single' ? [viteSingleFile()] : [],
   build: {

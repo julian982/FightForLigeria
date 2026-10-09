@@ -159,9 +159,11 @@
           <div class="opt"><span class="lbl">Carte</span><div class="seg" id="lobMap"><button type="button" data-v="amboise">Amboise</button><button type="button" data-v="cher">Cher</button><button type="button" data-v="chinon">Chinon</button></div></div>
           <div class="opt"><span class="lbl">Stock de départ</span><div class="seg" id="lobStock"><button type="button" data-v="normal" aria-pressed="true">Normal</button><button type="button" data-v="riche" aria-pressed="false">Généreux</button></div></div>
           <div class="opt"><span class="lbl">Vitesse</span><div class="seg" id="lobSpeed"><button type="button" data-v="1" aria-pressed="true">Normale</button><button type="button" data-v="1.5" aria-pressed="false">Rapide</button></div></div>
+          <div class="opt" id="srvRow" hidden><label class="lbl" for="srvUrl">Serveur</label><input id="srvUrl" class="srv" spellcheck="false" autocomplete="off"></div>
           <div class="opt"><span class="lbl">Victoire</span><span>Abattre le seigneur adverse</span></div>
           <button class="go big" id="lobLaunch" type="button">Lancer la partie</button>
           <p class="g-note" id="lobNote"></p>
+          <p class="g-note net-note" id="netNote" role="status"></p>
         </div>
       </div>
     </section>
