@@ -68,6 +68,7 @@ Clavier et souris requis.
 | Barre « Sélection » | Clic sur un type (archers…) pour ne garder que lui, Maj + clic pour le retirer |
 | Clic droit | Déplacer la sélection, ou attaquer la cible visée (ils s'en approchent juste à portée) |
 | Échap | Annuler la construction ou la sélection |
+| M | Couper ou remettre le son (le bouton haut-parleur en haut règle le volume) |
 
 ## Règles
 

@@ -267,6 +267,7 @@
             <dt><kbd>Molette</kbd></dt><dd>Zoomer ou dézoomer.</dd>
             <dt><kbd>A</kbd> <kbd>E</kbd></dt><dd>Tourner la caméra autour de ton seigneur (Q et E en clavier QWERTY). Tu peux aussi maintenir le clic molette et glisser.</dd>
             <dt><kbd>V</kbd></dt><dd>Vue seigneur : tu vois par ses yeux pour viser à l'arc. La souris oriente le regard, Espace ou clic gauche tire. ZQSD fait marcher dans la direction du regard. On ne peut pas construire ni donner d'ordres dans cette vue : appuie de nouveau sur V (ou Échap) pour revenir.</dd>
+            <dt><kbd>M</kbd></dt><dd>Couper ou remettre le son. Le bouton haut-parleur, en haut à droite, règle le volume de l'ambiance.</dd>
             <dt><kbd>Page ↑</kbd> <kbd>Page ↓</kbd></dt><dd>Incliner la caméra, de la vue rasante à la vue de dessus. Aussi avec Maj + molette, ou clic molette en glissant vers le haut ou le bas.</dd>
           </dl>
           <p class="g-note">Tu marches moins vite pendant que tu bandes l'arc. Les arbres, les bâtiments et les rochers arrêtent les flèches. Les rivières (Loire, Cher, Vienne) ne se traversent qu'aux ponts, mais les flèches passent au-dessus.</p>
@@ -340,6 +341,11 @@
   </div>
   <div class="lords">
     <div class="hp" id="hpP"><div class="lbl"><span>Ton seigneur</span><b>300</b></div><div class="bar"><div class="fill"></div></div></div>
+    <div class="snd"><button class="quit" id="sndBtn" type="button" aria-expanded="false" aria-controls="sndPanel" title="Son (M pour couper)" aria-label="Son"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="wave" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/><path class="cross" d="M16 9l5 6M21 9l-5 6"/></svg></button>
+      <div id="sndPanel" hidden>
+        <label>Ambiance <input type="range" id="volAmb" min="0" max="100" step="1"></label>
+        <label class="chk"><input type="checkbox" id="mute"> Couper le son <kbd>M</kbd></label>
+      </div></div>
     <button class="quit" id="quit" type="button">Menu</button>
   </div>
 </div>

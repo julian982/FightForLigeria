@@ -14,12 +14,12 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 #ov{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
 .hud-top{position:fixed;left:0;right:0;top:0;z-index:5;padding:calc(8px + env(safe-area-inset-top,0px)) 16px 8px;display:flex;gap:12px 20px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:linear-gradient(var(--wood),rgba(31,26,21,.8));border-bottom:1px solid var(--rule);pointer-events:none}
 .res{display:flex;gap:6px;flex-wrap:wrap}
-.chip{display:flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--rule);border-radius:3px;background:var(--wood2);font-variant-numeric:tabular-nums;font-weight:800;font-size:15px;transition:border-color .2s}
+.chip{display:flex;align-items:center;gap:5px;padding:4px 8px;border:1px solid var(--rule);border-radius:3px;background:var(--wood2);font-variant-numeric:tabular-nums;font-weight:800;font-size:15px;transition:border-color .2s}
 .chip i{width:10px;height:10px;border-radius:2px;display:inline-block;flex:none}
 .chip small{font-weight:500;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
 .chip.low{border-color:var(--bad)} .chip.low b{color:var(--bad)}
-.lords{display:flex;gap:16px;flex-wrap:wrap}
-.hp{width:170px}
+.lords{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.hp{width:140px}
 .hp .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:3px;font-variant-numeric:tabular-nums}
 .hp .lbl b{color:var(--text)}
 .hp .bar{height:7px;background:rgba(0,0,0,.45);border:1px solid var(--rule);border-radius:2px;overflow:hidden}
@@ -82,3 +82,14 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 #bldPanel .demo:hover{background:#86331f}
 #bldPanel .demo small{font-weight:500;opacity:.85}
 .chip em{font-style:normal;font-size:12px;font-weight:700;color:#a99d87;margin-left:-2px}
+/* réglages du son */
+.snd{position:relative}
+#sndPanel{position:absolute;right:0;top:calc(100% + 8px);z-index:8;width:220px;padding:10px 12px;display:flex;flex-direction:column;gap:10px;background:rgba(31,26,21,.96);border:1px solid var(--rule);border-radius:3px;font-size:13px}
+#sndPanel label{display:flex;flex-direction:column;gap:6px;font-weight:700}
+#sndPanel label.chk{flex-direction:row;align-items:center;gap:8px;font-weight:500}
+#sndPanel input[type=range]{width:100%;accent-color:var(--gold)}
+#sndPanel input[type=checkbox]{accent-color:var(--gold)}
+#sndBtn{padding-left:8px;padding-right:8px;display:flex;align-items:center}
+#sndBtn svg{width:18px;height:18px;display:block}
+#sndBtn.off .wave{display:none}
+#sndBtn:not(.off) .cross{display:none}

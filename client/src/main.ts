@@ -15,6 +15,7 @@ import { toast, refreshHud, renderSelBar, renderBldPanel } from './ui/hud';
 import { fpsCam, updateFps, exitFps } from './render/fps';
 import { endGame } from './ui/end';
 import { steerLord, updateCursor } from './ui/input';
+import { audio, startAmbiance, stopAmbiance, setAmbianceVolume, setMuted, audioState } from './audio';
 
 initHome();
 if(!glOk){$('nogl').hidden=false;$('start').disabled=true}
@@ -39,9 +40,9 @@ function startGame(opts){
 function showHome(on){$('home').hidden=!on;$('play').hidden=on;if(on&&window.__showView)window.__showView(window.__homeView||'jouer');else document.title='FightForLigeria · partie'}
 let gameOpts:any={},timeScale=1;
 function start(opts){gameOpts=opts||{};timeScale=gameOpts.speed||1;showHome(false);applyColors();if(worldMap!==selMap)setMap(selMap);startGame(gameOpts);
-  ui.running=true;$('end').hidden=true;resize();refreshHud();
+  ui.running=true;$('end').hidden=true;resize();refreshHud();startAmbiance();
   if(gameOpts.priv)toast('Partie privée'+(timeScale>1?' · vitesse rapide':'')+(gameOpts.rich?' · stock généreux':''));toast('Ton stock attend dans les charrettes : pose ta réserve (1) et ton grenier (2), ils sont gratuits')}
-function goHome(){exitFps();ui.running=false;if(G)G.ctrl[ME].charging=false;ui.placing=null;ui.box=null;$('end').hidden=true;showHome(true);$('start').focus()}
+function goHome(){exitFps();stopAmbiance();ui.running=false;if(G)G.ctrl[ME].charging=false;ui.placing=null;ui.box=null;$('end').hidden=true;showHome(true);$('start').focus()}
 $('start').addEventListener('click',()=>start({}));
 $('again').addEventListener('click',()=>start(gameOpts));
 window.__startGame=start;window.__getMap=()=>selMap;window.__pickMap=id=>pickMap(id);
@@ -83,4 +84,14 @@ function frame(now){
 }
 requestAnimationFrame(frame);
 // accès pour le débogage et les tests de bout en bout
-window.__fief={get G(){return G},get trees(){return trees},setMap,pickMap,pushOut,update,start,findSpot,addBuilding,pay,afford,spawnUnit,syncScene,sel,toScreen,lifeDebug,frame:()=>frame(performance.now())};
+window.__fief={get G(){return G},get trees(){return trees},setMap,pickMap,pushOut,update,start,findSpot,addBuilding,pay,afford,spawnUnit,syncScene,sel,toScreen,lifeDebug,audioState,frame:()=>frame(performance.now())};
+
+// ---- réglages du son ----
+const sndBtn=$('sndBtn'),sndPanel=$('sndPanel'),volAmb=$('volAmb'),muteBox=$('mute');
+function syncSound(){volAmb.value=String(Math.round(audio.ambiance*100));muteBox.checked=audio.muted;sndBtn.classList.toggle('off',audio.muted)}
+syncSound();
+sndBtn.addEventListener('click',()=>{sndPanel.hidden=!sndPanel.hidden;sndBtn.setAttribute('aria-expanded',String(!sndPanel.hidden));sndBtn.blur()});
+volAmb.addEventListener('input',()=>{setAmbianceVolume(+volAmb.value/100);if(audio.muted&&+volAmb.value>0){setMuted(false)}syncSound()});
+muteBox.addEventListener('change',()=>{setMuted(muteBox.checked);syncSound()});
+addEventListener('keydown',(e:any)=>{if(!ui.running||e.repeat||(e.target&&e.target.tagName==='INPUT'))return;if(e.key==='m'||e.key==='M'){setMuted(!audio.muted);syncSound()}});
+addEventListener('mousedown',(e:any)=>{if(!sndPanel.hidden&&!e.target.closest('.snd'))sndPanel.hidden=true});
