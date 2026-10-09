@@ -5,9 +5,15 @@ import { applySnapshot } from './mirror';
 import { $ } from '../state';
 
 export const SRV_KEY = 'ffl.server';
-export function defaultServer() { return `ws://${location.hostname && location.protocol === 'http:' ? location.hostname : 'localhost'}:2567` }
+/** serveur par défaut : celui fixé à la construction (GitHub Pages), sinon la machine qui sert la page en local */
+export function defaultServer() {
+  const built = (import.meta as any).env?.VITE_GAME_SERVER;
+  if (built && location.protocol === 'https:') return built;
+  return `ws://${location.hostname && location.protocol === 'http:' ? location.hostname : 'localhost'}:2567`;
+}
 export function serverUrl() { let v = ''; try { v = localStorage.getItem(SRV_KEY) || '' } catch (e) {} return v || defaultServer() }
-export function setServerUrl(v: string) { try { localStorage.setItem(SRV_KEY, v.trim()) } catch (e) {} }
+/** on ne mémorise l'adresse que si elle diffère de celle par défaut (pour suivre un changement de serveur) */
+export function setServerUrl(v: string) { try { v = v.trim(); if (!v || v === defaultServer()) localStorage.removeItem(SRV_KEY); else localStorage.setItem(SRV_KEY, v) } catch (e) {} }
 
 type Handlers = { start(m: any): void, first(): void, end(m: any): void, note(msg: string, kind: string): void, lost(): void, lobby(msg: string, code?: string): void };
 export let handlers: Handlers, nstate: 'idle' | 'connecting' | 'hosting' | 'playing' = 'idle', gameOver = false;

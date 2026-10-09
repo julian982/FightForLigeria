@@ -33,6 +33,9 @@ jobs:
         run: npm run test:server
       - name: Construction du client
         run: npm run build
+        env:
+          # adresse du serveur de jeu en ligne (variable du dépôt GAME_SERVER_URL, ex. wss://jeu.example.fr)
+          VITE_GAME_SERVER: ${{ vars.GAME_SERVER_URL }}
       - name: Préparation du site
         run: |
           mkdir -p _site

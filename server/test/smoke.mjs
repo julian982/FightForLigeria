@@ -2,7 +2,7 @@
 import { spawn } from 'node:child_process';
 import { Client } from '@colyseus/sdk';
 const PORT = 2600 + (Math.random() * 300 | 0), URL_ = `ws://localhost:${PORT}`;
-const srv = spawn(process.execPath, ['dist/index.js'], { env: { ...process.env, PORT: String(PORT) }, stdio: ['ignore', 'pipe', 'inherit'] });
+const srv = spawn(process.execPath, ['dist/index.mjs'], { env: { ...process.env, PORT: String(PORT) }, stdio: ['ignore', 'pipe', 'inherit'] });
 await new Promise((ok, ko) => { srv.stdout.on('data', d => { if (String(d).includes('prêt')) ok() }); setTimeout(() => ko(new Error('le serveur ne démarre pas')), 10000) });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const fail = m => { console.error('ÉCHEC :', m); srv.kill(); process.exit(1) };

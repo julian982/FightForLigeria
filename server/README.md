@@ -23,4 +23,4 @@ npm run test:server    # lance le serveur, deux faux joueurs créent/rejoignent 
 4. Comptes et base de données (Fastify + Prisma + MariaDB ou PostgreSQL).
 5. File classée et Elo (`shared/src/elo.ts`).
 6. 2v2.
-7. Déploiement : VPS, Docker Compose, Caddy (HTTPS/WSS), GitHub Action.
+7. Déploiement : image Docker (`server/Dockerfile`) et guide VPS dans [`deploy/`](../deploy/README.md) — fait.

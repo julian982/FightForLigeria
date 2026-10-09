@@ -31,7 +31,7 @@ export class GameRoom extends Room {
   }
   startGame() {
     this.lock();
-    const w = this.worker = new Worker(new URL('./worker.js', import.meta.url), { workerData: this.opts });
+    const w = this.worker = new Worker(new URL('./worker.mjs', import.meta.url), { workerData: this.opts });
     w.on('message', m => {
       if (m.type === 'snap') this.broadcast('snap', m.snap);
       else if (m.type === 'note') this.clientOf(m.team)?.send('note', { msg: m.msg, kind: m.kind });

@@ -25,6 +25,7 @@ fightforligeria/
 │       ├── render/     moteur 3D, décor, modèles, synchro scène, minicarte
 │       └── ui/         accueil, HUD, entrées clavier/souris, écran de fin
 ├── server/      → le serveur de jeu en ligne (Node.js + Colyseus) : lobbies privés 1v1
+├── deploy/      → hébergement du serveur sur un VPS (Docker, Nginx, guide pas à pas)
 └── .github/workflows/pages.yml → tests puis déploiement sur GitHub Pages à chaque push
 ```
 
@@ -57,6 +58,8 @@ npm run test:server  # test de bout en bout : deux joueurs se connectent et joue
    - Sur le même réseau (même box) : il ouvre `http://<ton-ip-locale>:5173`, le jeu trouve tout seul le serveur.
    - À distance : il faut ouvrir le port 2567 (et 5173) de ta box vers ton PC, et qu'il mette `ws://<ton-ip-publique>:2567` dans le champ **Serveur** du lobby.
 4. Quitter la partie (ou perdre la connexion) compte comme un abandon : l'autre gagne.
+
+Pour héberger le serveur sur un VPS (à côté d'autres sites, sans les toucher) : voir [deploy/README.md](deploy/README.md).
 
 Le serveur fait autorité : il fait tourner la même simulation (`shared/`) et les navigateurs ne lui envoient que des commandes. Le solo contre l'IA reste entièrement dans le navigateur.
 
