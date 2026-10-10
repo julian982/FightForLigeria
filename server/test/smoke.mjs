@@ -86,6 +86,22 @@ try {
   await H.room.leave();
   await sleep(800);
   ok(G.end && G.end.winner === 1, 'l\'invité aurait dû gagner par abandon');
+  // la partie finie, le salon est gardé : l'invité y est toujours, peut discuter et relancer une revanche
+  ok(G.salon && G.salon.players.length === 1 && G.salon.host === G.salon.you && G.salon.players.every(p => !p.ready), 'après la partie, le salon doit revenir (sans le joueur parti)');
+  ok(G.chat.some(m => /retour au salon/i.test(m.text)) && G.chat.some(m => /a quitté la partie/.test(m.text)), 'messages de fin de partie manquants dans la discussion');
+  ok(rooms.find(r => r.roomId === G.room.roomId)?.metadata.playing === false, 'la liste doit montrer le salon de nouveau ouvert');
+  const R = track(await new Client(URL_).joinById(G.room.roomId, { pseudo: 'Revanche' }));
+  await sleep(300);
+  ok(R.salon && R.salon.players.length === 2, 'on doit pouvoir rejoindre le salon après une partie');
+  R.room.send('chat', 'GG !'); await sleep(200);
+  ok(G.chat.some(m => m.text === 'GG !'), 'la discussion doit marcher après la partie');
+  G.start = null; G.snap = null;
+  G.room.send('ready', true); R.room.send('ready', true); await sleep(150); G.room.send('launch'); await sleep(700);
+  ok(G.start && R.start && R.snap, 'revanche impossible dans le même salon');
+  await sleep(5000); // l'anti-spam de R est retombé
+  R.room.send('chat', 'bonne chance'); await sleep(200);
+  ok(G.chat.some(m => m.text === 'bonne chance'), 'la discussion doit marcher pendant la partie');
+  R.room.leave(); await sleep(600);
 
   // ---- exclusion et passation d'hôte ----
   const K = track(await new Client(URL_).create('ffl', { pseudo: 'Hote' }));

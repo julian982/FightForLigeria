@@ -5,7 +5,8 @@ import { S, MAPS, loadMap, genTrees, newGame, update, setHooks, G, trees, pushOu
 import { $, ui, sel, ME, setMe, view } from './state';
 import { online, act } from './net/act';
 import { initMirror, netTick } from './net/mirror';
-import { setNetHandlers, leaveGame } from './net/online';
+import { setNetHandlers, leaveGame, backToSalon } from './net/online';
+import { initGameChat, refreshGameChat } from './ui/gamechat';
 import { THUMBS } from './ui/thumbs';
 import { initHome } from './ui/home';
 import { glOk, renderer, scene, camera, resize, camT } from './render/engine';
@@ -22,6 +23,7 @@ import { steerLord, updateCursor } from './ui/input';
 import { audio, startAmbiance, stopAmbiance, setAmbianceVolume, setMuted, audioState } from './audio';
 
 initHome();
+initGameChat();
 if(!glOk){$('nogl').hidden=false;$('start').disabled=true}
 
 // la simulation prévient le client : maillages à retirer, messages, fin de partie
@@ -47,10 +49,20 @@ let gameOpts:any={},timeScale=1;
 /** oriente la caméra pour que son camp soit toujours en bas à gauche de l'écran */
 function faceTeam(){view.camYaw=view.yawTarget=Math.PI/4+(ME===1?Math.PI:0)}
 function start(opts){leaveGame();setMe(0);faceTeam();gameOpts=opts||{};timeScale=gameOpts.speed||1;showHome(false);applyColors();setMap(selMap);startGame(gameOpts);
-  ui.running=true;$('end').hidden=true;resize();refreshHud();startAmbiance();
+  ui.running=true;$('end').hidden=true;endButtons(false);resize();refreshHud();startAmbiance();refreshGameChat();
   if(timeScale>1||gameOpts.rich)toast([timeScale>1?'Vitesse rapide':'',gameOpts.rich?'stock généreux':''].filter(Boolean).join(' · '));toast('Ton stock attend dans les charrettes : pose ta réserve (1) et ton grenier (2), ils sont gratuits')}
-function goHome(){if(online())leaveGame();exitFps();stopAmbiance();ui.running=false;if(G)G.ctrl[ME].charging=false;ui.placing=null;ui.box=null;$('end').hidden=true;showHome(true);$('start').focus()}
-$('again').addEventListener('click',()=>{if(gameOpts.online){goHome();location.hash='en-ligne';return}start(gameOpts)});
+function goHome(){if(online())leaveGame();exitFps();stopAmbiance();ui.running=false;if(G)G.ctrl[ME].charging=false;ui.placing=null;ui.box=null;$('end').hidden=true;showHome(true);$('start').focus();refreshGameChat()}
+// en ligne : « Retour au salon » (la revanche se prépare là), sinon on rejoue contre l'IA
+$('again').addEventListener('click',()=>{if(gameOpts.online){toSalon();return}start(gameOpts)});
+/** depuis l'écran de fin d'une partie en ligne : retour dans le salon, qui a été gardé par le serveur */
+function toSalon(){
+  if(!backToSalon()){goHome();location.hash='en-ligne';return}
+  exitFps();stopAmbiance();ui.running=false;ui.placing=null;ui.box=null;$('end').hidden=true;$('endNote').textContent='';
+  window.__homeView='salon';showHome(true);history.replaceState(null,'','#salon');refreshGameChat();
+}
+// le salon a disparu pendant qu'on regardait le bilan : on ne peut plus y revenir
+window.__salonLost=(reason)=>{$('endNote').textContent=reason+' Retourne au menu pour en créer ou en rejoindre un autre.';$('again').disabled=true;refreshGameChat()};
+function endButtons(online){$('again').textContent=online?'Retour au salon':'Rejouer';$('toMenu').textContent=online?'Quitter le salon':'Menu principal';$('again').disabled=false;$('endNote').textContent=''}
 window.__startGame=start;window.__getMap=()=>selMap;window.__pickMap=id=>pickMap(id);
 $('toMenu').addEventListener('click',goHome);
 $('quit').addEventListener('click',goHome);
@@ -115,12 +127,12 @@ addEventListener('mousedown',(e:any)=>{if(!sndPanel.hidden&&!e.target.closest('.
 setNetHandlers({
   // le serveur lance la partie : on prépare la carte et un miroir vide, l'affichage démarre au premier instantané
   start(m){setMe(m.team);faceTeam();gameOpts={online:true,code:m.code,mode:m.mode,names:m.names||[]};timeScale=1;sel.clear();ui.placing=null;ui.box=null;ui.selB=null;ui.running=false;
-    setMap(m.map,m.mode==='2v2'?'2v2':'1v1');applyColors();initMirror(m.mode==='2v2'?4:2);showHome(false);$('end').hidden=true;resize();toast('La partie commence !')},
+    setMap(m.map,m.mode==='2v2'?'2v2':'1v1');applyColors();initMirror(m.mode==='2v2'?4:2);showHome(false);$('end').hidden=true;endButtons(true);resize();refreshGameChat();toast('La partie commence !')},
   first(){const L=G.teams[ME].lord;camT.set(L.x*S,0,L.y*S);ui.running=true;refreshHud();startAmbiance();
     const duo=G.teams.length>2,where=duo?['en haut à gauche','en haut à droite','en bas à gauche','en bas à droite'][ME]:(ME===0?'à gauche':'à droite');
     toast('Tu joues '+where+(duo&&gameOpts.names[ME^2]?' · ton allié : '+gameOpts.names[ME^2]:''));
     toast('Ton stock attend dans les charrettes : pose ta réserve (1) et ton grenier (2)')},
-  end(m){G.over=true;G.winner=m.winner;G.st=m.st;G.t=m.t;endGame(m.winner)},
+  end(m){G.over=true;G.winner=m.winner;G.st=m.st;G.t=m.t;endGame(m.winner);refreshGameChat()},
   note(msg,kind){toast(msg,kind)},
   lost(){toast('Connexion au serveur perdue','warn');setTimeout(goHome,1500)},
 });

@@ -15,7 +15,8 @@ npm run test:server    # lance le serveur et joue tout le parcours : liste, salo
 - `src/room.ts` : un salon. Son identifiant est le code à partager (`LOIRE-7K2M`).
   - Publique, il apparaît dans la liste avec son nom, son hôte, sa carte et ses réglages. Privé, il n'y apparaît jamais : on le rejoint par son code.
   - Les joueurs ont un pseudo (nettoyé, et dédoublonné si besoin). L'hôte choisit la carte, le stock et la vitesse ; tout changement remet les joueurs « pas prêt ». Il peut exclure un joueur. S'il part, l'autre devient l'hôte.
-  - Discussion du salon : messages nettoyés, 200 caractères au plus, 5 messages toutes les 5 secondes par joueur.
+  - Discussion du salon, qui continue pendant la partie et après : messages nettoyés, 200 caractères au plus, 5 messages toutes les 5 secondes par joueur.
+  - À la fin d'une partie, le salon n'est pas fermé : il revient à l'attente avec les mêmes places et réglages (les places des joueurs partis se libèrent), pour une revanche.
   - Places : 2 en 1v1, 4 en 2v2 (0 et 2 à gauche, 1 et 3 à droite). L'hôte peut mettre une IA sur une place libre, et chacun peut changer de place ; le nombre de connexions acceptées suit le nombre de places sans IA.
   - L'hôte lance quand toutes les places sont prises et que tous les joueurs sont prêts. Un départ en cours de partie = abandon : en 1v1 l'adversaire gagne, en 2v2 le joueur est éliminé et son allié continue.
 - `src/worker.ts` : chaque partie tourne dans son propre *worker thread* avec la simulation de `shared/` (60 pas par seconde), ce qui isole les parties entre elles.

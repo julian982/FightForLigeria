@@ -16,9 +16,13 @@ const go = (v: string) => { if (location.hash.slice(1) !== v) location.hash = v;
 const press = (box: any, v: string) => { for (const b of box.children) if (b.dataset.v != null) b.setAttribute('aria-pressed', String(b.dataset.v === v)) };
 function msg(id: string, text: string, kind = '') { const el = $(id); el.textContent = text; el.classList.toggle('warn', kind === 'warn') }
 
+/** la discussion du salon, aussi affichée pendant la partie et sur l'écran de fin (ui/gamechat.ts) */
+let chat: any[] = [];
+export const getChat = () => chat;
+const chatChanged = () => window.dispatchEvent(new Event('ffl:chat'));
 export function initOnline() {
   let view = '', rooms: any[] | null = [], listErr = '', selected = '', filter = 'all', hideFull = false;
-  let salon: any = null, chat: any[] = [], afterPseudo: (() => void) | null = null;
+  let salon: any = null, afterPseudo: (() => void) | null = null;
   const cr = { vis: 'pub', map: 'amboise', mode: '1v1', stock: 'normal', speed: '1' };
   try { const m = localStorage.getItem('ffl.map'); if (m && MAPS[m]) cr.map = m } catch (e) {}
 
@@ -58,11 +62,17 @@ export function initOnline() {
   // ---------- le serveur ----------
   N.setLobbyHandlers({
     rooms(list, err) { rooms = list; listErr = err || ''; if (view === 'en-ligne') renderList() },
-    salon(s) { salon = s; if (view !== 'salon') go('salon'); else renderSalon() },
-    chat(m) { chat.push(m); if (chat.length > 80) chat.shift(); renderChat() },
-    chatLog(l) { chat = [...l]; renderChat() },
-    refused(text) { chat.push({ text, warn: true }); renderChat() },
-    left(reason) { salon = null; chat = []; go('en-ligne'); msg('olMsg', reason, 'warn') },
+    // pendant la partie ou sur l'écran de fin, l'état du salon est gardé pour le retour au salon, sans changer d'écran
+    salon(s) { salon = s; if (N.netState() !== 'salon') return; if (view !== 'salon') go('salon'); else renderSalon() },
+    chat(m) { chat.push({ ...m, at: Date.now() }); if (chat.length > 80) chat.shift(); renderChat(); chatChanged() },
+    chatLog(l) { chat = l.map(m => ({ ...m, at: 0 })); renderChat(); chatChanged() },
+    refused(text) { chat.push({ text, warn: true, at: Date.now() }); renderChat(); chatChanged() },
+    left(reason) {
+      const inGame = !(document.getElementById('play') as any).hidden;
+      salon = null; chat = []; chatChanged();
+      if (inGame) { (window as any).__salonLost?.(reason); return }
+      go('en-ligne'); msg('olMsg', reason, 'warn');
+    },
     status(text, kind) { msg(view === 'creer' ? 'crMsg' : 'olMsg', text, kind) },
   });
 

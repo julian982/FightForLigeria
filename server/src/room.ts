@@ -167,6 +167,7 @@ export class GameRoom extends Room {
       if (!this.over) {
         if (this.slots.length === 2) this.clientOf(1 - p.slot)?.send('note', { msg: 'Ton adversaire a quitté la partie', kind: 'warn' });
         this.worker.postMessage({ type: 'forfeit', team: p.slot });
+        this.system(`${p.pseudo} a quitté la partie.`);
       }
       return;
     }
@@ -204,13 +205,24 @@ export class GameRoom extends Room {
     w.on('message', m => {
       if (m.type === 'snap') this.broadcast('snap', m.snap);
       else if (m.type === 'note') this.clientOf(m.team)?.send('note', { msg: m.msg, kind: m.kind });
-      else if (m.type === 'end') { this.over = true; this.broadcast('end', { winner: m.winner, st: m.st, t: m.t }); setTimeout(() => this.disconnect(), 3000) }
+      // fin de partie : le salon n'est pas fermé, tout le monde peut y revenir pour une revanche
+      else if (m.type === 'end') { this.over = true; this.broadcast('end', { winner: m.winner, st: m.st, t: m.t }); this.backToSalon() }
     });
     w.on('error', e => { console.error('partie', this.roomId, e); this.disconnect() });
     this.syncMeta();
     const names = this.slots.map(s => s.kind === 'ai' ? 'IA' : this.players.get(s.id!)?.pseudo || '?');
     for (const c of this.clients) { const p = this.players.get(c.sessionId)!; c.send('start', { team: p.slot, code: this.roomId, names, ...this.opts }) }
     console.log(`partie ${this.roomId} lancée (${this.opts.mode}, ${this.opts.map})`);
+  }
+  /** après la partie : on arrête la simulation et on revient au salon d'attente, avec les mêmes places et réglages */
+  backToSalon() {
+    this.worker?.terminate(); this.worker = null; this.over = false;
+    // les places des joueurs partis pendant la partie se libèrent ; les IA gardent la leur
+    for (let i = 0; i < this.slots.length; i++) { const sl = this.slots[i]; if (sl.kind === 'human' && !this.players.has(sl.id!)) this.slots[i] = { kind: 'open' } }
+    if (!this.players.has(this.host)) { const next = [...this.players.values()].sort((a, b) => a.at - b.at)[0]; this.host = next ? next.id : '' }
+    this.unready(); this.fitSeats(); this.unlock();
+    this.system('Partie terminée : retour au salon. Prêts pour une revanche ?');
+    this.syncMeta(); this.pushState();
   }
   clientOf(team: number) { return this.clients.find(c => this.players.get(c.sessionId)?.slot === team) }
   onDispose() { this.worker?.terminate(); this.worker = null }

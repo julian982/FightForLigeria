@@ -67,6 +67,8 @@ export function orderSelected(){
   addMark(mouse.wx,mouse.wy);
 }
 addEventListener('keydown',(e:any)=>{
+  // en train d'écrire (discussion, pseudo, code…) : les touches ne pilotent pas le jeu
+  if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;
   if(e.target.closest&&e.target.closest('button')&&(e.code==='Enter'||e.code==='Space')){
     // en partie, Espace sert à l'arc : on retire le focus du bouton au lieu de le cliquer
     if(ui.running&&e.code==='Space'){e.preventDefault();e.target.blur()}else return;

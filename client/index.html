@@ -426,11 +426,24 @@
 </div>
 
 <div id="toast"></div>
+<div class="g-chat" id="gChat" hidden>
+  <div class="g-chat-log" id="gChatLog" role="log" aria-live="polite"></div>
+  <form class="g-chat-form" id="gChatForm" hidden><label class="sr" for="gChatIn">Message à tous</label><input id="gChatIn" maxlength="200" placeholder="Message à tous… (Entrée pour envoyer, Échap pour fermer)" autocomplete="off"></form>
+  <p class="g-chat-hint" id="gChatHint">Entrée : discuter</p>
+</div>
 
 <div class="overlay" id="end" hidden>
   <div class="card end-card">
     <div class="end-head"><h1 id="endTitle">Victoire</h1><p id="endText"></p></div>
-    <div class="end-stats" id="endStats"></div>
+    <div class="end-body">
+      <div class="end-stats" id="endStats"></div>
+      <aside class="end-chat" id="eChat" hidden>
+        <h3>Discussion</h3>
+        <div class="chat-log" id="eChatLog" role="log" aria-live="polite"></div>
+        <form class="chat-form" id="eChatForm"><label class="sr" for="eChatIn">Message</label><input id="eChatIn" maxlength="200" placeholder="Écris un message…" autocomplete="off"><button class="go" type="submit">Envoyer</button></form>
+      </aside>
+    </div>
+    <p class="net-msg warn" id="endNote" role="status"></p>
     <div class="end-btns"><button class="go" id="again" type="button">Rejouer</button><button class="go ghost" id="toMenu" type="button">Menu principal</button></div>
   </div>
 </div>

@@ -36,7 +36,8 @@ export type LobbyHandlers = {
   status(msg: string, kind?: string): void,
 };
 let game: GameHandlers, lobbyH: LobbyHandlers;
-export let nstate: 'idle' | 'connecting' | 'salon' | 'playing' = 'idle', gameOver = false;
+/** idle : pas connecté · salon : dans le salon · playing : en partie · ended : écran de fin (on reste dans le salon, qui attend la revanche) */
+export let nstate: 'idle' | 'connecting' | 'salon' | 'playing' | 'ended' = 'idle', gameOver = false;
 export function setNetHandlers(h: GameHandlers) { game = h }
 export function setLobbyHandlers(h: LobbyHandlers) { lobbyH = h }
 export const netState = () => nstate;
@@ -73,11 +74,11 @@ function bind(room: any) {
   room.onMessage('start', (m: any) => { nstate = 'playing'; game.start(m) });
   room.onMessage('snap', (s: any) => { if (nstate !== 'playing') return; if (applySnapshot(s)) game.first() });
   room.onMessage('note', (n: any) => game.note(n.msg, n.kind || ''));
-  room.onMessage('end', (m: any) => { gameOver = true; game.end(m) });
+  room.onMessage('end', (m: any) => { gameOver = true; nstate = 'ended'; game.end(m) });
   room.onLeave((code: number) => {
     const was = nstate; net.room = null; nstate = 'idle';
     if (was === 'playing' && !gameOver) game.lost();
-    else if (was === 'salon') lobbyH.left(code === KICKED ? 'L\'hôte t\'a exclu du salon.' : 'Le salon a été fermé.');
+    else if (was === 'salon' || was === 'ended') lobbyH.left(code === KICKED ? 'L\'hôte t\'a exclu du salon.' : 'Le salon a été fermé.');
   });
 }
 async function connect(fn: (c: any) => Promise<any>, what: string) {
@@ -100,6 +101,8 @@ export function joinRoom(code: string) {
   const id = code.trim().toUpperCase();
   return connect(c => c.joinById(id, { pseudo: getPseudo() }), id);
 }
+/** depuis l'écran de fin : revenir dans le salon (le serveur y est déjà revenu) */
+export function backToSalon() { if (nstate !== 'ended' || !net.room) return false; nstate = 'salon'; return true }
 export function leaveGame() { const r = net.room; nstate = 'idle'; net.room = null; try { r && r.leave() } catch (e) {} }
 const send = (type: string, v?: any) => { try { net.room && net.room.send(type, v) } catch (e) {} };
 export const setReady = (v: boolean) => send('ready', v);

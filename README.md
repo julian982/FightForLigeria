@@ -150,6 +150,8 @@ En classé, la carte sera tirée au sort parmi les trois.
   - **1v1** ou **2v2**. En 2v2, chaque carte existe en version deux fois plus haute : quatre châteaux, deux par camp l'un au-dessus de l'autre, un gisement de pierre par château et un gisement de fer par rangée.
   - Chaque joueur a son château, ses ressources et son armée ; les alliés ne se blessent jamais. Un joueur dont le seigneur tombe est éliminé (ses soldats se rendent) et regarde la suite ; un camp perd quand ses deux seigneurs sont tombés.
   - L'hôte peut mettre une IA sur une place libre (par exemple deux amis contre deux IA) ; chacun peut changer de place.
+  - La discussion du salon continue pendant la partie (touche Entrée pour écrire, Échap pour fermer) et sur l'écran de fin, à côté du bilan.
+  - À la fin de la partie, le salon est gardé : « Retour au salon » pour une revanche avec les mêmes réglages, ou « Quitter le salon ».
 
 ## Classement et Elo (en préparation)
 
