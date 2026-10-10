@@ -1,5 +1,5 @@
-# Serveur de jeu FightForLigeria sur le VPS : projet Docker séparé de TTS.
-# Placé automatiquement dans /opt/fightforligeria/ par la GitHub Action (voir deploy/README.md).
+# Serveur de jeu FightForLigeria sur le VPS, derrière le Traefik commun (dépôt vps-infra).
+# Projet Docker indépendant : il ne voit rien des autres projets (TTS, ...) et n'ouvre aucun port.
 name: fightforligeria
 
 services:
@@ -9,22 +9,23 @@ services:
     restart: unless-stopped
     environment:
       PORT: "2567"
-    # écoute seulement sur la machine elle-même : le Nginx de TTS (en réseau « host ») le joint sur 127.0.0.1:2567,
-    # internet ne peut pas le joindre directement
-    ports:
-      - "127.0.0.1:2567:2567"
-    # garde-fous : il ne peut pas prendre les ressources de TTS
+    networks: [edge]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.ffl.rule=Host(`fightforligeria.trouve-ton-serveur.fr`)
+      - traefik.http.routers.ffl.middlewares=security-headers@file
+      - traefik.http.services.ffl.loadbalancer.server.port=2567
+    # limites : le jeu ne peut pas étouffer les autres projets du VPS
     mem_limit: 512m
     cpus: 1.0
     pids_limit: 256
     read_only: true
-    tmpfs:
-      - /tmp
-    security_opt:
-      - no-new-privileges:true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
     logging:
       driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-# pas de réseau partagé : ce projet a son propre réseau Docker, sans accès à celui de TTS (tts-net, MariaDB…)
+      options: { max-size: "10m", max-file: "3" }
+
+networks:
+  edge:
+    external: true # créé par vps-infra (scripts/bootstrap.sh)
