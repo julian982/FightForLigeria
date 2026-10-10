@@ -1,12 +1,15 @@
-// L'accueil : navigation entre les pages, couleur du royaume, classement, file classée, lobby privé.
+// L'accueil : navigation entre les pages, préparation contre l'IA, couleur du royaume, classement, file classée.
+// Les parties en ligne (liste, création, salon) sont dans ui/online.ts.
 import { ELO, QUEUE_WINDOWS } from '@ffl/shared';
+import { initOnline } from './online';
 
 const byId=(id:string):any=>document.getElementById(id);
 const all=(q:string):any[]=>Array.from(document.querySelectorAll(q));
 
 export function initHome(){
   (()=>{
-    const VIEWS=['jouer','classement','guide','file','lobby'],NAV={file:'jouer',lobby:'jouer'},TITLES={jouer:'FightForLigeria',classement:'Classement · FightForLigeria',guide:'Comment jouer · FightForLigeria',file:'Partie classée · FightForLigeria',lobby:'Partie privée · FightForLigeria'};
+    const VIEWS=['jouer','solo','en-ligne','creer','salon','classement','guide','file'],NAV={file:'jouer',solo:'jouer','en-ligne':'jouer',creer:'jouer',salon:'jouer'},
+      TITLES={jouer:'FightForLigeria',solo:'Contre l\'IA · FightForLigeria','en-ligne':'Parties en ligne · FightForLigeria',creer:'Créer une partie · FightForLigeria',salon:'Salon · FightForLigeria',classement:'Classement · FightForLigeria',guide:'Comment jouer · FightForLigeria',file:'Partie classée · FightForLigeria'};
     const home=byId('home');
     function show(v,scroll=false){
       if(!VIEWS.includes(v))v='jouer';
@@ -132,42 +135,15 @@ export function initHome(){
     for(const b of all('.qtab'))b.addEventListener('click',()=>{qMode=b.dataset.q;
       for(const o of all('.qtab'))o.setAttribute('aria-selected',o===b);
       $('qModeLbl').textContent=`File ${qMode} · ton Elo ${ELO.START} (${ELO.rank(ELO.START)})`;if(qTimer)qRender()});
-    addEventListener('ffl:view',(e:any)=>{if(e.detail!=='file'&&qTimer)qStop();if(e.detail==='lobby')lobRender()});
+    addEventListener('ffl:view',(e:any)=>{if(e.detail!=='file'&&qTimer)qStop()});
 
-    // ---- lobby privé ----
-    const L:any={mode:'1v1',stock:'normal',speed:'1',slots:{'1v1':[['me'],['ia']],'2v2':[['me','ami'],['ia','ia']]}};
-    const pick=a=>a[Math.random()*a.length|0],AL='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    $('lobCode').textContent=pick(['LOIRE','CHER','VIENNE','TOURS','CHINON'])+'-'+Array.from({length:4},()=>pick([...AL])).join('');
-    function segSet(box,v){for(const b of $(box).children)b.setAttribute('aria-pressed',b.dataset.v===v)}
-    function lobRender(){
-      const sl=L.slots[L.mode],cs=getComputedStyle(document.documentElement);
-      const col=[cs.getPropertyValue('--me').trim(),cs.getPropertyValue('--foe').trim()];
-      $('teams').innerHTML=sl.map((team,ti)=>`<div class="team"><h4><i style="background:${col[ti]}"></i>${ti===0?'Ton royaume':'Royaume adverse'}</h4>`+
-        team.map((t,si)=>t==='me'?`<div class="slot me"><span class="who">Toi</span><span class="st">Hôte du lobby</span></div>`:
-          `<div class="slot"><span class="who">${t==='ia'?'IA':'Ami'}</span><span class="st">${t==='ia'?'Contrôlé par l\'ordinateur':'En attente : envoie-lui le code'}</span>
-           <div class="seg" data-t="${ti}" data-s="${si}"><button type="button" data-v="ami" aria-pressed="${t==='ami'}">Ami</button><button type="button" data-v="ia" aria-pressed="${t==='ia'}">IA</button></div></div>`).join('')+`</div>`).join('');
-      for(const sg of $('teams').querySelectorAll('.seg'))for(const b of sg.children)b.addEventListener('click',()=>{L.slots[L.mode][+sg.dataset.t][+sg.dataset.s]=b.dataset.v;lobRender()});
-      segSet('lobMode',L.mode);segSet('lobStock',L.stock);segSet('lobSpeed',L.speed);
-      let mp='amboise';try{mp=window.__getMap?window.__getMap():(localStorage.getItem('ffl.map')||'amboise')}catch(e){}segSet('lobMap',mp);
-      const vsAi=L.mode==='1v1'&&sl[1][0]==='ia',vsFriend=L.mode==='1v1'&&sl[1][0]==='ami',hosting=window.__onlineState&&window.__onlineState()==='hosting';
-      $('lobLaunch').disabled=!(vsAi||vsFriend);
-      $('lobLaunch').textContent=vsFriend?(hosting?'Annuler la partie en ligne':'Créer la partie en ligne'):'Lancer la partie';
-      $('srvRow').hidden=!vsFriend;
-      if(!hosting)$('lobNote').textContent=vsAi?'Partie non classée contre l\'IA, avec tes réglages.':vsFriend?'Partie en ligne non classée : crée-la, puis envoie le code à ton ami. Le serveur de jeu doit être lancé (voir le README).':'Le 2v2 arrivera plus tard. Mets une IA ou un ami en face en 1v1.';
-    }
-    for(const [box,key] of [['lobMode','mode'],['lobStock','stock'],['lobSpeed','speed']])
-      for(const b of $(box).children)b.addEventListener('click',()=>{L[key]=b.dataset.v;lobRender()});
-    for(const b of $('lobMap').children)b.addEventListener('click',()=>{window.__pickMap&&window.__pickMap(b.dataset.v);lobRender()});
-    $('lobLaunch').addEventListener('click',async()=>{if($('lobLaunch').disabled)return;
-      if(L.mode==='1v1'&&L.slots['1v1'][1][0]==='ami'){let mp='amboise';try{mp=window.__getMap()}catch(e){}if(window.__onlineHost)await window.__onlineHost({map:mp,rich:L.stock==='riche'});lobRender();return}
-      if(window.__startGame)window.__startGame({rich:L.stock==='riche',speed:+L.speed,priv:true})});
-    window.__lobRender=lobRender;
-    $('copyCode').addEventListener('click',()=>{const c=$('lobCode').textContent,b=$('copyCode');
-      const done=()=>{b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1500)};
-      try{navigator.clipboard.writeText(c).then(done,()=>{getSelection().selectAllChildren($('lobCode'));b.textContent='Code sélectionné'})}catch(e){getSelection().selectAllChildren($('lobCode'))}});
-    $('joinForm').addEventListener('submit',e=>{e.preventDefault();const c=$('joinCode').value.trim().toUpperCase();
-      if(!c){$('joinMsg').textContent='Entre le code que ton ami t\'a envoyé.';return}
-      if(window.__onlineJoin)window.__onlineJoin(c)});
-    lobRender();
   })();
+  // ---- contre l'IA : stock et vitesse, la carte est choisie par main.ts (#maps) ----
+  (()=>{
+    const solo={stock:'normal',speed:'1'};
+    for(const [box,key] of [['soloStock','stock'],['soloSpeed','speed']])
+      for(const b of byId(box).children)b.addEventListener('click',()=>{solo[key]=b.dataset.v;for(const o of byId(box).children)o.setAttribute('aria-pressed',o===b)});
+    byId('start').addEventListener('click',()=>{if(window.__startGame)window.__startGame({rich:solo.stock==='riche',speed:+solo.speed})});
+  })();
+  initOnline();
 }

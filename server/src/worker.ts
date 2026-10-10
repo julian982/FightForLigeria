@@ -3,6 +3,7 @@ import { parentPort, workerData } from 'node:worker_threads';
 import { loadMap, newGame, update, setHooks, G, applyCommand, makeSnapshot, forfeit } from '@ffl/shared';
 
 const STEP = 1 / 60, SNAP_EVERY = 50; // simulation à 60 Hz, instantané toutes les 50 ms
+const SPEED = workerData.speed > 1 ? 1.5 : 1; // vitesse « rapide » : le temps du jeu avance 1,5 fois plus vite
 const post = (m: any) => parentPort!.postMessage(m);
 const fell: number[] = [];
 let ended = false;
@@ -26,7 +27,7 @@ let last = performance.now(), acc = 0, snapT = 0;
 const timer = setInterval(() => {
   const now = performance.now(), dt = Math.min(.25, (now - last) / 1000); last = now;
   acc += dt; snapT += dt * 1000;
-  while (acc >= STEP && !ended) { update(STEP); acc -= STEP }
+  while (acc >= STEP && !ended) { update(STEP * SPEED); acc -= STEP }
   if (ended) { clearInterval(timer); return }
   if (snapT >= SNAP_EVERY) { snapT = 0; sendSnap() }
 }, 8);

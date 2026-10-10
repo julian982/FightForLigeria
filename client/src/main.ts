@@ -5,7 +5,8 @@ import { S, MAPS, loadMap, genTrees, newGame, update, setHooks, G, trees, pushOu
 import { $, ui, sel, ME, setMe, view } from './state';
 import { online, act } from './net/act';
 import { initMirror, netTick } from './net/mirror';
-import { setNetHandlers, hostGame, joinGame, leaveGame, netState, serverUrl, setServerUrl } from './net/online';
+import { setNetHandlers, leaveGame } from './net/online';
+import { THUMBS } from './ui/thumbs';
 import { initHome } from './ui/home';
 import { glOk, renderer, scene, camera, resize, camT } from './render/engine';
 import { rebuildWorld } from './render/world';
@@ -46,10 +47,9 @@ let gameOpts:any={},timeScale=1;
 function faceTeam(){view.camYaw=view.yawTarget=Math.PI/4+(ME===1?Math.PI:0)}
 function start(opts){leaveGame();setMe(0);faceTeam();gameOpts=opts||{};timeScale=gameOpts.speed||1;showHome(false);applyColors();if(worldMap!==selMap)setMap(selMap);startGame(gameOpts);
   ui.running=true;$('end').hidden=true;resize();refreshHud();startAmbiance();
-  if(gameOpts.priv)toast('Partie privée'+(timeScale>1?' · vitesse rapide':'')+(gameOpts.rich?' · stock généreux':''));toast('Ton stock attend dans les charrettes : pose ta réserve (1) et ton grenier (2), ils sont gratuits')}
+  if(timeScale>1||gameOpts.rich)toast([timeScale>1?'Vitesse rapide':'',gameOpts.rich?'stock généreux':''].filter(Boolean).join(' · '));toast('Ton stock attend dans les charrettes : pose ta réserve (1) et ton grenier (2), ils sont gratuits')}
 function goHome(){if(online())leaveGame();exitFps();stopAmbiance();ui.running=false;if(G)G.ctrl[ME].charging=false;ui.placing=null;ui.box=null;$('end').hidden=true;showHome(true);$('start').focus()}
-$('start').addEventListener('click',()=>start({}));
-$('again').addEventListener('click',()=>{if(gameOpts.online){goHome();location.hash='lobby';return}start(gameOpts)});
+$('again').addEventListener('click',()=>{if(gameOpts.online){goHome();location.hash='en-ligne';return}start(gameOpts)});
 window.__startGame=start;window.__getMap=()=>selMap;window.__pickMap=id=>pickMap(id);
 $('toMenu').addEventListener('click',goHome);
 $('quit').addEventListener('click',goHome);
@@ -60,15 +60,21 @@ let selMap='amboise';try{const v=localStorage.getItem('ffl.map');if(MAPS[v])selM
   for(const [i,id] of ids.entries()){
     loadMap(id);const tl=genTrees();
     const b=document.createElement('button');b.type='button';b.className='mapcard';b.dataset.id=id;b.setAttribute('role','radio');
-    const cvs=document.createElement('canvas');cvs.width=180;cvs.height=100;drawMapBase(cvs.getContext('2d'),180,100,tl);
-    const nm=document.createElement('span');nm.textContent=MAPS[id].name;b.append(cvs,nm);
+    const cvs=document.createElement('canvas');cvs.width=360;cvs.height=200;drawMapBase(cvs.getContext('2d'),360,200,tl);
+    try{THUMBS[id]=cvs.toDataURL()}catch(e){}
+    const txt=document.createElement('span');txt.className='mc-txt';
+    const nm=document.createElement('span');nm.className='mc-name';nm.textContent=MAPS[id].name;
+    const pill=document.createElement('span');pill.className='pill';pill.textContent='Choisie';nm.append(' ',pill);
+    const ds=document.createElement('span');ds.className='mc-desc';ds.textContent=MAPS[id].desc;
+    txt.append(nm,ds);b.append(cvs,txt);
     b.addEventListener('click',()=>pickMap(id));
     b.addEventListener('keydown',e=>{const d={ArrowRight:1,ArrowDown:1,ArrowLeft:-1,ArrowUp:-1}[e.key];if(d){e.preventDefault();pickMap(ids[(i+d+ids.length)%ids.length],true)}});
     box.appendChild(b)}
+  window.dispatchEvent(new Event('ffl:thumbs'));
 }
 function pickMap(id,focus=false){
   selMap=id;for(const b of $('maps').children){const on=b.dataset.id===id;b.setAttribute('aria-checked',on);b.tabIndex=on?0:-1;if(on&&focus)b.focus()}
-  $('mapDesc').textContent=MAPS[id].desc;$('quickSub').textContent="Toi contre l'IA · 1v1 · "+MAPS[id].name;
+  $('soloSum').textContent=MAPS[id].name+" · 1v1 contre l'IA · non classée";
   try{localStorage.setItem('ffl.map',id)}catch(e){}
 }
 pickMap(selMap);
@@ -102,20 +108,14 @@ muteBox.addEventListener('change',()=>{setMuted(muteBox.checked);syncSound()});
 addEventListener('keydown',(e:any)=>{if(!ui.running||e.repeat||(e.target&&e.target.tagName==='INPUT'))return;if(e.key==='m'||e.key==='M'){setMuted(!audio.muted);syncSound()}});
 addEventListener('mousedown',(e:any)=>{if(!sndPanel.hidden&&!e.target.closest('.snd'))sndPanel.hidden=true});
 
-// ---- partie en ligne (lobby privé 1v1) ----
-const lobStatus=(msg:string,code?:string)=>{$('netNote').textContent=msg;$('joinMsg').textContent=window.__homeView==='lobby'&&!code&&/introuvable|joindre|Connexion/.test(msg)?msg:'';if(code)$('lobCode').textContent=code;window.__lobRender&&window.__lobRender()};
+// ---- partie en ligne : le salon (ui/online.ts) passe la main ici quand l'hôte lance ----
 setNetHandlers({
-  lobby:lobStatus,
   // le serveur lance la partie : on prépare la carte et un miroir vide, l'affichage démarre au premier instantané
   start(m){setMe(m.team);faceTeam();gameOpts={online:true,code:m.code};timeScale=1;sel.clear();ui.placing=null;ui.box=null;ui.selB=null;ui.running=false;
-    applyColors();if(worldMap!==m.map)setMap(m.map);initMirror();showHome(false);$('end').hidden=true;resize();toast('Partie en ligne '+m.code+' : la partie commence !')},
+    applyColors();if(worldMap!==m.map)setMap(m.map);initMirror();showHome(false);$('end').hidden=true;resize();toast('La partie commence !')},
   first(){const L=G.teams[ME].lord;camT.set(L.x*S,0,L.y*S);ui.running=true;refreshHud();startAmbiance();
     toast((ME===0?'Tu joues à gauche':'Tu joues à droite')+' · ton stock attend dans les charrettes : pose ta réserve (1) et ton grenier (2)')},
   end(m){G.over=true;G.winner=m.winner;G.st=m.st;G.t=m.t;endGame(m.winner)},
   note(msg,kind){toast(msg,kind)},
   lost(){toast('Connexion au serveur perdue','warn');setTimeout(goHome,1500)},
 });
-window.__onlineHost=(o)=>{const v=$('srvUrl').value.trim();if(v)setServerUrl(v);return hostGame(o)};
-window.__onlineJoin=(code)=>{const v=$('srvUrl').value.trim();if(v)setServerUrl(v);$('joinMsg').textContent='Connexion…';return joinGame(code)};
-window.__onlineState=netState;
-$('srvUrl').value=serverUrl();

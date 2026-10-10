@@ -24,7 +24,7 @@ fightforligeria/
 │   └── src/
 │       ├── render/     moteur 3D, décor, modèles, synchro scène, minicarte
 │       └── ui/         accueil, HUD, entrées clavier/souris, écran de fin
-├── server/      → le serveur de jeu en ligne (Node.js + Colyseus) : lobbies privés 1v1
+├── server/      → le serveur de jeu en ligne (Node.js + Colyseus) : liste des parties, salons, parties 1v1
 ├── deploy/      → hébergement du serveur sur un VPS (Docker, Nginx, guide pas à pas)
 └── .github/workflows/pages.yml → tests puis déploiement sur GitHub Pages à chaque push
 ```
@@ -53,10 +53,11 @@ npm run test:server  # test de bout en bout : deux joueurs se connectent et joue
 ## Jouer en ligne avec un ami (serveur local)
 
 1. Sur ton PC : `npm install`, puis `npm run dev:server` (le serveur de jeu) et, dans un autre terminal, `npm run dev` (le jeu).
-2. Ouvre le jeu (`http://localhost:5173`), va dans **Partie privée**, mets **Ami** en face, puis **Créer la partie en ligne** : un code s'affiche (ex. `LOIRE-7K2M`).
-3. Ton ami entre ce code dans **Rejoindre un ami**. La partie démarre dès qu'il arrive : tu joues à gauche, lui à droite.
+2. Ouvre le jeu (`http://localhost:5173`), clique sur **Parties en ligne**, choisis ton pseudo, puis **Créer une partie** : nom, publique ou privée, carte, réglages. Tu arrives dans le salon, avec un code à partager (ex. `LOIRE-7K2M`).
+3. Ton ami ouvre **Parties en ligne** : une partie publique apparaît dans la liste, il clique sur **Rejoindre**. Une partie privée n'est pas listée : il tape le code dans **Partie privée ?**.
+   Dans le salon, vous discutez, l'hôte peut changer la carte et les réglages, chacun clique sur **Je suis prêt**, puis l'hôte lance. Tu joues à gauche, lui à droite.
    - Sur le même réseau (même box) : il ouvre `http://<ton-ip-locale>:5173`, le jeu trouve tout seul le serveur.
-   - À distance : il faut ouvrir le port 2567 (et 5173) de ta box vers ton PC, et qu'il mette `ws://<ton-ip-publique>:2567` dans le champ **Serveur** du lobby.
+   - À distance : il faut ouvrir le port 2567 (et 5173) de ta box vers ton PC, et qu'il mette `ws://<ton-ip-publique>:2567` dans **Serveur de jeu**, en bas de la page des parties en ligne.
 4. Quitter la partie (ou perdre la connexion) compte comme un abandon : l'autre gagne.
 
 Pour héberger le serveur sur un VPS (à côté d'autres sites, sans les toucher) : voir [deploy/README.md](deploy/README.md).
@@ -144,7 +145,8 @@ En classé, la carte sera tirée au sort parmi les trois.
 
 - **Contre l'IA** : partie libre sur la carte choisie.
 - **Partie classée** (en préparation) : file d'attente 1v1 ou 2v2, carte tirée au sort, fait bouger l'Elo.
-- **Partie privée** : lobby avec code, 1v1 ou 2v2, places réglables en ami ou IA, choix de la carte, stock de départ (normal ou généreux) et vitesse (normale ou rapide). Jouable dès maintenant en 1v1 contre l'IA ; jamais classée.
+- **Contre l'IA** : choix de la carte, stock de départ (normal ou généreux), vitesse (normale ou rapide) et couleur du royaume.
+- **Parties en ligne** (1v1, jamais classées) : pseudo, liste des parties publiques en direct, parties privées par code, salon d'attente avec discussion, réglages de l'hôte, « prêt » et exclusion.
 
 ## Classement et Elo (en préparation)
 

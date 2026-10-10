@@ -19,79 +19,161 @@
         <a href="#classement" data-view="classement">Classement</a>
         <a href="#guide" data-view="guide">Comment jouer</a>
       </div>
+      <button class="pseudo-chip" id="pseudoChip" type="button" hidden>Tu joues en tant que <b id="pseudoName"></b> <span>modifier</span></button>
     </nav>
 
     <div class="view" id="v-jouer">
-    <header class="hero">
-      <div class="hero-text">
+    <section class="play-sec" aria-labelledby="playT">
+      <div class="play-head">
         <p class="eyebrow">Stratégie médiévale en Val de Loire</p>
-        <h1><span class="h1-pre">Fight for</span>Ligeria</h1>
-        <p class="lede">Sur les bords de Loire, en Touraine, bâtis ton domaine de tuffeau, forge tes armes, lève ton armée. Ton seigneur porte l'arc lui-même : abats le seigneur adverse pour gagner.</p>
-        <div class="realm" role="radiogroup" aria-labelledby="realmLbl">
-          <span id="realmLbl" class="realm-lbl">Couleur de ton royaume</span>
-          <div class="swatches" id="swatches"></div>
-          <span class="realm-name" id="realmName">Azur</span>
-        </div>
-        <p id="nogl" hidden>Le moteur 3D n'a pas pu se charger. Vérifie ta connexion puis recharge la page.</p>
-        <section class="lobbies" aria-label="Parties">
-          <div class="lobbies-head"><h2>Parties</h2><span>3 cartes</span></div>
-          <div class="mapsel"><div class="maps" id="maps" role="radiogroup" aria-label="Carte"></div><p class="map-desc" id="mapDesc"></p></div>
-          <div class="lobby">
-            <div><div class="t">Contre l'IA</div><div class="s" id="quickSub">Toi contre l'IA · 1v1</div></div>
-            <div class="m">Libre</div>
-            <button class="go" id="start" type="button">Jouer</button>
-          </div>
-          <div class="lobby">
-            <div><div class="t">Partie classée <span class="tag">En préparation</span></div><div class="s">1v1 ou 2v2 · carte tirée au sort · fait bouger ton Elo</div></div>
-            <div class="m">Elo</div>
-            <a class="go ghost-go" href="#file">File d'attente</a>
-          </div>
-          <div class="lobby">
-            <div><div class="t">Partie privée</div><div class="s">Entre amis ou contre l'IA · non classée</div></div>
-            <div class="m">Code</div>
-            <a class="go ghost-go" href="#lobby">Créer</a>
-          </div>
-        </section>
-        <a class="hint-link" href="#guide">Première partie ? Lis comment jouer</a>
+        <h1 id="playT" class="play-h1">Choisis ta bataille</h1>
       </div>
-      <svg class="hero-art" viewBox="0 0 480 300" role="img" aria-label="Un château de tuffeau aux couleurs de ton royaume, au bord de la Loire, face à une tour ennemie">
-        <polygon points="0,210 90,150 170,200" fill="#3e6630"/>
-        <polygon points="120,205 250,120 360,200" fill="#466f35"/>
-        <polygon points="300,200 400,140 480,190 480,210" fill="#3b612e"/>
-        <polygon points="0,210 480,190 480,300 0,300" fill="#5a8a3a"/>
-        <polygon points="0,232 180,212 300,226 480,214 480,250 0,256" fill="#689c45"/>
-        <g stroke="#2f5e2c" stroke-width="3" stroke-linecap="round">
-          <line x1="306" y1="205" x2="330" y2="203"/><line x1="300" y1="211" x2="328" y2="209"/><line x1="296" y1="217" x2="326" y2="215"/><line x1="292" y1="223" x2="322" y2="221"/>
-        </g>
-        <polygon points="70,236 250,216 290,226 110,248" fill="#9b7a4e"/>
-        <polygon points="0,250 120,242 240,254 360,238 480,244 480,252 360,246 240,262 120,250 0,258" fill="#d9c99a"/>
-        <polygon points="0,258 120,250 240,262 360,246 480,252 480,300 0,300" fill="#4b86ad"/>
-        <polygon points="300,272 350,264 395,270 345,277" fill="#e3d3a0"/>
-        <g stroke="#9cc7e0" stroke-width="2" stroke-linecap="round" opacity=".8">
-          <line x1="40" y1="276" x2="80" y2="274"/><line x1="160" y1="284" x2="210" y2="282"/><line x1="250" y1="270" x2="280" y2="269"/><line x1="410" y1="288" x2="450" y2="286"/>
-        </g>
-        <polygon points="104,166 158,166 158,222 104,222" fill="#ece4cf"/>
-        <polygon points="158,166 176,158 176,214 158,222" fill="#cfc4a8"/>
-        <polygon points="104,166 122,158 176,158 158,166" fill="#f6f0e0"/>
-        <polygon points="118,130 144,130 144,168 118,168" fill="#f2ebd8"/>
-        <polygon points="144,130 154,125 154,163 144,168" fill="#d6cbb0"/>
-        <polygon points="96,160 112,160 104,134" class="kc"/>
-        <polygon points="150,160 166,160 158,134" class="kc"/>
-        <polygon points="166,152 182,152 174,128" class="kc"/>
-        <polygon points="116,131 146,131 131,108" fill="#3d4a57"/>
-        <polygon points="124,204 138,204 138,222 124,222" fill="#4a3121"/>
-        <rect x="126" y="142" width="5" height="9" fill="#2b2a2e"/><rect x="110" y="182" width="5" height="9" fill="#2b2a2e"/><rect x="146" y="182" width="5" height="9" fill="#2b2a2e"/>
-        <line x1="131" y1="108" x2="131" y2="90" stroke="#4a3522" stroke-width="2"/>
-        <polygon points="131,90 152,94 131,102" class="kc"/>
-        <polygon points="372,158 398,158 398,204 372,204" fill="#ece4cf"/>
-        <polygon points="398,158 408,153 408,199 398,204" fill="#cfc4a8"/>
-        <polygon points="368,160 402,160 385,132" class="kc2"/>
-        <polygon points="40,206 52,184 64,206" fill="#2f5e2c"/><polygon points="44,192 52,174 60,192" fill="#3a6e33"/>
-        <polygon points="214,204 228,178 242,204" fill="#2f5e2c"/><polygon points="219,188 228,168 237,188" fill="#467d3a"/>
-        <polygon points="430,196 440,178 450,196" fill="#2f5e2c"/>
-        <polygon points="250,232 262,226 270,234 258,240" fill="#e6dcc4"/><polygon points="262,238 276,232 282,240 268,244" fill="#d8cdb2"/>
-      </svg>
-    </header>
+      <p id="nogl" class="net-msg warn" hidden>Le moteur 3D n'a pas pu se charger. Vérifie ta connexion puis recharge la page.</p>
+      <div class="modes">
+        <article class="mode">
+          <svg class="mode-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/><path d="M9.5 6.5 14 2h3v3l-4.5 4.5"/><path d="M5 14l-2 2 2 2"/></svg>
+          <h2>Contre l'IA</h2>
+          <p class="mode-txt">Seul face au seigneur adverse. Choisis ta carte et tes réglages, puis lance la partie.</p>
+          <p class="mode-meta">1v1 · 3 cartes · non classée</p>
+          <a class="go mode-go" href="#solo">Préparer la partie</a>
+        </article>
+        <article class="mode hot">
+          <svg class="mode-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/><path d="M19 21V9"/><path d="M19 9h-3"/><path d="M2 21h20"/></svg>
+          <h2>Parties en ligne</h2>
+          <p class="mode-txt">Rejoins une partie ouverte ou crée la tienne. Publique, elle apparaît dans la liste. Privée, on la rejoint avec un code.</p>
+          <p class="mode-meta">Contre tes amis · salon et discussion</p>
+          <a class="go mode-go" href="#en-ligne">Voir les parties</a>
+        </article>
+        <article class="mode off">
+          <svg class="mode-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5Z"/><path d="M5 22h14"/></svg>
+          <div class="mode-title"><h2>Partie classée</h2><span class="tag">Bientôt</span></div>
+          <p class="mode-txt">File d'attente, adversaire de ton niveau, carte tirée au sort. Chaque partie fait bouger ton Elo.</p>
+          <p class="mode-meta">1v1 et 2v2 · nécessitera un compte</p>
+          <a class="go ghost-go mode-go" href="#file">En préparation · aperçu</a>
+        </article>
+      </div>
+      <a class="hint-link" href="#guide">Première partie ? Lis comment jouer</a>
+    </section>
+    </div>
+
+    <div class="view" id="v-solo" hidden>
+    <section class="sub-sec" aria-labelledby="soloT">
+      <a class="back" href="#jouer">← Jouer</a>
+      <h2 id="soloT">Contre l'IA</h2>
+      <div class="setup">
+        <div class="setup-main">
+          <h3 class="step">1 · Choisis la carte</h3>
+          <div class="maps rows" id="maps" role="radiogroup" aria-label="Carte"></div>
+        </div>
+        <div class="panel">
+          <h3 class="step">2 · Réglages</h3>
+          <div class="row"><span>Adversaire</span><span class="muted">IA · <b>Royaume adverse</b></span></div>
+          <div class="row"><span>Stock de départ</span><div class="seg big" id="soloStock"><button type="button" data-v="normal" aria-pressed="true">Normal</button><button type="button" data-v="riche" aria-pressed="false">Généreux</button></div></div>
+          <div class="row"><span>Vitesse</span><div class="seg big" id="soloSpeed"><button type="button" data-v="1" aria-pressed="true">Normale</button><button type="button" data-v="1.5" aria-pressed="false">Rapide</button></div></div>
+          <div class="row realm" role="radiogroup" aria-labelledby="realmLbl"><span id="realmLbl">Ton royaume <span class="realm-name" id="realmName">Azur</span></span><div class="swatches" id="swatches"></div></div>
+          <div class="row"><span>Victoire</span><span class="muted">Abattre le seigneur adverse</span></div>
+          <div class="grow"></div>
+          <p class="summary" id="soloSum"></p>
+          <button class="go big" id="start" type="button">Lancer la partie</button>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <div class="view" id="v-en-ligne" hidden>
+    <section class="sub-sec" aria-labelledby="olT">
+      <a class="back" href="#jouer">← Jouer</a>
+      <div class="ol-head">
+        <h2 id="olT">Parties en ligne</h2>
+        <div class="ol-actions">
+          <form class="join" id="joinForm"><label for="joinCode">Partie privée ?</label><input id="joinCode" placeholder="Code, ex. LOIRE-AB12" maxlength="12" autocomplete="off"><button class="go ghost" type="submit">Rejoindre</button></form>
+          <a class="go plus" href="#creer">Créer une partie</a>
+        </div>
+      </div>
+      <p class="net-msg" id="olMsg" role="status"></p>
+      <div class="ol-grid">
+        <div class="ol-list">
+          <div class="ol-tools">
+            <div class="seg" id="olMode"><button type="button" data-v="all" aria-pressed="true">Toutes</button><button type="button" data-v="1v1" aria-pressed="false">1v1</button><button type="button" disabled>2v2 · bientôt</button></div>
+            <label class="chk"><input type="checkbox" id="olHideFull"> Masquer les parties pleines</label>
+          </div>
+          <div class="ol-row ol-th" aria-hidden="true"><span>Partie</span><span>Hôte</span><span>Carte</span><span>Mode</span><span>Joueurs</span><span></span></div>
+          <div class="ol-rows" id="olRows"></div>
+          <p class="ol-foot">La liste se met à jour toute seule · les parties privées n'y apparaissent pas.</p>
+        </div>
+        <aside class="ol-detail" id="olDetail" aria-live="polite"></aside>
+      </div>
+      <details class="srv-box"><summary>Serveur de jeu</summary><div class="srv-row"><label for="srvUrl">Adresse</label><input id="srvUrl" class="srv" spellcheck="false" autocomplete="off"><button class="go ghost" id="srvApply" type="button">Appliquer</button></div></details>
+    </section>
+    </div>
+
+    <div class="view" id="v-creer" hidden>
+    <section class="sub-sec" aria-labelledby="crT">
+      <a class="back" href="#en-ligne">← Parties en ligne</a>
+      <h2 id="crT">Créer une partie</h2>
+      <form class="setup" id="createForm">
+        <div class="setup-main">
+          <div class="cr-top">
+            <div class="field"><label class="lbl" for="crName">Nom de la partie</label><input id="crName" class="txt" maxlength="32" autocomplete="off"></div>
+            <div class="field"><span class="lbl">Visibilité</span><div class="seg big wide" id="crVis"><button type="button" data-v="pub" aria-pressed="true">Publique</button><button type="button" data-v="priv" aria-pressed="false">Privée</button></div></div>
+          </div>
+          <p class="help" id="crVisHelp"></p>
+          <span class="lbl">Carte</span>
+          <div class="maps cols" id="crMaps" role="radiogroup" aria-label="Carte"></div>
+        </div>
+        <div class="panel">
+          <h3 class="step">Réglages</h3>
+          <div class="row"><span>Mode</span><div class="seg big"><button type="button" aria-pressed="true">1v1</button><button type="button" disabled>2v2 · bientôt</button></div></div>
+          <div class="row"><span>Stock de départ</span><div class="seg big" id="crStock"><button type="button" data-v="normal" aria-pressed="true">Normal</button><button type="button" data-v="riche" aria-pressed="false">Généreux</button></div></div>
+          <div class="row"><span>Vitesse</span><div class="seg big" id="crSpeed"><button type="button" data-v="1" aria-pressed="true">Normale</button><button type="button" data-v="1.5" aria-pressed="false">Rapide</button></div></div>
+          <div class="row"><span>Victoire</span><span class="muted">Abattre le seigneur adverse</span></div>
+          <div class="grow"></div>
+          <p class="summary">Tu pourras encore changer la carte et les réglages depuis le salon.</p>
+          <p class="net-msg" id="crMsg" role="status"></p>
+          <button class="go big" id="crGo" type="submit">Ouvrir le salon</button>
+        </div>
+      </form>
+    </section>
+    </div>
+
+    <div class="view" id="v-salon" hidden>
+    <section class="sub-sec" aria-labelledby="saT">
+      <div class="sa-top">
+        <div class="sa-title"><h2 id="saT">Salon</h2><span class="tag" id="saVis"></span><span class="tag">1v1 · non classée</span></div>
+        <div class="sa-actions">
+          <span class="sa-code">Inviter avec le code <b class="code" id="saCode"></b></span>
+          <button class="go ghost" id="saCopy" type="button">Copier</button>
+          <button class="go ghost" id="saQuit" type="button">Quitter le salon</button>
+        </div>
+      </div>
+      <div class="sa-grid">
+        <div class="panel">
+          <h3 class="step" id="saCount">Joueurs</h3>
+          <div class="sa-players" id="saPlayers"></div>
+          <div class="grow"></div>
+          <p class="g-note" id="saPlayersNote"></p>
+        </div>
+        <div class="panel">
+          <h3 class="step">Carte</h3>
+          <img class="sa-thumb" id="saThumb" alt="">
+          <b class="sa-map" id="saMap"></b>
+          <div class="seg big wide" id="saMaps"></div>
+          <div class="row"><span>Stock de départ</span><div class="seg big" id="saStock"><button type="button" data-v="normal">Normal</button><button type="button" data-v="riche">Généreux</button></div></div>
+          <div class="row"><span>Vitesse</span><div class="seg big" id="saSpeed"><button type="button" data-v="1">Normale</button><button type="button" data-v="1.5">Rapide</button></div></div>
+          <p class="g-note" id="saSetNote"></p>
+        </div>
+        <div class="panel chat">
+          <h3 class="step">Discussion</h3>
+          <div class="chat-log" id="chatLog" role="log" aria-live="polite"></div>
+          <form class="chat-form" id="chatForm"><label class="sr" for="chatIn">Message</label><input id="chatIn" maxlength="200" placeholder="Écris un message…" autocomplete="off"><button class="go" type="submit">Envoyer</button></form>
+        </div>
+      </div>
+      <div class="sa-bar">
+        <span id="saStatus" role="status"></span>
+        <button class="go ghost big2" id="saReady" type="button">Je suis prêt</button>
+        <button class="go big2" id="saLaunch" type="button">Lancer la partie</button>
+      </div>
+    </section>
     </div>
 
     <div class="view" id="v-file" hidden>
@@ -132,38 +214,6 @@
             <li>Quitter une partie classée compte comme une défaite.</li>
           </ul>
           <a class="hint-link" href="#classement">Voir toutes les règles de l'Elo</a>
-        </div>
-      </div>
-    </section>
-    </div>
-
-    <div class="view" id="v-lobby" hidden>
-    <section class="sub-sec" aria-labelledby="lobT">
-      <a class="back" href="#jouer">← Retour</a>
-      <div class="rank-head">
-        <div class="row-title"><h2 id="lobT">Partie privée</h2><span class="tag">Non classée</span></div>
-        <form class="join" id="joinForm"><label for="joinCode">Rejoindre un ami</label><input id="joinCode" placeholder="Code du lobby" maxlength="12" autocomplete="off"><button class="go ghost" type="submit">Rejoindre</button></form>
-      </div>
-      <p class="join-msg" id="joinMsg" role="status"></p>
-      <div class="lob-grid">
-        <div class="es">
-          <div class="code-row">
-            <div><div class="lbl">Code de ton lobby</div><div class="code" id="lobCode">LOIRE-0000</div></div>
-            <button class="go ghost" id="copyCode" type="button">Copier</button>
-          </div>
-          <div class="opt"><span class="lbl">Mode</span><div class="seg" id="lobMode"><button type="button" data-v="1v1" aria-pressed="true">1v1</button><button type="button" data-v="2v2" aria-pressed="false">2v2</button></div></div>
-          <div class="teams" id="teams"></div>
-        </div>
-        <div class="es">
-          <h3>Réglages</h3>
-          <div class="opt"><span class="lbl">Carte</span><div class="seg" id="lobMap"><button type="button" data-v="amboise">Amboise</button><button type="button" data-v="cher">Cher</button><button type="button" data-v="chinon">Chinon</button></div></div>
-          <div class="opt"><span class="lbl">Stock de départ</span><div class="seg" id="lobStock"><button type="button" data-v="normal" aria-pressed="true">Normal</button><button type="button" data-v="riche" aria-pressed="false">Généreux</button></div></div>
-          <div class="opt"><span class="lbl">Vitesse</span><div class="seg" id="lobSpeed"><button type="button" data-v="1" aria-pressed="true">Normale</button><button type="button" data-v="1.5" aria-pressed="false">Rapide</button></div></div>
-          <div class="opt" id="srvRow" hidden><label class="lbl" for="srvUrl">Serveur</label><input id="srvUrl" class="srv" spellcheck="false" autocomplete="off"></div>
-          <div class="opt"><span class="lbl">Victoire</span><span>Abattre le seigneur adverse</span></div>
-          <button class="go big" id="lobLaunch" type="button">Lancer la partie</button>
-          <p class="g-note" id="lobNote"></p>
-          <p class="g-note net-note" id="netNote" role="status"></p>
         </div>
       </div>
     </section>
@@ -324,6 +374,15 @@
     </div>
   </div>
 </main>
+<dialog class="dlg" id="pseudoDlg" aria-labelledby="pseudoT">
+  <form id="pseudoForm" method="dialog">
+    <h2 id="pseudoT">Choisis ton pseudo</h2>
+    <p>C'est le nom que verront les autres joueurs dans la liste des parties, le salon et la discussion.</p>
+    <div class="field"><label class="lbl" for="pseudoIn">Pseudo</label><input id="pseudoIn" class="txt big" maxlength="16" autocomplete="nickname" required><span class="help" id="pseudoHelp">3 à 16 caractères : lettres, chiffres, espaces, tirets.</span></div>
+    <div class="dlg-btns"><button class="go ghost" type="button" id="pseudoCancel">Annuler</button><button class="go" type="submit">Continuer</button></div>
+    <p class="g-note">Mémorisé dans ce navigateur, modifiable à tout moment. Les vrais comptes arriveront avec les parties classées.</p>
+  </form>
+</dialog>
 
 <div id="play" hidden>
 <canvas id="game"></canvas>

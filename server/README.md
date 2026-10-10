@@ -1,16 +1,22 @@
 # Serveur de jeu FightForLigeria
 
-Serveur Node.js + TypeScript (Colyseus) pour les parties en ligne. **Étape 2 : lobbies privés 1v1, en local.**
+Serveur Node.js + TypeScript (Colyseus) pour les parties en ligne. Liste des parties, salons d'attente et parties 1v1.
 
 ```
 npm run dev:server     # construit puis lance le serveur sur ws://localhost:2567 (PORT=… pour changer)
-npm run test:server    # lance le serveur, deux faux joueurs créent/rejoignent un lobby et jouent
+npm run test:server    # lance le serveur et joue tout le parcours : liste, salons, discussion, prêt, partie, exclusion
 ```
 
 ## Comment ça marche
 
-- `src/index.ts` : le serveur Colyseus, une seule salle `ffl`.
-- `src/room.ts` : un lobby privé. Son identifiant est le code à partager (`LOIRE-7K2M`). Le créateur joue l'équipe 0 (à gauche), l'invité l'équipe 1. La partie démarre quand les deux sont là ; un départ en cours de partie = abandon.
+- `src/index.ts` : le serveur Colyseus, avec deux salles :
+  - `lobby` : la liste des parties publiques, tenue à jour en direct pour les navigateurs qui la regardent (salle fournie par Colyseus) ;
+  - `ffl` : un salon puis une partie.
+- `src/room.ts` : un salon. Son identifiant est le code à partager (`LOIRE-7K2M`).
+  - Publique, il apparaît dans la liste avec son nom, son hôte, sa carte et ses réglages. Privé, il n'y apparaît jamais : on le rejoint par son code.
+  - Les joueurs ont un pseudo (nettoyé, et dédoublonné si besoin). L'hôte choisit la carte, le stock et la vitesse ; tout changement remet les joueurs « pas prêt ». Il peut exclure un joueur. S'il part, l'autre devient l'hôte.
+  - Discussion du salon : messages nettoyés, 200 caractères au plus, 5 messages toutes les 5 secondes par joueur.
+  - L'hôte lance quand les deux joueurs sont prêts. Le créateur joue l'équipe 0 (à gauche), l'invité l'équipe 1. Un départ en cours de partie = abandon.
 - `src/worker.ts` : chaque partie tourne dans son propre *worker thread* avec la simulation de `shared/` (60 pas par seconde), ce qui isole les parties entre elles.
 - `shared/src/net.ts` : le protocole commun.
   - Le navigateur envoie des **commandes** (`steer`, `charge`, `release`, `place`, `recruit`, `move`, `attack`, `demolish`). Le serveur les vérifie avec les mêmes règles que le solo.
