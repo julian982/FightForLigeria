@@ -94,7 +94,7 @@
       <div class="ol-grid">
         <div class="ol-list">
           <div class="ol-tools">
-            <div class="seg" id="olMode"><button type="button" data-v="all" aria-pressed="true">Toutes</button><button type="button" data-v="1v1" aria-pressed="false">1v1</button><button type="button" disabled>2v2 · bientôt</button></div>
+            <div class="seg" id="olMode"><button type="button" data-v="all" aria-pressed="true">Toutes</button><button type="button" data-v="1v1" aria-pressed="false">1v1</button><button type="button" data-v="2v2" aria-pressed="false">2v2</button></div>
             <label class="chk"><input type="checkbox" id="olHideFull"> Masquer les parties pleines</label>
           </div>
           <div class="ol-row ol-th" aria-hidden="true"><span>Partie</span><span>Hôte</span><span>Carte</span><span>Mode</span><span>Joueurs</span><span></span></div>
@@ -123,10 +123,11 @@
         </div>
         <div class="panel">
           <h3 class="step">Réglages</h3>
-          <div class="row"><span>Mode</span><div class="seg big"><button type="button" aria-pressed="true">1v1</button><button type="button" disabled>2v2 · bientôt</button></div></div>
+          <div class="row"><span>Mode</span><div class="seg big" id="crMode"><button type="button" data-v="1v1" aria-pressed="true">1v1</button><button type="button" data-v="2v2" aria-pressed="false">2v2</button></div></div>
+          <p class="help small" id="crModeHelp"></p>
           <div class="row"><span>Stock de départ</span><div class="seg big" id="crStock"><button type="button" data-v="normal" aria-pressed="true">Normal</button><button type="button" data-v="riche" aria-pressed="false">Généreux</button></div></div>
           <div class="row"><span>Vitesse</span><div class="seg big" id="crSpeed"><button type="button" data-v="1" aria-pressed="true">Normale</button><button type="button" data-v="1.5" aria-pressed="false">Rapide</button></div></div>
-          <div class="row"><span>Victoire</span><span class="muted">Abattre le seigneur adverse</span></div>
+          <div class="row"><span>Victoire</span><span class="muted" id="crWin">Abattre le seigneur adverse</span></div>
           <div class="grow"></div>
           <p class="summary">Tu pourras encore changer la carte et les réglages depuis le salon.</p>
           <p class="net-msg" id="crMsg" role="status"></p>
@@ -139,7 +140,7 @@
     <div class="view" id="v-salon" hidden>
     <section class="sub-sec" aria-labelledby="saT">
       <div class="sa-top">
-        <div class="sa-title"><h2 id="saT">Salon</h2><span class="tag" id="saVis"></span><span class="tag">1v1 · non classée</span></div>
+        <div class="sa-title"><h2 id="saT">Salon</h2><span class="tag" id="saVis"></span><span class="tag" id="saModeTag">1v1 · non classée</span></div>
         <div class="sa-actions">
           <span class="sa-code">Inviter avec le code <b class="code" id="saCode"></b></span>
           <button class="go ghost" id="saCopy" type="button">Copier</button>
@@ -158,6 +159,7 @@
           <img class="sa-thumb" id="saThumb" alt="">
           <b class="sa-map" id="saMap"></b>
           <div class="seg big wide" id="saMaps"></div>
+          <div class="row"><span>Mode</span><div class="seg big" id="saMode"><button type="button" data-v="1v1">1v1</button><button type="button" data-v="2v2">2v2</button></div></div>
           <div class="row"><span>Stock de départ</span><div class="seg big" id="saStock"><button type="button" data-v="normal">Normal</button><button type="button" data-v="riche">Généreux</button></div></div>
           <div class="row"><span>Vitesse</span><div class="seg big" id="saSpeed"><button type="button" data-v="1">Normale</button><button type="button" data-v="1.5">Rapide</button></div></div>
           <p class="g-note" id="saSetNote"></p>

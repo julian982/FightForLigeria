@@ -1,5 +1,5 @@
 // Clavier et souris : ZQSD + arc pour le seigneur, placement des bâtiments, sélection et ordres.
-import { BUILD_LIST, G, S } from '@ffl/shared';
+import { BUILD_LIST, G, S, isFoe } from '@ffl/shared';
 import { act } from '../net/act';
 import { cv } from '../render/engine';
 import { enterFps, exitFps, fpsLook } from '../render/fps';
@@ -48,8 +48,8 @@ export function selectBox(add){
 }
 /** l'ennemi (soldat, ouvrier, seigneur ou bâtiment) sous le curseur */
 export function targetUnderMouse(){
-  let tgt=pickNear([...G.units,...G.workers].filter(e=>e.team!==ME&&!e.dead),34*view.ppu/46);
-  if(!tgt)for(const b of G.buildings){if(b.team!==ME&&!b.dead&&b.type!=='keep'&&mouse.wx>b.bx&&mouse.wx<b.bx+b.bw&&mouse.wy>b.by&&mouse.wy<b.by+b.bh){tgt=b;break}}
+  let tgt=pickNear([...G.units,...G.workers].filter(e=>isFoe(e.team,ME)&&!e.dead),34*view.ppu/46);
+  if(!tgt)for(const b of G.buildings){if(isFoe(b.team,ME)&&!b.dead&&b.type!=='keep'&&mouse.wx>b.bx&&mouse.wx<b.bx+b.bw&&mouse.wy>b.by&&mouse.wy<b.by+b.bh){tgt=b;break}}
   return tgt;
 }
 // curseur « épées croisées » quand des soldats sont sélectionnés et qu'on survole un ennemi

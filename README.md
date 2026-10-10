@@ -146,7 +146,10 @@ En classé, la carte sera tirée au sort parmi les trois.
 - **Contre l'IA** : partie libre sur la carte choisie.
 - **Partie classée** (en préparation) : file d'attente 1v1 ou 2v2, carte tirée au sort, fait bouger l'Elo.
 - **Contre l'IA** : choix de la carte, stock de départ (normal ou généreux), vitesse (normale ou rapide) et couleur du royaume.
-- **Parties en ligne** (1v1, jamais classées) : pseudo, liste des parties publiques en direct, parties privées par code, salon d'attente avec discussion, réglages de l'hôte, « prêt » et exclusion.
+- **Parties en ligne** (jamais classées) : pseudo, liste des parties publiques en direct, parties privées par code, salon d'attente avec discussion, réglages de l'hôte, « prêt » et exclusion.
+  - **1v1** ou **2v2**. En 2v2, chaque carte existe en version deux fois plus haute : quatre châteaux, deux par camp l'un au-dessus de l'autre, un gisement de pierre par château et un gisement de fer par rangée.
+  - Chaque joueur a son château, ses ressources et son armée ; les alliés ne se blessent jamais. Un joueur dont le seigneur tombe est éliminé (ses soldats se rendent) et regarde la suite ; un camp perd quand ses deux seigneurs sont tombés.
+  - L'hôte peut mettre une IA sur une place libre (par exemple deux amis contre deux IA) ; chacun peut changer de place.
 
 ## Classement et Elo (en préparation)
 
@@ -166,6 +169,6 @@ La page Classement explique ces règles et propose un simulateur de gains. Le ca
 Prototype jouable en solo contre une IA. La simulation (`shared/`) est isolée du rendu (`client/`) et couverte par des tests automatiques : première étape vers le multijoueur.
 
 Pistes pour la suite :
-- multijoueur 1v1 puis 2v2, avec un serveur qui fait autorité ;
+- multijoueur 1v1 et 2v2, avec un serveur qui fait autorité (fait) ;
 - lobbies en ligne et classement réel ;
 - plusieurs cartes.

@@ -8,13 +8,14 @@ const post = (m: any) => parentPort!.postMessage(m);
 const fell: number[] = [];
 let ended = false;
 
-loadMap(workerData.map);
+loadMap(workerData.map, workerData.mode === '2v2' ? '2v2' : '1v1');
 setHooks({
   removed: e => { if (e.wood !== undefined && !e.kind && e.id != null) fell.push(e.id) },
   notify: (team, msg, kind) => post({ type: 'note', team, msg, kind }),
   end: winner => { ended = true; sendSnap(); post({ type: 'end', winner, st: G.st, t: G.t }) },
 });
-newGame({ rich: !!workerData.rich, ai: [false, false] });
+// les places tenues par l'IA dans le salon sont jouées par l'IA de shared/
+newGame({ rich: !!workerData.rich, ai: Array.isArray(workerData.ai) ? workerData.ai.map(Boolean) : [] });
 
 function sendSnap() { post({ type: 'snap', snap: makeSnapshot(fell.splice(0)) }) }
 

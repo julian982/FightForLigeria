@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   loadMap, newGame, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater,
   placeBuilding, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
-  START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRON, shotClear, fireArrow, orderAttack, applyCommand, makeSnapshot, B_TYPES, forfeit,
+  START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRONS, shotClear, findPath, buildNav, KEEPS, PLAYERS, H, isFoe, onPath, MAP, fireArrow, orderAttack, applyCommand, makeSnapshot, B_TYPES, forfeit,
 } from '../src/index';
 
 const DT = 1 / 60;
@@ -195,7 +195,7 @@ describe('gisements', () => {
     loadMap('amboise'); newGame();
     const st = STONES[0];
     expect(shotClear(st.x - 150, st.y, st.x + 150, st.y, null)).toBe(true);
-    expect(shotClear(IRON.x - 150, IRON.y, IRON.x + 150, IRON.y, null)).toBe(true);
+    const IRON = IRONS[0]; expect(shotClear(IRON.x - 150, IRON.y, IRON.x + 150, IRON.y, null)).toBe(true);
     fireArrow(0, st.x - 120, st.y, 0, 1);
     const a = G.arrows[G.arrows.length - 1];
     run(.4);
@@ -204,7 +204,7 @@ describe('gisements', () => {
 });
 
 describe('soldats du joueur en position', () => {
-  function setup() { loadMap('amboise'); newGame(); G.ai.next = 1e9; G.teams[1].lord.x = 2700; G.teams[0].lord.x = 100 }
+  function setup() { loadMap('amboise'); newGame(); G.ai[1].next = 1e9; G.teams[1].lord.x = 2700; G.teams[0].lord.x = 100 }
   it('un archer ne poursuit pas : il tire seulement ce qui est à portée', () => {
     setup();
     const a = spawnUnit(0, 'archer', { x: 1000, y: 600 }); const x0 = a.x, y0 = a.y;
@@ -281,5 +281,77 @@ describe('protocole réseau', () => {
     loadMap('amboise'); newGame({ ai: [false, false] });
     forfeit(0);
     expect(G.over).toBe(true); expect(G.winner).toBe(1);
+  });
+});
+
+describe('2v2', () => {
+  it('chaque carte existe en 2v2, deux fois plus haute, avec quatre châteaux', () => {
+    for (const id of MAP_IDS) {
+      loadMap(id, '2v2'); newGame({ ai: [false, false, false, false] });
+      expect(H).toBe(3200); expect(PLAYERS).toBe(4);
+      expect(G.teams.length).toBe(4);
+      expect(G.teams.map(t => t.side)).toEqual([0, 1, 0, 1]);
+      // deux châteaux par camp, l'un au-dessus de l'autre ; un gisement de fer par rangée
+      const k = G.teams.map(t => t.keep);
+      expect(k[0].x).toBeLessThan(1000); expect(k[2].x).toBe(k[0].x); expect(k[2].y - k[0].y).toBe(1600);
+      expect(k[1].x).toBeGreaterThan(1800); expect(k[3].y - k[1].y).toBe(1600);
+      expect(IRONS.length).toBe(2); expect(STONES.length).toBe(4);
+      // la Loire est tout au sud : pas d'eau entre les deux rangées, sauf le Cher
+      expect(rawWater(300, 1500)).toBe(false); expect(rawWater(300, 3190)).toBe(true);
+      // des arbres dans les deux moitiés, et un chemin dans chaque rangée
+      expect(trees.some(t => t.y < 1600)).toBe(true); expect(trees.some(t => t.y > 1600)).toBe(true);
+      expect(MAP.paths.length).toBe(2); expect(onPath(1440, MAP.paths[1](1440), 5)).toBe(true);
+      // on peut marcher d'un château à n'importe quel autre
+      buildNav();
+      for (const j of [1, 2, 3]) expect(findPath(k[0].x + 110, k[0].y, k[j].x - 110 * (j % 2 ? 1 : -1), k[j].y)).not.toBeNull();
+    }
+    // revenir en 1v1 remet la carte à sa taille
+    loadMap('amboise'); newGame();
+    expect(H).toBe(1600); expect(G.teams.length).toBe(2);
+  });
+  it('les alliés ne se blessent pas, les ennemis oui', () => {
+    loadMap('amboise', '2v2'); newGame({ ai: [false, false, false, false] });
+    expect(isFoe(0, 2)).toBe(false); expect(isFoe(0, 1)).toBe(true); expect(isFoe(2, 3)).toBe(true);
+    const ally = spawnUnit(2, 'lancier', { x: 1000, y: 1700 }), foe = spawnUnit(3, 'lancier', { x: 1000, y: 1900 });
+    fireArrow(0, 1000, 1640, Math.PI / 2, 1); // la flèche traverse l'allié et touche l'ennemi
+    run(.6);
+    expect(ally.hp).toBe(ally.maxhp); expect(foe.hp).toBeLessThan(foe.maxhp);
+    expect(G.st[0].hit).toBe(1);
+    // on ne peut pas ordonner d'attaquer un allié
+    const mine = spawnUnit(0, 'archer', { x: 900, y: 1700 });
+    orderAttack(0, [mine], ally); expect(mine.order).toBeNull();
+    orderAttack(0, [mine], foe); expect(mine.order.type).toBe('attack');
+  });
+  it('un camp perd quand ses deux seigneurs sont abattus', () => {
+    loadMap('cher', '2v2'); newGame({ ai: [false, false, false, false] });
+    setHooks({ end: w => { ended = w }, notify: (t, m) => notes.push([t, m]) });
+    const s1 = spawnUnit(1, 'lancier', { x: 2400, y: 700 });
+    hit(G.teams[1].lord, 1000, false, 0); run(.1);
+    expect(G.teams[1].out).toBe(true); expect(G.over).toBe(null);
+    expect(s1.dead || !G.units.includes(s1)).toBe(true); // ses soldats se rendent
+    expect(notes.some(([t, m]) => t === 3 && /allié est tombé/.test(m))).toBe(true);
+    expect(notes.some(([t, m]) => t === 0 && /ennemi est tombé/.test(m))).toBe(true);
+    // un joueur éliminé ne commande plus rien
+    expect(applyCommand(1, { c: 'place', type: 'reserve', tx: 60, ty: 16 })).toBeNull();
+    expect(G.buildings.some(b => b.team === 1 && b.type === 'reserve')).toBe(false);
+    hit(G.teams[3].lord, 1000, false, 2); run(.1);
+    expect(G.over).toBe(true); expect(G.winner).toBe(0); expect(ended).toBe(0);
+  });
+  it('abandons en 2v2 : le camp perd au dernier départ', () => {
+    loadMap('amboise', '2v2'); newGame({ ai: [false, false, false, false] });
+    forfeit(0); expect(G.over).toBe(null); expect(G.teams[0].out).toBe(true);
+    forfeit(2); expect(G.over).toBe(true); expect(G.winner).toBe(1);
+  });
+  it('l\'IA peut jouer n\'importe quel joueur et vise l\'ennemi, jamais son allié', () => {
+    loadMap('chinon', '2v2'); newGame({ ai: [false, true, true, true] });
+    for (const a of G.ai) a.next = 60; // vagues plus tôt pour le test
+    G.teams[0].res.fleche = 0;
+    const notesFor: number[] = []; setHooks({ notify: (t, m) => { if (/lance une attaque/.test(m)) notesFor.push(t) } });
+    run(200);
+    for (const p of [1, 2, 3]) expect(G.buildings.filter(b => b.team === p).length).toBeGreaterThan(3);
+    // les vagues de l'IA alliée (joueur 2) visent le camp d'en face, jamais le joueur 0
+    expect(notesFor.every(t => t === 1 || t === 3 || t === 0)).toBe(true);
+    for (const u of G.units) if (u.team === 2 && u.order && u.order.ai) expect(Math.abs(u.order.x - G.teams[0].lord.x) + Math.abs(u.order.y - G.teams[0].lord.y)).toBeGreaterThan(200);
+    const s = makeSnapshot([]); expect(s.tm.length).toBe(4); expect(s.ctrl.length).toBe(4);
   });
 });

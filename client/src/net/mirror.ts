@@ -7,12 +7,13 @@ import { ME } from '../state';
 export const byId = { u: new Map<number, any>(), w: new Map<number, any>(), b: new Map<number, any>(), a: new Map<number, any>() };
 export let gotFirst = false;
 /** prépare un G vide pour une partie en ligne (la forêt est générée à l'identique du serveur) */
-export function initMirror() {
+export function initMirror(n = 2) {
   hooks.reset();
+  const ids = Array.from({ length: n }, (_, i) => i);
   for (const m of Object.values(byId)) m.clear();
   setTrees(genTrees().map((t, i) => (t.id = i, t)));
-  setG({ t: 0, teams: [0, 1].map(id => ({ id, res: {}, stash: {}, keep: null, lord: null, starving: false })), buildings: [], units: [], workers: [], arrows: [], fx: [],
-    over: null, winner: null, ctrl: [newCtrl(false), newCtrl(false)], st: [newStats(), newStats()], stats: { kills: 0, recruits: 0 }, online: true });
+  setG({ t: 0, teams: ids.map(id => ({ id, side: id & 1, out: false, res: {}, stash: {}, keep: null, lord: null, starving: false })), buildings: [], units: [], workers: [], arrows: [], fx: [],
+    over: null, winner: null, ctrl: ids.map(() => newCtrl(false)), st: ids.map(newStats), stats: { kills: 0, recruits: 0 }, online: true });
   gotFirst = false;
 }
 export const mirrorReady = () => gotFirst;
@@ -42,7 +43,7 @@ export function applySnapshot(s: Snapshot) {
     (a, r) => { a.x = r[3]; a.y = r[4]; a.vx = r[5]; a.vy = r[6]; a.d = r[7]; a.md = r[8] });
   for (const f of s.fx) G.fx.push(f);
   if (s.fell.length) { const ids = new Set(s.fell); for (const t of trees) if (ids.has(t.id)) { t.wood = 0; hooks.removed(t) } setTrees(trees.filter(t => t.wood > 0)) }
-  s.tm.forEach((t, i) => { const tm = G.teams[i]; tm.res = t.res; tm.stash = t.stash; tm.starving = t.starving; tm.keep = byId.b.get(t.keep) || tm.keep; tm.lord = byId.u.get(t.lord) || tm.lord });
+  s.tm.forEach((t, i) => { const tm = G.teams[i]; tm.res = t.res; tm.stash = t.stash; tm.starving = t.starving; tm.keep = byId.b.get(t.keep) || tm.keep; tm.lord = byId.u.get(t.lord) || tm.lord; tm.out = !!t.out });
   // la charge de l'arc du joueur local reste gérée sur place (pas d'à-coups dus au réseau)
   s.ctrl.forEach((c, i) => { if (i !== ME) { G.ctrl[i].charging = !!c[0]; G.ctrl[i].start = c[1] } });
   if (first) for (const e of [...G.units, ...G.workers]) { e.x = e.nx; e.y = e.ny }

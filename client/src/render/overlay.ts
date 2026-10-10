@@ -1,4 +1,4 @@
-import { DEF, G, RESN, T, afford, canPlace, missing } from '@ffl/shared';
+import { DEF, G, RESN, T, afford, canPlace, missing, isFoe } from '@ffl/shared';
 import { TEAMC, octx } from './engine';
 import { drawFpsOverlay } from './fps';
 import { ghostTile, toScreen } from './sync';
@@ -26,7 +26,7 @@ export function drawOverlay(){
     octx.strokeStyle='#ffe08a';octx.lineWidth=2;octx.setLineDash([6,4]);octx.beginPath();q.forEach((p,i)=>i?octx.lineTo(p.x,p.y):octx.moveTo(p.x,p.y));octx.closePath();octx.stroke();octx.setLineDash([])}
   const z=view.ppu/46;
   for(const u of G.units){if(u.dead)continue;const lord=u.type==='lord';if(!lord&&u.hp>=u.maxhp)continue;
-    const p=toScreen(u.x,u.y,lord?1.35:1.05);if(!lord||u.team===ME)bar(p.x,p.y,(lord?38:22)*z,u.hp/u.maxhp,TEAMC[u.team].m);
+    const p=toScreen(u.x,u.y,lord?1.35:1.05);if(!lord||!isFoe(u.team,ME))bar(p.x,p.y,(lord?38:22)*z,u.hp/u.maxhp,TEAMC[u.team].m);
     if(lord&&u.charge>0){const q=toScreen(u.x,u.y,.5);octx.strokeStyle=u.charge>=1?'#ffe08a':'#e3b54e';octx.lineWidth=3;octx.beginPath();octx.arc(q.x,q.y,22*z,-Math.PI/2,-Math.PI/2+u.charge*Math.PI*2);octx.stroke()}}
   for(const w of G.workers)if(w.hp<w.maxhp){const p=toScreen(w.x,w.y,.95);bar(p.x,p.y,16*z,w.hp/w.maxhp,TEAMC[w.team].m)}
   octx.font='700 13px "Alegreya Sans", sans-serif';octx.textAlign='center';octx.lineWidth=3;octx.strokeStyle='rgba(0,0,0,.65)';

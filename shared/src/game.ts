@@ -1,6 +1,6 @@
 // La simulation : création de partie, ouvriers, combat, famine, commandes des joueurs.
 // Aucun accès au DOM ni à Three.js : le client lit `G` pour dessiner, et reçoit les événements par `hooks`.
-import { T, GW, GH, W, H, TERR, S, DEF, ARMY_MAX, STORE_OF, START_RES, RICH_RES, UT, RESN, NEED, STONES, IRON, ROCKS, RESPAWN, TREE_R, CHARGE_T, AI_ARCHER_RANGE } from './config';
+import { T, GW, GH, W, H, TERR, S, DEF, ARMY_MAX, STORE_OF, START_RES, RICH_RES, UT, RESN, NEED, STONES, IRONS, ROCKS, RESPAWN, TREE_R, CHARGE_T, AI_ARCHER_RANGE, KEEPS, PLAYERS, sideOf, isFoe } from './config';
 import { rawWater, genTrees, gh } from './maps';
 import { dist, dE, rectDist, rectClamp, inRect } from './util';
 import { G, trees, setG, setTrees, hooks } from './state';
@@ -10,8 +10,8 @@ import { aiTick, updAiLord } from './ai';
 export interface GameOptions {
   /** stock de départ généreux (partie privée) */
   rich?: boolean;
-  /** pour chaque équipe : true si l'IA la contrôle (par défaut : l'équipe 1) */
-  ai?: [boolean, boolean];
+  /** pour chaque joueur : true si l'IA le contrôle (par défaut en 1v1 : le joueur 1) */
+  ai?: boolean[];
 }
 
 export function newStats() { return { killS: 0, killW: 0, lostS: 0, lostW: 0, recruits: 0, prod: { bois: 0, pierre: 0, ble: 0, fer: 0, arc: 0, lance: 0, epee: 0, fleche: 0 }, built: 0, lostB: 0, razed: 0, shot: 0, hit: 0, dmg: 0, longest: 0, starve: 0, army: [], resH: [] } }
@@ -23,16 +23,18 @@ export function newGame(opts: GameOptions = {}) {
   hooks.reset();
   // chaque arbre a un numéro stable : le serveur et les clients génèrent la même forêt
   setTrees(genTrees().map((t, i) => (t.id = i, t)));
-  const ai = opts.ai || [false, true];
+  // la disposition (1v1 ou 2v2) vient de la carte chargée par loadMap
+  const N = PLAYERS, ids = Array.from({ length: N }, (_, i) => i);
+  const ai = ids.map(i => opts.ai ? !!opts.ai[i] : N === 2 && i === 1);
   setG({ t: 0, teams: [], buildings: [], units: [], workers: [], arrows: [], fx: [], over: null, winner: null, foodT: 0, nid: 1, uid: 1, aid: 1,
-    ai: { i: 0, t: 0, wave: 5, next: 240 }, stats: { kills: 0, recruits: 0 }, st: [newStats(), newStats()], histT: 0,
-    ctrl: [newCtrl(ai[0]), newCtrl(ai[1])] });
-  for (const id of [0, 1]) {
+    ai: ids.map(() => ({ i: 0, t: 0, wave: 5, next: 240 })), stats: { kills: 0, recruits: 0 }, st: ids.map(newStats), histT: 0,
+    ctrl: ids.map(i => newCtrl(ai[i])) });
+  for (const id of ids) {
     // le stock de départ attend dans les charrettes : il n'apparaît qu'une fois la réserve (bois, pierre, fer) ou le grenier (blé) posé
-    const tm = { id, res: { ...START_RES, bois: 0, pierre: 0, fer: 0, ble: 0 }, stash: { bois: START_RES.bois, pierre: START_RES.pierre, fer: START_RES.fer, ble: START_RES.ble }, keep: null, lord: null, starving: false };
+    const tm = { id, side: sideOf(id), out: false, res: { ...START_RES, bois: 0, pierre: 0, fer: 0, ble: 0 }, stash: { bois: START_RES.bois, pierre: START_RES.pierre, fer: START_RES.fer, ble: START_RES.ble }, keep: null, lord: null, starving: false };
     G.teams.push(tm);
-    tm.keep = addBuilding(id, 'keep', id === 0 ? 6 : GW - 9, 18);
-    tm.lord = spawnUnit(id, 'lord', { x: tm.keep.x + (id === 0 ? 110 : -110), y: tm.keep.y });
+    tm.keep = addBuilding(id, 'keep', KEEPS[id].tx, KEEPS[id].ty);
+    tm.lord = spawnUnit(id, 'lord', { x: tm.keep.x + (tm.side === 0 ? 110 : -110), y: tm.keep.y });
   }
   buildNav();
   if (opts.rich) for (const tm of G.teams) for (const k in RICH_RES) (k in tm.stash ? tm.stash : tm.res)[k] = RICH_RES[k];
@@ -65,7 +67,7 @@ function setStarve(e, on) {
 export function stockPt(team) { const k = G.teams[team].keep; return { x: k.x, y: k.by + k.bh + 12 } }
 export function spawnUnit(team, type, at) {
   const s = UT[type];
-  const u: any = { kind: 'unit', id: G.uid++, team, type, x: at.x + (Math.random() - .5) * 20, y: at.y + (Math.random() - .5) * 10, r: s.r, hp: s.hp, maxhp: s.hp, speed: s.speed, order: null, cd: Math.random(), face: team === 0 ? 0 : Math.PI, flash: 0, dead: false, vx: 0, vy: 0, ai: 0, charge: 0 };
+  const u: any = { kind: 'unit', id: G.uid++, team, type, x: at.x + (Math.random() - .5) * 20, y: at.y + (Math.random() - .5) * 10, r: s.r, hp: s.hp, maxhp: s.hp, speed: s.speed, order: null, cd: Math.random(), face: sideOf(team) === 0 ? 0 : Math.PI, flash: 0, dead: false, vx: 0, vy: 0, ai: 0, charge: 0 };
   u.guard = { x: u.x, y: u.y }; G.units.push(u); if (type !== 'lord' && G.st) G.st[team].recruits++; if (type !== 'lord' && G.teams[team].starving) setStarve(u, true); return u;
 }
 export function armySize(team) { return G.units.filter(u => u.team === team && u.type !== 'lord' && !u.dead).length }
@@ -88,8 +90,8 @@ export function canPlace(team, type, tx, ty): string | null {
   for (const t of trees) { if (t.wood <= 0) continue; if (rectDist(t.x, t.y, { bx: x, by: y, bw: w, bh: h }) < TREE_R + 4) return 'Des arbres gênent' }
   if (type === 'carriere') { if (!STONES.some(s => dist(cx, cy, s.x, s.y) < s.r - 10)) return 'La carrière se pose sur un gisement de pierre' }
   else if (STONES.some(s => rectDist(s.x, s.y, { bx: x, by: y, bw: w, bh: h }) < s.r * .7)) return 'Gisement de pierre : réservé à la carrière';
-  if (type === 'mine') { if (dist(cx, cy, IRON.x, IRON.y) > IRON.r - 12) return 'La mine se pose sur le gisement de fer, au centre de la carte' }
-  else if (rectDist(IRON.x, IRON.y, { bx: x, by: y, bw: w, bh: h }) < IRON.r * .7) return 'Gisement de fer : réservé à la mine';
+  if (type === 'mine') { if (!IRONS.some(I => dist(cx, cy, I.x, I.y) <= I.r - 12)) return 'La mine se pose sur un gisement de fer, au centre de la carte' }
+  else if (IRONS.some(I => rectDist(I.x, I.y, { bx: x, by: y, bw: w, bh: h }) < I.r * .7)) return 'Gisement de fer : réservé à la mine';
   if (type === 'bucheron' && !nearestTree(cx, cy, 280)) return 'Aucun arbre à proximité';
   return null;
 }
@@ -122,38 +124,39 @@ function unitArrow(u, t) {
 function puff(x, y, r, h = .3) {
   G.fx.push({ k: 'puff', x, y, t: 0, life: .7 + Math.random() * .4, r: r * S * 2.2, h: h + gh(x, y) });
 }
-export function hit(e, dmg, showNum) {
+/** blesse une entité. `by` : le joueur qui a frappé (pour les statistiques et les messages). */
+export function hit(e, dmg, showNum, by?: number) {
   if (e.dead) return;
   e.hp -= dmg; e.flash = .12;
   if (showNum) G.fx.push({ k: 'num', x: e.x, y: e.y, h: e.kind === 'building' ? 1.6 : 1.2, t: 0, life: .9, v: dmg });
   if (e.hp <= 0) {
     e.dead = true;
-    if (e.team === 1 && e.kind !== 'building') G.stats.kills++;
-    const me = G.st[e.team], foe = G.st[1 - e.team];
+    if (isFoe(e.team, 0) && e.kind !== 'building') G.stats.kills++;
+    const me = G.st[e.team], foe = by != null ? G.st[by] : newStats();
     if (e.kind === 'unit' && e.type !== 'lord') { me.lostS++; foe.killS++ }
     else if (e.kind === 'worker') { me.lostW++; foe.killW++ }
     else if (e.kind === 'building') { me.lostB++; foe.razed++; if (e.worker && !e.worker.dead) me.lostW++ }
     if (e.kind === 'building') {
       if (e.worker) e.worker.dead = true;
-      const own = e.team, other = 1 - e.team;
+      const own = e.team, other = by;
       if (e.type === 'grenier' || e.type === 'reserve') {
         const r = G.teams[e.team].res, lost = e.type === 'grenier' ? ['ble'] : ['bois', 'pierre', 'fer'];
         for (const k of lost) r[k] = 0;
         hooks.notify(own, e.type === 'grenier' ? 'Ton grenier est détruit : tout ton blé est perdu !' : 'Ta réserve est détruite : bois, pierre et fer perdus !', 'warn');
-        hooks.notify(other, e.type === 'grenier' ? 'Grenier ennemi détruit : l\'ennemi n\'a plus de blé' : 'Réserve ennemie détruite', '');
+        if (other != null) hooks.notify(other, e.type === 'grenier' ? 'Grenier ennemi détruit : l\'ennemi n\'a plus de blé' : 'Réserve ennemie détruite', '');
       }
       for (let i = 0; i < 9; i++) puff(e.bx + Math.random() * e.bw, e.by + Math.random() * e.bh, 14, .4 + Math.random());
       hooks.notify(own, 'Tu as perdu : ' + DEF[e.type].name.toLowerCase(), 'warn');
-      hooks.notify(other, 'Détruit : ' + DEF[e.type].name.toLowerCase(), '');
+      if (other != null) hooks.notify(other, 'Détruit : ' + DEF[e.type].name.toLowerCase(), '');
     }
     else puff(e.x, e.y, e.r + 4);
   }
 }
 function nearestEnemy(u, radius) {
   let best = null, bs = radius;
-  for (const e of G.units) { if (e.team === u.team || e.dead) continue; const d = dE(u, e) - e.r; if (d < bs) { bs = d; best = e } }
-  for (const w of G.workers) { if (w.team === u.team || w.dead) continue; const d = dE(u, w) + 30; if (d < bs) { bs = d; best = w } }
-  for (const b of G.buildings) { if (b.team === u.team || b.dead || b.type === 'keep') continue; const d = rectDist(u.x, u.y, b) + 70; if (d < bs) { bs = d; best = b } }
+  for (const e of G.units) { if (!isFoe(e.team, u.team) || e.dead) continue; const d = dE(u, e) - e.r; if (d < bs) { bs = d; best = e } }
+  for (const w of G.workers) { if (!isFoe(w.team, u.team) || w.dead) continue; const d = dE(u, w) + 30; if (d < bs) { bs = d; best = w } }
+  for (const b of G.buildings) { if (!isFoe(b.team, u.team) || b.dead || b.type === 'keep') continue; const d = rectDist(u.x, u.y, b) + 70; if (d < bs) { bs = d; best = b } }
   return best;
 }
 function edgeDist(u, t) { return t.kind === 'building' ? rectDist(u.x, u.y, t) : dE(u, t) - t.r - u.r }
@@ -171,7 +174,7 @@ function strike(u, t) {
   if (u.type === 'archer') { const p = t.kind === 'building' ? rectClamp(u.x, u.y, t) : t; if (!shotClear(u.x, u.y, p.x, p.y, t)) return false }
   u.cd = s.cd * (.9 + Math.random() * .2);
   if (u.type === 'archer') unitArrow(u, t);
-  else { hit(t, s.dmg, false); u.lunge = .15 }
+  else { hit(t, s.dmg, false, u.team); u.lunge = .15 }
   return true;
 }
 /** l'ennemi le plus proche déjà à portée (et visible pour un archer) */
@@ -180,9 +183,9 @@ function enemyInRange(u) {
   const consider = t => { const d = edgeDist(u, t); if (d > bd) return;
     if (u.type === 'archer') { const p = t.kind === 'building' ? rectClamp(u.x, u.y, t) : t; if (!shotClear(u.x, u.y, p.x, p.y, t)) return }
     bd = d; best = t };
-  for (const e of G.units) if (e.team !== u.team && !e.dead) consider(e);
-  for (const w of G.workers) if (w.team !== u.team && !w.dead) consider(w);
-  for (const b of G.buildings) if (b.team !== u.team && !b.dead && b.type !== 'keep') consider(b);
+  for (const e of G.units) if (isFoe(e.team, u.team) && !e.dead) consider(e);
+  for (const w of G.workers) if (isFoe(w.team, u.team) && !w.dead) consider(w);
+  for (const b of G.buildings) if (isFoe(b.team, u.team) && !b.dead && b.type !== 'keep') consider(b);
   return best;
 }
 function updUnit(u, dt) {
@@ -330,7 +333,7 @@ export function demolish(team, b): string | null {
   return null;
 }
 export function orderAttack(team, units, target) {
-  if (!target || target.team === team) return;
+  if (!target || !isFoe(target.team, team)) return;
   for (const u of units) if (u.team === team && !u.dead && u.type !== 'lord') u.order = { type: 'attack', target };
 }
 
@@ -342,12 +345,33 @@ function separate() {
       const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy), min = a.r + b.r;
       if (d < min && d > .01) { const p = (min - d) / 2, nx = dx / d, ny = dy / d; a.x -= nx * p; a.y -= ny * p; b.x += nx * p; b.y += ny * p } } }
 }
-/** un joueur abandonne (déconnexion, retour au menu) : l'autre gagne */
-export function forfeit(team) { if (!G.over) finish(1 - team) }
+/** un joueur abandonne (déconnexion, retour au menu) : il est éliminé, et son camp perd s'il était le dernier */
+export function forfeit(team) { if (G.over || !G.teams[team]) return; eliminate(team, true); checkEnd() }
+/**
+ * un joueur est éliminé (seigneur abattu ou abandon). En 2v2 ses soldats se rendent et ses ouvriers rentrent chez eux :
+ * il regarde la suite, son allié peut encore gagner seul.
+ */
+function eliminate(p, left = false) {
+  const tm = G.teams[p]; if (tm.out) return; tm.out = true;
+  const L = tm.lord; if (!L.dead) { L.dead = true; puff(L.x, L.y, L.r + 4) }
+  G.ctrl[p].charging = false; G.ctrl[p].dx = G.ctrl[p].dy = 0;
+  if (G.teams.length <= 2) return; // en 1v1 la partie s'arrête là
+  for (const u of G.units) if (u.team === p && !u.dead && u.type !== 'lord') { u.dead = true; puff(u.x, u.y, u.r + 4) }
+  for (const w of G.workers) if (w.team === p && !w.dead) w.dead = true;
+  hooks.notify(p, left ? 'Tu as quitté la partie' : 'Ton seigneur est tombé : ton allié continue seul. Tu regardes la suite.', 'warn');
+  for (const o of G.teams) if (o.id !== p && !o.out) hooks.notify(o.id, isFoe(o.id, p) ? (left ? 'Un seigneur ennemi a quitté la partie' : 'Un seigneur ennemi est tombé !') : (left ? 'Ton allié a quitté la partie : tu continues seul' : 'Ton allié est tombé : tu continues seul'), isFoe(o.id, p) ? '' : 'warn');
+}
+/** un camp n'a plus aucun seigneur debout : l'autre gagne */
+function checkEnd() {
+  if (G.over) return;
+  const alive = [0, 1].map(s => G.teams.some(t => t.side === s && !t.out));
+  if (!alive[0]) finish(1); else if (!alive[1]) finish(0);
+}
+/** fin de partie. `winner` : le camp gagnant (0 = gauche, 1 = droite ; en 1v1, c'est aussi le numéro du joueur) */
 function finish(winner) {
   G.over = true; G.winner = winner;
   for (const c of G.ctrl) c.charging = false;
-  for (const id of [0, 1]) { G.st[id].army.push(armySize(id)); G.st[id].resH.push({ ...G.st[id].prod }) }
+  for (const tm of G.teams) { G.st[tm.id].army.push(armySize(tm.id)); G.st[tm.id].resH.push({ ...G.st[tm.id].prod }) }
   hooks.end(winner);
 }
 /** avance la simulation de dt secondes */
@@ -355,7 +379,7 @@ export function update(dt) {
   G.t += dt;
   if (navDirty) buildNav();
   const pos = [...G.units, ...G.workers].map(e => [e, e.x, e.y]);
-  for (const id of [0, 1]) { if (G.ctrl[id].ai) updAiLord(id, dt); else updCtrlLord(id, dt) }
+  for (const tm of G.teams) { if (tm.out) continue; if (G.ctrl[tm.id].ai) updAiLord(tm.id, dt); else updCtrlLord(tm.id, dt) }
   for (const u of G.units) if (!u.dead && u.type !== 'lord') updUnit(u, dt);
   for (const w of G.workers) if (!w.dead) updWorker(w, dt);
   separate();
@@ -363,10 +387,11 @@ export function update(dt) {
   for (const [e, x, y] of pos) { e.vx = (e.x - x) / dt; e.vy = (e.y - y) / dt }
   for (const a of G.arrows) {
     a.x += a.vx * dt; a.y += a.vy * dt; a.d += Math.hypot(a.vx, a.vy) * dt;
-    for (const e of G.units) { if (e.team === a.team || e.dead) continue; if (dE(a, e) < e.r + 3) { const dm = e.type === 'spadassin' ? Math.ceil(a.dmg * .5) : a.dmg; if (a.lord) lordHit(a, dm); hit(e, dm, a.lord); a.dead = true; break } }
-    if (!a.dead) for (const w of G.workers) { if (w.team === a.team || w.dead) continue; if (dE(a, w) < w.r + 3) { if (a.lord) lordHit(a, a.dmg); hit(w, a.dmg, a.lord); a.dead = true; break } }
+    // les flèches traversent les alliés sans les blesser
+    for (const e of G.units) { if (!isFoe(e.team, a.team) || e.dead) continue; if (dE(a, e) < e.r + 3) { const dm = e.type === 'spadassin' ? Math.ceil(a.dmg * .5) : a.dmg; if (a.lord) lordHit(a, dm); hit(e, dm, a.lord, a.team); a.dead = true; break } }
+    if (!a.dead) for (const w of G.workers) { if (!isFoe(w.team, a.team) || w.dead) continue; if (dE(a, w) < w.r + 3) { if (a.lord) lordHit(a, a.dmg); hit(w, a.dmg, a.lord, a.team); a.dead = true; break } }
     if (!a.dead) for (const b of G.buildings) { if (b.dead) continue;
-      if (b.team !== a.team && b.type !== 'keep' && a.x > b.bx && a.x < b.bx + b.bw && a.y > b.by && a.y < b.by + b.bh) { const dm = Math.ceil(a.dmg * .4); if (a.lord) lordHit(a, dm); hit(b, dm, a.lord); a.dead = true; break }
+      if (isFoe(b.team, a.team) && b.type !== 'keep' && a.x > b.bx && a.x < b.bx + b.bw && a.y > b.by && a.y < b.by + b.bh) { const dm = Math.ceil(a.dmg * .4); if (a.lord) lordHit(a, dm); hit(b, dm, a.lord, a.team); a.dead = true; break }
       if (b.blocks.some(q => inRect(a.x, a.y, q))) { a.dead = true; a.stick = .5; break } }
     if (!a.dead && treesNear(a.x, a.y, t => Math.abs(t.x - a.x) < TREE_R && Math.abs(t.y - a.y) < TREE_R && dist(a.x, a.y, t.x, t.y) < TREE_R)) { a.dead = true; a.stick = .55 }
     // les gisements de pierre et de fer sont au ras du sol : les flèches passent au-dessus
@@ -381,12 +406,12 @@ export function update(dt) {
   // le blé nourrit ouvriers et soldats : 1 blé toutes les 12 s pour 4 bouches
   if (G.foodT >= 12) { G.foodT = 0; for (const tm of G.teams) { const n = G.workers.filter(w => w.team === tm.id && !w.dead).length + G.units.filter(u => u.team === tm.id && !u.dead && u.type !== 'lord').length; let eat = Math.ceil(n / 4); const a = Math.min(eat, tm.res.ble); tm.res.ble -= a; eat -= a; tm.stash.ble = Math.max(0, tm.stash.ble - eat) } }
   for (const tm of G.teams) if (tm.starving) G.st[tm.id].starve += dt;
-  G.histT -= dt; if (G.histT <= 0) { G.histT = 10; for (const id of [0, 1]) { G.st[id].army.push(armySize(id)); G.st[id].resH.push({ ...G.st[id].prod }) } }
+  G.histT -= dt; if (G.histT <= 0) { G.histT = 10; for (const tm of G.teams) { G.st[tm.id].army.push(armySize(tm.id)); G.st[tm.id].resH.push({ ...G.st[tm.id].prod }) } }
   // famine : vitesse −50 % et vie −25 % pour les ouvriers et les soldats
-  for (const tm of G.teams) { const st = tm.res.ble <= 0 && tm.stash.ble <= 0; if (st === !!tm.starving) continue; tm.starving = st;
+  for (const tm of G.teams) { if (tm.out) continue; const st = tm.res.ble <= 0 && tm.stash.ble <= 0; if (st === !!tm.starving) continue; tm.starving = st;
     for (const e of [...G.workers, ...G.units]) if (e.team === tm.id && !e.dead && e.type !== 'lord') setStarve(e, st);
     hooks.notify(tm.id, st ? 'Famine : plus de blé ! Ouvriers et soldats perdent 50 % de vitesse et 25 % de vie' : 'Le blé est revenu : tes gens retrouvent leurs forces', st ? 'warn' : '') }
-  if (G.ctrl[1].ai) aiTick(dt);
+  for (const tm of G.teams) if (G.ctrl[tm.id].ai && !tm.out && !G.over) aiTick(tm.id, dt);
   for (const u of G.units) if (u.dead && u.type !== 'lord') hooks.removed(u);
   for (const w of G.workers) if (w.dead) hooks.removed(w);
   for (const b of G.buildings) if (b.dead) { hooks.removed(b); dirtyNav() }
@@ -394,7 +419,7 @@ export function update(dt) {
   G.workers = G.workers.filter(w => !w.dead);
   // un ouvrier tué est remplacé après RESPAWN secondes ; le bâtiment est à l'arrêt en attendant
   for (const b of G.buildings) {
-    if (b.dead || !DEF[b.type].work || (b.worker && !b.worker.dead)) continue;
+    if (b.dead || !DEF[b.type].work || (b.worker && !b.worker.dead) || G.teams[b.team].out) continue;
     if (b.respawn == null) { b.respawn = RESPAWN; b.grow = 0; hooks.notify(b.team, 'Ouvrier tué (' + DEF[b.type].name.toLowerCase() + ') : un remplaçant arrive dans ' + RESPAWN + ' s', 'warn') }
     b.respawn -= dt; if (b.respawn <= 0) spawnWorker(b);
   }
@@ -406,7 +431,7 @@ export function update(dt) {
   for (const t of trees) if (t.wood <= 0) { hooks.removed(t); felled = true }
   if (felled) { dirtyNav(); setTrees(trees.filter(t => t.wood > 0)) }
   if (!G.over) {
-    if (G.teams[0].lord.dead) finish(1);
-    else if (G.teams[1].lord.dead) finish(0);
+    for (const tm of G.teams) if (tm.lord.dead && !tm.out) eliminate(tm.id);
+    checkEnd();
   }
 }

@@ -367,3 +367,11 @@ a.go{text-decoration:none;display:inline-flex;align-items:center;justify-content
   .ol-rows .ol-row>span:not(.ol-num){display:none}
   .ol-actions .join input{width:100%}
 }
+
+/* 2v2 : vignettes deux fois plus hautes, places du salon */
+.sa-thumb.tall,.ol-detail img.tall{aspect-ratio:9/10;width:auto;max-width:100%;max-height:230px;margin:0 auto}
+.help.small{font-size:13px;margin:-2px 0 4px}
+.sa-team{gap:8px}
+.sa-p.ai{background:transparent;border-style:dashed}
+.sa-p .side .go{font-size:13px;padding:5px 10px;min-height:32px}
+.sa-p.empty .who b{color:var(--muted)}

@@ -60,7 +60,9 @@ export function merge(parts){
 }
 export const B=(w,h,d)=>new THREE.BoxGeometry(w,h,d), C=(rt,rb,h,s,o?)=>new THREE.CylinderGeometry(rt,rb,h,s,1,!!o), K=(r,h,s)=>new THREE.ConeGeometry(r,h,s), I=r=>new THREE.IcosahedronGeometry(r,0);
 
-// couleurs des deux royaumes (remplacées par la couleur choisie à chaque partie)
-export const TEAMC=[{m:'#3f6fd8',hex:0x3f6fd8,dark:0x1f3c86,light:0xb6cbff},{m:'#c9402e',hex:0xc9402e,dark:0x6e1f15,light:0xffb9ad}];
 export function teamColor(css){const c=new THREE.Color(css),d=c.clone().multiplyScalar(.5),l=c.clone().lerp(new THREE.Color(0xffffff),.6);return{m:css,hex:c.getHex(),dark:d.getHex(),light:l.getHex()}}
+/** teinte voisine d'une couleur : celle de l'allié (ou du second ennemi) en 2v2, proche mais reconnaissable */
+export function companion(css){const c=new THREE.Color(css),h={h:0,s:0,l:0};c.getHSL(h);c.setHSL((h.h+.09)%1,Math.min(1,h.s*1.05),Math.min(.7,h.l+.1));return '#'+c.getHexString()}
+// couleur de chaque joueur (4 au plus), remplacées à chaque partie : toi, ton allié, les deux ennemis
+export const TEAMC=['#3f6fd8','#c9402e',companion('#3f6fd8'),companion('#c9402e')].map(teamColor);
 export const camT=new THREE.Vector3(7.5,0,19.5);

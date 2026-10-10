@@ -1,7 +1,7 @@
 // Le décor d'une carte : sol, rivières, ponts, vignes, gisements, territoires.
 // ---- Sol, bordure, gisements, décor ----
 import * as THREE from 'three';
-import { BRIDGE_Y, GH, GW, GXV, H, IRON, MAP, ROCKS, S, STONES, T, TERR, W, dist, gh, hgrid, inBridge, rng, wDist, walkWater } from '@ffl/shared';
+import { BRIDGE_Y, GH, GW, GXV, H, IRONS, MAP, ROCKS, S, STONES, T, TERR, W, dist, gh, hgrid, inBridge, keepCenters, onPath, rng, wDist, walkWater } from '@ffl/shared';
 import { B, I, M, TEAMC, TM, VC, boxM, cylM, merge, mk, world } from './engine';
 import { buildGrass, resetLife, rippleMat, setRipples, waterMat } from './life';
 export const terrRing=[];
@@ -17,9 +17,9 @@ export function buildWorld(){
   for(let i=0;i<p.length;i+=9){
     const cx=(p[i]+p[i+3]+p[i+6])/3*T,cz=(p[i+2]+p[i+5]+p[i+8])/3*T,cy=(p[i+1]+p[i+4]+p[i+7])/3;
     let hex=grass[r()*grass.length|0];
-    if(cx>260&&cx<W-260&&Math.abs(cz-MAP.path(cx))<24)hex=r()<.5?0x9b7a4e:0x8d6e45;
+    if(cx>260&&cx<W-260&&onPath(cx,cz,24))hex=r()<.5?0x9b7a4e:0x8d6e45;
     for(const s of STONES){const d=dist(cx,cz,s.x,s.y);if(d<s.r*1.05)hex=r()<.5?0xcfc3a3:0xc2b695;else if(d<s.r*1.3&&r()<.5)hex=0x7d8a5e}
-    {const d=dist(cx,cz,IRON.x,IRON.y);if(d<IRON.r*1.05)hex=r()<.5?0x5e4a40:0x6b4f3e;else if(d<IRON.r*1.35&&r()<.5)hex=0x7a6a48}
+    for(const IRON of IRONS){const d=dist(cx,cz,IRON.x,IRON.y);if(d<IRON.r*1.05)hex=r()<.5?0x5e4a40:0x6b4f3e;else if(d<IRON.r*1.35&&r()<.5)hex=0x7a6a48}
     for(const kx of [300,W-300]){if(dist(cx,cz,kx,780)<95)hex=r()<.5?0x8f7a58:0x857050}
     if(cy<-.05)hex=0x55664c;else if(wDist(cx,cz)<34)hex=r()<.5?0xd9c99a:0xcdbb8a;
     c.set(hex);const v=.94+r()*.1;
@@ -57,7 +57,7 @@ export function buildWorld(){
       parts.push([geo,[0xe6dcc4,0xd8cdb2,0xefe7d3,0xc9bea2][r()*4|0]])}
     world.add(mk(drape(merge(parts)),VC));
   }
-  {const parts=[],s=IRON;
+  for(const s of IRONS){const parts=[];
     for(let i=0;i<26;i++){const a=r()*Math.PI*2,d=Math.sqrt(r())*(s.r-12)*S,k=.14+r()*.3;
       const geo=new THREE.DodecahedronGeometry(k,0);geo.scale(1,.6+r()*.6,1);geo.rotateY(r()*3);geo.translate(s.x*S+Math.cos(a)*d,k*.3,s.y*S+Math.sin(a)*d);
       parts.push([geo,[0x4a403c,0x5a4a44,0x3b3532,0x8c4f2c,0x6e3f26][r()*5|0]])}
@@ -70,7 +70,7 @@ export function buildWorld(){
   for(let i=0;i<420;i++){
     const x=r()*W,y=r()*H;
     if(dist(x,y,300,780)<TERR+20||dist(x,y,W-300,780)<TERR+20)continue;
-    if(x>260&&x<W-260&&Math.abs(y-MAP.path(x))<40)continue;
+    if(x>260&&x<W-260&&onPath(x,y,40))continue;
     if(ROCKS.some(s=>dist(x,y,s.x,s.y)<s.r+20))continue;
     if(wDist(x,y)<30||inBridge(x,y))continue;
     const k=r();
@@ -82,8 +82,9 @@ export function buildWorld(){
   // herbe qui ondule au vent
   world.add(buildGrass(r));
   // cercles de territoire
-  for(const [id,kx] of [[0,300],[1,W-300]]){
-    const rg=new THREE.RingGeometry(TERR*S-.07,TERR*S,160);rg.rotateX(-Math.PI/2);rg.translate(kx*S,0,780*S);drape(rg,.1);
+  terrRing.length=0;
+  for(const [id,c] of keepCenters().entries()){
+    const rg=new THREE.RingGeometry(TERR*S-.07,TERR*S,160);rg.rotateX(-Math.PI/2);rg.translate(c.x*S,0,c.y*S);drape(rg,.1);
     const m=new THREE.Mesh(rg,new THREE.MeshBasicMaterial({color:TEAMC[id].light,transparent:true,opacity:.22,depthWrite:false}));
     world.add(m);terrRing[id]=m;
   }

@@ -1,7 +1,12 @@
 // Règles du jeu : toutes les valeurs d'équilibrage, partagées par le client et (plus tard) le serveur.
 
-// la carte fait 72 × 40 cases : les deux donjons sont à 2280 px l'un de l'autre
-export const T = 40, GW = 72, GH = 40, W = GW * T, H = GH * T, TERR = 520, S = 1 / T;
+// une carte 1v1 fait 72 × 40 cases : les deux donjons sont à 2280 px l'un de l'autre.
+// En 2v2, la carte est deux fois plus haute (72 × 80) : chaque camp a deux châteaux l'un au-dessus de l'autre.
+export const T = 40, GW = 72, W = GW * T, TERR = 520, S = 1 / T;
+/** hauteur d'une « rangée » de la carte (une carte 1v1), et hauteur maximale (2v2) */
+export const GH1 = 40, GH_MAX = 80, H1 = GH1 * T;
+/** dimensions de la carte chargée (liaisons vivantes : mises à jour par setLayout) */
+export let GH = GH1, H = GH * T;
 
 export const DEF: Record<string, any> = {
   keep:    {name:'Donjon',w:3,h:3,hp:1500},
@@ -35,10 +40,38 @@ export const UT: Record<string, any> = {
 export const RESN: Record<string, string> = {bois:'bois',pierre:'pierre',ble:'blé',fer:'fer',arc:'arc',lance:'lance',epee:'épée',fleche:'flèche'};
 export const NEED: Record<string, string> = {archer:'arc',lancier:'lance',spadassin:'epee'};
 export const AI_ORDER = ['reserve','grenier','bucheron','ferme','bucheron','fleches','carriere','bucheron','arcs','lances','caserne','ferme','bucheron','mine','forge'];
-export const STONES = [{x:580,y:1010,r:80},{x:W-580,y:1010,r:80}];
-// gisement de fer unique, à égale distance des deux donjons
-export const IRON = {x:W/2,y:840,r:75,iron:true};
-export const ROCKS: any[] = [...STONES, IRON];
+// ---- disposition des joueurs et des gisements (1v1 : une rangée, 2v2 : deux rangées) ----
+// Joueurs : 0 et 2 à gauche (camp 0), 1 et 3 à droite (camp 1). En 2v2, 0 et 1 en haut, 2 et 3 en bas.
+export type Mode = '1v1' | '2v2';
+export let MODE: Mode = '1v1';
+/** nombre de joueurs de la disposition chargée */
+export let PLAYERS = 2;
+/** case du donjon de chaque joueur */
+export let KEEPS: { tx: number, ty: number }[] = [];
+/** gisements de pierre (un par joueur, près de son donjon) */
+export let STONES: any[] = [];
+/** gisements de fer : un au centre de chaque rangée, à égale distance des deux camps */
+export let IRONS: any[] = [];
+export let ROCKS: any[] = [];
+/** camp d'un joueur : 0 = gauche, 1 = droite */
+export const sideOf = (p: number) => p & 1;
+/** deux joueurs sont-ils ennemis ? (les alliés ne se font jamais de dégâts) */
+export const isFoe = (a: number, b: number) => ((a ^ b) & 1) === 1;
+/** installe la disposition d'un mode de jeu (à appeler avant de générer la carte) */
+export function setLayout(mode: Mode) {
+  MODE = mode === '2v2' ? '2v2' : '1v1';
+  const rows = MODE === '2v2' ? 2 : 1;
+  GH = GH1 * rows; H = GH * T; PLAYERS = rows * 2;
+  KEEPS = []; STONES = []; IRONS = [];
+  for (let r = 0; r < rows; r++) {
+    const off = r * H1;
+    KEEPS.push({ tx: 6, ty: 18 + r * GH1 }, { tx: GW - 9, ty: 18 + r * GH1 });
+    STONES.push({ x: 580, y: 1010 + off, r: 80 }, { x: W - 580, y: 1010 + off, r: 80 });
+    IRONS.push({ x: W / 2, y: 840 + off, r: 75, iron: true });
+  }
+  ROCKS = [...STONES, ...IRONS];
+}
+setLayout('1v1');
 export const RIVER = {river:true};
 export const BRIDGE_Y = .17;
 export const RESPAWN = 20;

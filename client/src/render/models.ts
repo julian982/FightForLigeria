@@ -1,8 +1,8 @@
 // Les modèles low poly : arbres, bâtiments, unités, flèches, objets portés.
 // ---- Arbres ----
 import * as THREE from 'three';
-import { S, gh } from '@ffl/shared';
-import { B, C, I, K, M, TEAMC, TM, VC, boxM, cylM, dyn, gableGeo, merge, mk, teamColor } from './engine';
+import { S, gh, isFoe } from '@ffl/shared';
+import { B, C, I, K, M, TEAMC, TM, VC, boxM, cylM, companion, dyn, gableGeo, merge, mk, teamColor } from './engine';
 import { terrRing } from './world';
 import { ME } from '../state';
 export const TREEGEO=[
@@ -248,14 +248,16 @@ export const RINGGEO=new THREE.RingGeometry(.34,.42,24).rotateX(-Math.PI/2);
 export const RINGMAT=new THREE.MeshBasicMaterial({color:0xffe9a8,transparent:true,opacity:.85,depthWrite:false});
 export function unitObj(u){const m=mk(unitGeo(u.kind==='worker'?'worker':u.type,u.team),VC);m.rotation.order='YXZ';m.receiveShadow=false;dyn.add(m);u.obj=m;
   if(u.kind==='worker'){const cm=new THREE.Mesh(CARRY.bois,VC);cm.position.set(0,.98,0);cm.visible=false;cm.castShadow=true;m.add(cm);u.cobj=cm}}
-export let AGEO=[0,1].map(t=>merge([[C(.012,.012,.5,4).rotateZ(-Math.PI/2),0xd8c49a],[K(.03,.08,4).rotateZ(-Math.PI/2).translate(.29,0,0),0x9aa1a8],[B(.1,.01,.07).translate(-.21,0,0),TEAMC[t].light],[B(.1,.07,.01).translate(-.21,0,0),TEAMC[t].light]]));
+export let AGEO=[0,1,2,3].map(t=>merge([[C(.012,.012,.5,4).rotateZ(-Math.PI/2),0xd8c49a],[K(.03,.08,4).rotateZ(-Math.PI/2).translate(.29,0,0),0x9aa1a8],[B(.1,.01,.07).translate(-.21,0,0),TEAMC[t].light],[B(.1,.07,.01).translate(-.21,0,0),TEAMC[t].light]]));
 // applique la couleur choisie à tout le royaume (unités, bâtiments, flèches, territoire)
 export function applyColors(){
   const k=window.__kingdom||{me:'#3f6fd8',foe:'#c9402e'};
-  TEAMC[ME]=teamColor(k.me);TEAMC[1-ME]=teamColor(k.foe);
+  // toi : ta couleur ; ton allié : une teinte voisine ; les ennemis : la couleur adverse et sa voisine
+  const foes=[0,1,2,3].filter(p=>isFoe(p,ME));
+  for(let p=0;p<4;p++)TEAMC[p]=teamColor(p===ME?k.me:!isFoe(p,ME)?companion(k.me):foes.indexOf(p)===0?k.foe:companion(k.foe));
   for(const key in UGEO)delete UGEO[key];
-  AGEO=[0,1].map(t=>merge([[C(.012,.012,.5,4).rotateZ(-Math.PI/2),0xd8c49a],[K(.03,.08,4).rotateZ(-Math.PI/2).translate(.29,0,0),0x9aa1a8],[B(.1,.01,.07).translate(-.21,0,0),TEAMC[t].light],[B(.1,.07,.01).translate(-.21,0,0),TEAMC[t].light]]));
-  for(const id of [0,1])if(terrRing[id])terrRing[id].material.color.setHex(TEAMC[id].light);
+  AGEO=[0,1,2,3].map(t=>merge([[C(.012,.012,.5,4).rotateZ(-Math.PI/2),0xd8c49a],[K(.03,.08,4).rotateZ(-Math.PI/2).translate(.29,0,0),0x9aa1a8],[B(.1,.01,.07).translate(-.21,0,0),TEAMC[t].light],[B(.1,.07,.01).translate(-.21,0,0),TEAMC[t].light]]));
+  terrRing.forEach((r,id)=>{if(r)r.material.color.setHex(TEAMC[id].light)});
 }
 export function arrowObj(a){const m=mk(AGEO[a.team],VC);m.rotation.order='YXZ';m.receiveShadow=false;if(a.lord)m.scale.setScalar(1.35);dyn.add(m);a.obj=m;a.peak=.2+a.md*S*.05}
 export const STUMPGEO=merge([[C(.09,.11,.12,6).translate(0,.06,0),0x6b4526],[C(.085,.085,.01,6).translate(0,.125,0),0xc9a06a]]);

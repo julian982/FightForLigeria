@@ -1,6 +1,6 @@
 // La vie de la carte, purement visuelle : vent dans les arbres et l'herbe, eau animée, oiseaux, gabarre sur la Loire.
 import * as THREE from 'three';
-import { H, MAP, ROCKS, S, W, dist, gh, inBridge, trees, wDist, walkWater } from '@ffl/shared';
+import { H, MAP, ROCKS, S, W, dist, gh, inBridge, onPath, trees, wDist, walkWater } from '@ffl/shared';
 import { B, C, K, M, mk, scene, tr } from './engine';
 
 /** horloge partagée par les shaders (vent, vagues) */
@@ -26,7 +26,7 @@ export function buildGrass(r: () => number) {
     const x = r() * W, y = r() * H;
     if (wDist(x, y) < 26 || inBridge(x, y)) continue;
     if (dist(x, y, 300, 780) < 110 || dist(x, y, W - 300, 780) < 110) continue;
-    if (x > 260 && x < W - 260 && Math.abs(y - MAP.path(x)) < 22) continue;
+    if (x > 260 && x < W - 260 && onPath(x, y, 22)) continue;
     if (ROCKS.some(s => dist(x, y, s.x, s.y) < s.r + 6)) continue;
     n++;
     const gy = gh(x, y), bx = x * S, bz = y * S, blades = 3 + (r() * 3 | 0);

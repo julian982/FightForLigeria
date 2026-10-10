@@ -1,5 +1,5 @@
 // Les cartes : données, eau, relief. Toutes symétriques, donjons et gisements aux mêmes places.
-import { W, H, S, IRON, ROCKS, BRIDGE_Y } from './config';
+import { W, H, H1, T, S, GH_MAX, IRONS, ROCKS, KEEPS, BRIDGE_Y, setLayout, type Mode } from './config';
 import { clamp01, dist, rng } from './util';
 
 export const MAPS: Record<string, any> = {
@@ -28,20 +28,48 @@ export const MAPS: Record<string, any> = {
 };
 export const MAP_IDS = Object.keys(MAPS);
 
-/** carte chargée (liaison vivante : les autres modules voient toujours la valeur à jour) */
+/** carte chargée, dans sa version 1v1 ou 2v2 (liaison vivante : les autres modules voient toujours la valeur à jour) */
 export let MAP: any = MAPS.amboise;
 export let MAPID: string | null = null;
+/**
+ * version 2v2 d'une carte : deux fois plus haute. La moitié du haut reprend la carte 1v1 (sans la Loire),
+ * la moitié du bas la reprend décalée d'une rangée, avec la Loire tout au sud. Chaque élément (forêts, clairières,
+ * vignes, ponts, chemin) existe donc deux fois, aux mêmes places par rapport à chaque paire de châteaux.
+ */
+function derive(base: any, mode: Mode) {
+  if (mode !== '2v2') return { ...base, paths: [base.path] };
+  const O = H1, dup = (l: any[]) => [...l, ...l.map(([x, y, ...r]) => [x, y + O, ...r])];
+  return {
+    ...base,
+    south: (x: number) => base.south(x) + O,
+    paths: [base.path, (x: number) => base.path(x) + O],
+    clusters: dup(base.clusters),
+    scatter: base.scatter * 2,
+    clearings: dup(base.clearings),
+    vines: dup(base.vines),
+    sand: base.sand.map(([x, y, k]) => [x, y + O, k]),
+    bridges: [...base.bridges, ...base.bridges.map(b => ({ ...b, y: b.y + O }))],
+  };
+}
+/** le point est-il sur le chemin de terre qui relie les châteaux ? */
+export const onPath = (x: number, y: number, tol: number) => MAP.paths.some(p => Math.abs(y - p(x)) < tol);
+/** centre de chaque donjon, en pixels */
+export const keepCenters = () => KEEPS.map(k => ({ x: k.tx * T + 60, y: k.ty * T + 60 }));
 
-// le Cher : un lit vertical au centre, qui se sépare autour de l'île du fer
-function cherWater(x, y) { const d = Math.hypot(x - IRON.x, y - IRON.y); if (d < 150) return false; if (d < 215) return true; return Math.abs(x - W / 2) < 50 + 7 * Math.sin(y / 120) }
+// le Cher : un lit vertical au centre, qui se sépare autour de l'île du fer (une île par rangée en 2v2)
+function cherWater(x, y) { let d = 1e9; for (const I of IRONS) d = Math.min(d, Math.hypot(x - I.x, y - I.y)); if (d < 150) return false; if (d < 215) return true; return Math.abs(x - W / 2) < 50 + 7 * Math.sin(y / 120) }
 export function rawWater(x, y) { return y > MAP.south(x) || (MAP.cher === true && cherWater(x, y)) }
 export function inBridge(x, y) { for (const b of MAP.bridges) if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return true; return false }
 export const walkWater = (x, y) => rawWater(x, y) && !inBridge(x, y);
 export const wHit = (x, y, r) => walkWater(x, y) || walkWater(x + r, y) || walkWater(x - r, y) || walkWater(x, y + r) || walkWater(x, y - r);
 
 // ---- relief + distance à l'eau, précalculés sur une grille de 20 px ----
-export const HC = 20, GXV = W / HC + 1, GZV = H / HC + 1, hgrid = new Float32Array(GXV * GZV), dgrid = new Float32Array(GXV * GZV);
+// grilles allouées pour la plus grande carte (2v2) ; GZV suit la carte chargée
+export const HC = 20, GXV = W / HC + 1, hgrid = new Float32Array(GXV * (GH_MAX * T / HC + 1)), dgrid = new Float32Array(GXV * (GH_MAX * T / HC + 1));
+export let GZV = H / HC + 1;
 function buildTerrain() {
+  GZV = H / HC + 1;
+  const keeps = keepCenters();
   for (let iz = 0; iz < GZV; iz++) for (let ix = 0; ix < GXV; ix++) dgrid[iz * GXV + ix] = rawWater(ix * HC, iz * HC) ? 0 : 1e9;
   const D1 = HC, D2 = HC * 1.4142;
   for (let iz = 0; iz < GZV; iz++) for (let ix = 0; ix < GXV; ix++) { const i = iz * GXV + ix; let v = dgrid[i];
@@ -57,13 +85,15 @@ function buildTerrain() {
     if (dw === 0) { hgrid[i] = -.25; continue }
     const n = (Math.sin(x * 1.7 + z * .9) * .5 + .5) * .05 + (Math.sin(x * .37 - z * .71) * .5 + .5) * .06;
     const h = .26 * Math.sin(x * .17 + .6) * Math.cos(z * .21) + .16 * Math.sin(x * .09 - z * .13 + 1.3) + .08 * Math.sin(x * .31 + z * .27);
-    const k = f(Math.min(Math.hypot(px - 300, pz - 780), Math.hypot(px - W + 300, pz - 780)), 140, 320) * f(Math.min(x, W * S - x, z), 0, 2.5) * f(dw, 30, 160);
+    let dk = 1e9; for (const c of keeps) dk = Math.min(dk, Math.hypot(px - c.x, pz - c.y));
+    const k = f(dk, 140, 320) * f(Math.min(x, W * S - x, z), 0, 2.5) * f(dw, 30, 160);
     hgrid[i] = dw <= HC * 1.01 ? .02 : .03 + n * (dw < 40 ? .4 : 1) + (h + .5) * MAP.amp * k }
 }
-/** charge une carte (eau + relief). Renvoie l'identifiant retenu. */
-export function loadMap(id: string) {
+/** charge une carte (eau + relief) dans sa version 1v1 ou 2v2. Renvoie l'identifiant retenu. */
+export function loadMap(id: string, mode: Mode = '1v1') {
   if (!MAPS[id]) id = 'amboise';
-  MAP = MAPS[id]; MAPID = id; buildTerrain();
+  setLayout(mode);
+  MAP = derive(MAPS[id], mode); MAPID = id; buildTerrain();
   return id;
 }
 export const wDist = (px, py) => dgrid[Math.max(0, Math.min(GZV - 1, Math.round(py / HC))) * GXV + Math.max(0, Math.min(GXV - 1, Math.round(px / HC)))];
@@ -75,15 +105,15 @@ export function gh(px, py) {
 }
 /** les arbres de la carte chargée : générés sur la moitié gauche puis copiés en miroir */
 export function genTrees() {
-  const r = rng(MAP.treeSeed), half = [], Mp = MAP;
+  const r = rng(MAP.treeSeed), half = [], Mp = MAP, homes = keepCenters().filter(c => c.x < W / 2);
   const ok = (x, y) => {
     if (x < 20 || y < 20 || y > H - 20 || x > W / 2 - 30) return false;
-    if (dist(x, y, 300, 780) < (Mp.scatter ? 300 : 200)) return false;
+    if (homes.some(c => dist(x, y, c.x, c.y) < (Mp.scatter ? 300 : 200))) return false;
     if (ROCKS.some(s => dist(x, y, s.x, s.y) < s.r + 24)) return false;
     if (wDist(x, y) < 40 || inBridge(x, y)) return false;
     if (Mp.clearings.some(([cx, cy, cr]) => dist(x, y, cx, cy) < cr)) return false;
     if (Mp.vines.some(([vx, vy]) => Math.abs(x - vx) < 160 && Math.abs(y - vy) < 70)) return false;
-    if (Mp.scatter && x > 260 && Math.abs(y - Mp.path(x)) < 45) return false;
+    if (Mp.scatter && x > 260 && onPath(x, y, 45)) return false;
     for (const t of half) if (Math.abs(t.x - x) < 27 && Math.abs(t.y - y) < 27 && dist(t.x, t.y, x, y) < 27) return false;
     return true;
   };

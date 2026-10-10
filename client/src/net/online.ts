@@ -92,7 +92,7 @@ async function connect(fn: (c: any) => Promise<any>, what: string) {
   }
 }
 /** crée un salon (on en est l'hôte) */
-export function createRoom(o: { name: string, priv: boolean, map: string, rich: boolean, speed: number }) {
+export function createRoom(o: { name: string, priv: boolean, map: string, mode: string, rich: boolean, speed: number }) {
   return connect(c => c.create('ffl', { ...o, pseudo: getPseudo() }), '');
 }
 /** rejoint un salon par son code (affiché dans la liste, ou envoyé par un ami pour un salon privé) */
@@ -103,7 +103,11 @@ export function joinRoom(code: string) {
 export function leaveGame() { const r = net.room; nstate = 'idle'; net.room = null; try { r && r.leave() } catch (e) {} }
 const send = (type: string, v?: any) => { try { net.room && net.room.send(type, v) } catch (e) {} };
 export const setReady = (v: boolean) => send('ready', v);
-export const setSettings = (o: { map?: string, rich?: boolean, speed?: number }) => send('settings', o);
+export const setSettings = (o: { map?: string, mode?: string, rich?: boolean, speed?: number }) => send('settings', o);
+/** se déplacer sur une place libre du salon */
+export const takeSlot = (i: number) => send('slot', i);
+/** (hôte) mettre ou retirer une IA sur une place */
+export const setSlotAi = (slot: number, ai: boolean) => send('slotAi', { slot, ai });
 export const launch = () => send('launch');
 export const kick = (id: string) => send('kick', id);
 export const sendChat = (text: string) => send('chat', text);

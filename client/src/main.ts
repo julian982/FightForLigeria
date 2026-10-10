@@ -34,7 +34,8 @@ setHooks({
 
 /** carte dont le décor 3D est construit */
 let worldMap:string|null=null;
-function setMap(id){worldMap=loadMap(id);rebuildWorld();makeMiniBase()}
+/** charge une carte dans sa version 1v1 ou 2v2 et reconstruit le décor (si ce n'est pas déjà celle-là) */
+function setMap(id,mode:'1v1'|'2v2'='1v1'){const key=id+':'+mode;if(worldMap===key)return;loadMap(id,mode);worldMap=key;rebuildWorld();makeMiniBase()}
 function startGame(opts){
   newGame({rich:!!opts.rich});
   sel.clear();ui.placing=null;ui.box=null;ui.selB=null;
@@ -45,7 +46,7 @@ function showHome(on){$('home').hidden=!on;$('play').hidden=on;if(on&&window.__s
 let gameOpts:any={},timeScale=1;
 /** oriente la caméra pour que son camp soit toujours en bas à gauche de l'écran */
 function faceTeam(){view.camYaw=view.yawTarget=Math.PI/4+(ME===1?Math.PI:0)}
-function start(opts){leaveGame();setMe(0);faceTeam();gameOpts=opts||{};timeScale=gameOpts.speed||1;showHome(false);applyColors();if(worldMap!==selMap)setMap(selMap);startGame(gameOpts);
+function start(opts){leaveGame();setMe(0);faceTeam();gameOpts=opts||{};timeScale=gameOpts.speed||1;showHome(false);applyColors();setMap(selMap);startGame(gameOpts);
   ui.running=true;$('end').hidden=true;resize();refreshHud();startAmbiance();
   if(timeScale>1||gameOpts.rich)toast([timeScale>1?'Vitesse rapide':'',gameOpts.rich?'stock généreux':''].filter(Boolean).join(' · '));toast('Ton stock attend dans les charrettes : pose ta réserve (1) et ton grenier (2), ils sont gratuits')}
 function goHome(){if(online())leaveGame();exitFps();stopAmbiance();ui.running=false;if(G)G.ctrl[ME].charging=false;ui.placing=null;ui.box=null;$('end').hidden=true;showHome(true);$('start').focus()}
@@ -62,6 +63,8 @@ let selMap='amboise';try{const v=localStorage.getItem('ffl.map');if(MAPS[v])selM
     const b=document.createElement('button');b.type='button';b.className='mapcard';b.dataset.id=id;b.setAttribute('role','radio');
     const cvs=document.createElement('canvas');cvs.width=360;cvs.height=200;drawMapBase(cvs.getContext('2d'),360,200,tl);
     try{THUMBS[id]=cvs.toDataURL()}catch(e){}
+    // vignette de la version 2v2 (deux fois plus haute), pour la liste des parties et le salon
+    {loadMap(id,'2v2');const c2=document.createElement('canvas');c2.width=360;c2.height=400;drawMapBase(c2.getContext('2d'),360,400,genTrees());try{THUMBS[id+':2v2']=c2.toDataURL()}catch(e){}loadMap(id)}
     const txt=document.createElement('span');txt.className='mc-txt';
     const nm=document.createElement('span');nm.className='mc-name';nm.textContent=MAPS[id].name;
     const pill=document.createElement('span');pill.className='pill';pill.textContent='Choisie';nm.append(' ',pill);
@@ -111,10 +114,12 @@ addEventListener('mousedown',(e:any)=>{if(!sndPanel.hidden&&!e.target.closest('.
 // ---- partie en ligne : le salon (ui/online.ts) passe la main ici quand l'hôte lance ----
 setNetHandlers({
   // le serveur lance la partie : on prépare la carte et un miroir vide, l'affichage démarre au premier instantané
-  start(m){setMe(m.team);faceTeam();gameOpts={online:true,code:m.code};timeScale=1;sel.clear();ui.placing=null;ui.box=null;ui.selB=null;ui.running=false;
-    applyColors();if(worldMap!==m.map)setMap(m.map);initMirror();showHome(false);$('end').hidden=true;resize();toast('La partie commence !')},
+  start(m){setMe(m.team);faceTeam();gameOpts={online:true,code:m.code,mode:m.mode,names:m.names||[]};timeScale=1;sel.clear();ui.placing=null;ui.box=null;ui.selB=null;ui.running=false;
+    setMap(m.map,m.mode==='2v2'?'2v2':'1v1');applyColors();initMirror(m.mode==='2v2'?4:2);showHome(false);$('end').hidden=true;resize();toast('La partie commence !')},
   first(){const L=G.teams[ME].lord;camT.set(L.x*S,0,L.y*S);ui.running=true;refreshHud();startAmbiance();
-    toast((ME===0?'Tu joues à gauche':'Tu joues à droite')+' · ton stock attend dans les charrettes : pose ta réserve (1) et ton grenier (2)')},
+    const duo=G.teams.length>2,where=duo?['en haut à gauche','en haut à droite','en bas à gauche','en bas à droite'][ME]:(ME===0?'à gauche':'à droite');
+    toast('Tu joues '+where+(duo&&gameOpts.names[ME^2]?' · ton allié : '+gameOpts.names[ME^2]:''));
+    toast('Ton stock attend dans les charrettes : pose ta réserve (1) et ton grenier (2)')},
   end(m){G.over=true;G.winner=m.winner;G.st=m.st;G.t=m.t;endGame(m.winner)},
   note(msg,kind){toast(msg,kind)},
   lost(){toast('Connexion au serveur perdue','warn');setTimeout(goHome,1500)},

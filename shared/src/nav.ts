@@ -1,15 +1,18 @@
 // Obstacles & navigation : grille de 20 px, A*, glissement contre les obstacles, ligne de tir.
-import { W, H, ROCKS, RIVER, TREE_R } from './config';
+import { W, H, T, GH_MAX, ROCKS, RIVER, TREE_R } from './config';
 import { wHit } from './maps';
 import { dist, rectDist, inRect } from './util';
 import { G, trees } from './state';
 
-export const NC = 20, NW = W / NC, NH = H / NC;
-export const navGrid = new Uint8Array(NW * NH);
+// grilles allouées pour la plus grande carte (2v2) ; NH suit la carte chargée (mis à jour par buildNav)
+const NH_MAX = GH_MAX * T / 20;
+export const NC = 20, NW = W / NC;
+export let NH = H / NC;
+export const navGrid = new Uint8Array(NW * NH_MAX);
 export let navDirty = true, navVer = 0;
 export function dirtyNav() { navDirty = true }
-const TB = 80, TBW = W / TB, TBH = H / TB; let treeB: any[][] = [];
-function bucketTrees() { treeB = Array.from({ length: TBW * TBH }, () => []); for (const t of trees) if (t.wood > 0) treeB[Math.min(TBH - 1, Math.floor(t.y / TB)) * TBW + Math.min(TBW - 1, Math.floor(t.x / TB))].push(t) }
+const TB = 80, TBW = W / TB; let TBH = H / TB, treeB: any[][] = [];
+function bucketTrees() { TBH = H / TB; treeB = Array.from({ length: TBW * TBH }, () => []); for (const t of trees) if (t.wood > 0) treeB[Math.min(TBH - 1, Math.floor(t.y / TB)) * TBW + Math.min(TBW - 1, Math.floor(t.x / TB))].push(t) }
 export function treesNear(x, y, fn) { const cx = Math.floor(x / TB), cy = Math.floor(y / TB); for (let j = cy - 1; j <= cy + 1; j++) { if (j < 0 || j >= TBH) continue; for (let i = cx - 1; i <= cx + 1; i++) { if (i < 0 || i >= TBW) continue; const a = treeB[j * TBW + i]; if (!a) continue; for (let k = 0; k < a.length; k++) { const t = a[k]; if (t.wood > 0 && fn(t)) return t } } } return null }
 export function blocksOf(b) {
   if (b.type === 'ferme') return [{ bx: b.x + 24, by: b.y - 58, bw: 36, bh: 48 }];
@@ -23,7 +26,7 @@ export function solidAt(x, y, inf = 0) {
   return null;
 }
 export function buildNav() {
-  navGrid.fill(0); const inf = 9; bucketTrees();
+  NH = H / NC; navGrid.fill(0); const inf = 9; bucketTrees();
   const mark = (x0, y0, x1, y1, test) => {
     const cy0 = Math.max(0, Math.floor((y0 - inf) / NC)), cy1 = Math.min(NH - 1, Math.floor((y1 + inf) / NC));
     const cx0 = Math.max(0, Math.floor((x0 - inf) / NC)), cx1 = Math.min(NW - 1, Math.floor((x1 + inf) / NC));
@@ -51,7 +54,7 @@ export function nearestFree(c) {
   return -1;
 }
 export function freePoint(x, y, r = 10) { if (!solidAt(x, y, r)) return { x, y }; const c = nearestFree(cellOf(x, y)); return c < 0 ? { x, y } : cellPt(c) }
-const gS = new Float32Array(NW * NH), came = new Int32Array(NW * NH), seenS = new Uint32Array(NW * NH), closedS = new Uint32Array(NW * NH); let stamp = 0;
+const gS = new Float32Array(NW * NH_MAX), came = new Int32Array(NW * NH_MAX), seenS = new Uint32Array(NW * NH_MAX), closedS = new Uint32Array(NW * NH_MAX); let stamp = 0;
 export function findPath(sx, sy, tx, ty) {
   const s = nearestFree(cellOf(sx, sy)), g = nearestFree(cellOf(tx, ty)); if (s < 0 || g < 0) return null;
   stamp++; const hk = [], hv = [], gx = g % NW, gy = (g / NW) | 0;
@@ -59,7 +62,7 @@ export function findPath(sx, sy, tx, ty) {
   const push = (n, f) => { let i = hk.length; hk.push(f); hv.push(n); while (i > 0) { const p = (i - 1) >> 1; if (hk[p] <= hk[i]) break; [hk[p], hk[i]] = [hk[i], hk[p]]; [hv[p], hv[i]] = [hv[i], hv[p]]; i = p } };
   const pop = () => { const top = hv[0], lk = hk.pop(), lv = hv.pop(); if (hk.length) { hk[0] = lk; hv[0] = lv; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < hk.length && hk[l] < hk[m]) m = l; if (r < hk.length && hk[r] < hk[m]) m = r; if (m === i) break; [hk[m], hk[i]] = [hk[i], hk[m]]; [hv[m], hv[i]] = [hv[i], hv[m]]; i = m } } return top };
   gS[s] = 0; seenS[s] = stamp; came[s] = -1; push(s, H_(s)); let it = 0;
-  while (hk.length && it < 7000) { const c = pop(); if (c === g) break; if (closedS[c] === stamp) continue; closedS[c] = stamp; it++;
+  while (hk.length && it < 14000) { const c = pop(); if (c === g) break; if (closedS[c] === stamp) continue; closedS[c] = stamp; it++;
     const cx = c % NW, cy = (c / NW) | 0;
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dx && !dy) continue; const nx = cx + dx, ny = cy + dy; if (nx < 0 || ny < 0 || nx >= NW || ny >= NH) continue; const n = ny * NW + nx; if (navGrid[n]) continue;
       if (dx && dy && (navGrid[cy * NW + nx] || navGrid[ny * NW + cx])) continue;

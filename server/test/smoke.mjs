@@ -100,7 +100,46 @@ try {
   await K.room.leave(); await sleep(300);
   ok(KG2.salon.host === KG2.salon.you && KG2.chat.some(m => /devient l'hôte/.test(m.text)), 'le joueur restant doit devenir l\'hôte');
 
+  // ---- 2v2 : quatre places, IA sur une place libre, changement de place, lancement ----
+  const A = track(await new Client(URL_).create('ffl', { pseudo: 'Alpha', mode: '2v2', map: 'amboise' }));
+  await sleep(300);
+  let li = rooms.find(r => r.roomId === A.room.roomId);
+  ok(A.salon.max === 4 && A.salon.slots.length === 4 && li && li.metadata.mode === '2v2' && li.metadata.open === 3 && li.maxClients === 4, 'salon 2v2 mal créé ou mal listé');
+  const B = track(await new Client(URL_).joinById(A.room.roomId, { pseudo: 'Bravo' }));
+  const C = track(await new Client(URL_).joinById(A.room.roomId, { pseudo: 'Charlie' }));
+  await sleep(300);
+  ok(B.salon.players.find(p => p.pseudo === 'Bravo').slot === 1 && C.salon.players.find(p => p.pseudo === 'Charlie').slot === 2, 'les places doivent se remplir dans l\'ordre 0, 1, 2, 3');
+  B.room.send('slotAi', { slot: 3, ai: true }); await sleep(150);
+  ok(A.salon.slots[3].kind === 'open', 'seul l\'hôte peut mettre une IA');
+  A.room.send('slotAi', { slot: 3, ai: true }); await sleep(300);
+  li = rooms.find(r => r.roomId === A.room.roomId);
+  ok(A.salon.slots[3].kind === 'ai' && li.metadata.open === 0 && li.maxClients === 3, 'IA mal posée ou liste pas à jour');
+  let refusedJoin = false; try { await Promise.race([new Client(URL_).joinById(A.room.roomId, { pseudo: 'Delta' }), sleep(3000).then(() => { throw new Error('délai') })]) } catch (e) { refusedJoin = !/délai/.test(e.message) }
+  ok(refusedJoin, 'un 4e joueur ne doit pas pouvoir entrer quand l\'IA tient la dernière place');
+  C.room.send('slot', 3); await sleep(150);
+  ok(C.salon.players.find(p => p.pseudo === 'Charlie').slot === 2, 'on ne peut pas prendre la place de l\'IA');
+  A.room.send('slotAi', { slot: 3, ai: false }); await sleep(150);
+  C.room.send('slot', 3); await sleep(150);
+  ok(A.salon.slots[3].kind === 'human' && A.salon.slots[2].kind === 'open', 'changement de place raté');
+  A.room.send('slotAi', { slot: 2, ai: true }); await sleep(150);
+  A.room.send('settings', { mode: '1v1' }); await sleep(150);
+  ok(A.salon.mode === '2v2' && A.refused.some(m => /1v1/.test(m)), 'passer en 1v1 à trois joueurs doit être refusé');
+  A.room.send('launch'); await sleep(150);
+  ok(!A.start, 'on ne lance pas tant que tout le monde n\'est pas prêt');
+  for (const x of [A, B, C]) x.room.send('ready', true);
+  await sleep(150); A.room.send('launch'); await sleep(900);
+  ok(A.start && B.start && C.start && A.start.mode === '2v2' && C.start.team === 3 && A.start.names[2] === 'IA', 'lancement 2v2 incorrect');
+  ok(A.snap && A.snap.tm.length === 4 && A.snap.b.filter(b => b[2] === 0).length === 4, 'il faut quatre joueurs et quatre donjons');
+  await sleep(1500);
+  const iaBuilt = A.snap.b.some(b => b[1] === 2 && b[2] !== 0);
+  // un joueur part : son allié (l'IA) continue, la partie ne s'arrête pas
+  await B.room.leave(); await sleep(800);
+  ok(!A.end && A.snap.tm[1].out === true, 'un départ en 2v2 élimine le joueur sans finir la partie');
+  console.log(`  2v2 OK : 4 places, IA sur place libre, changement de place, lancement, élimination sans fin de partie (l'IA a déjà construit : ${iaBuilt})`);
+  A.room.leave(); C.room.leave(); await sleep(300);
+
   console.log(`OK : liste en direct, salon privé caché, pseudos, discussion, réglages, prêt, lancement, partie (${s1.u.length} unités), abandon, exclusion, passation d'hôte`);
-  await G.room.leave().catch(() => {}); await KG2.room.leave(); await P.room.leave(); await P2.room.leave(); await lobby.leave();
+  for (const r of [G.room, KG2.room, P.room, P2.room, lobby]) try { r.leave() } catch (e) {}
+  await sleep(300);
 } catch (e) { fail(e.message || e) }
 srv.kill(); process.exit(0);
