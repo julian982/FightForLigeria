@@ -2,16 +2,18 @@
 // Les parties en ligne (liste, création, salon) sont dans ui/online.ts.
 import { ELO, QUEUE_WINDOWS } from '@ffl/shared';
 import { initOnline } from './online';
+import { initAccount } from './account';
 
 const byId=(id:string):any=>document.getElementById(id);
 const all=(q:string):any[]=>Array.from(document.querySelectorAll(q));
 
 export function initHome(){
   (()=>{
-    const VIEWS=['jouer','solo','en-ligne','creer','salon','classement','guide','file'],NAV={file:'jouer',solo:'jouer','en-ligne':'jouer',creer:'jouer',salon:'jouer'},
-      TITLES={jouer:'FightForLigeria',solo:'Contre l\'IA · FightForLigeria','en-ligne':'Parties en ligne · FightForLigeria',creer:'Créer une partie · FightForLigeria',salon:'Salon · FightForLigeria',classement:'Classement · FightForLigeria',guide:'Comment jouer · FightForLigeria',file:'Partie classée · FightForLigeria'};
+    const VIEWS=['jouer','solo','en-ligne','creer','salon','classement','guide','file','compte','reinit','mentions','confidentialite','cgu'],NAV={file:'jouer',solo:'jouer','en-ligne':'jouer',creer:'jouer',salon:'jouer'},
+      TITLES={jouer:'FightForLigeria',solo:'Contre l\'IA · FightForLigeria','en-ligne':'Parties en ligne · FightForLigeria',creer:'Créer une partie · FightForLigeria',salon:'Salon · FightForLigeria',classement:'Classement · FightForLigeria',guide:'Comment jouer · FightForLigeria',file:'Partie classée · FightForLigeria',compte:'Mon compte · FightForLigeria',reinit:'Nouveau mot de passe · FightForLigeria',mentions:'Mentions légales · FightForLigeria',confidentialite:'Confidentialité · FightForLigeria',cgu:'Conditions d\'utilisation · FightForLigeria'};
     const home=byId('home');
     function show(v,scroll=false){
+      v=String(v||'').split('?')[0];
       if(!VIEWS.includes(v))v='jouer';
       for(const id of VIEWS)byId('v-'+id).hidden=id!==v;
       for(const a of all('.navlinks a'))a.dataset.view===(NAV[v]||v)?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current');
@@ -146,4 +148,5 @@ export function initHome(){
     byId('start').addEventListener('click',()=>{if(window.__startGame)window.__startGame({rich:solo.stock==='riche',speed:+solo.speed})});
   })();
   initOnline();
+  initAccount();
 }

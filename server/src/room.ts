@@ -12,19 +12,10 @@ export const makeCode = () => pick(WORDS) + '-' + Array.from({ length: 4 }, () =
 /** codes de fermeture envoyés au client quand le serveur le fait sortir du salon */
 export const KICKED = 4001;
 
-// ---- nettoyage de ce que les joueurs envoient ----
-// caractères de contrôle et d'écriture invisible (retours à la ligne, inversions de sens, espaces de largeur nulle)
-const CTRL = new RegExp('[' + [[0x00, 0x1f], [0x7f, 0x9f], [0x200b, 0x200f], [0x2028, 0x202e], [0x2066, 0x2069]].map(([a, b]) => String.fromCharCode(a) + '-' + String.fromCharCode(b)).join('') + ']', 'g');
-/** pseudo : 3 à 16 lettres, chiffres, espaces, tirets ou soulignés */
-export function cleanPseudo(v: unknown): string {
-  const s = String(v ?? '').replace(CTRL, '').replace(/[^\p{L}\p{N} _-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 16);
-  return s.length >= 3 ? s : '';
-}
-export function cleanName(v: unknown, fallback: string): string {
-  const s = String(v ?? '').replace(CTRL, '').replace(/\s+/g, ' ').trim().slice(0, 32);
-  return s || fallback;
-}
-export function cleanChat(v: unknown): string { return String(v ?? '').replace(CTRL, '').replace(/\s+/g, ' ').trim().slice(0, 200) }
+import { CTRL, cleanPseudo, cleanName, cleanChat } from './clean';
+import { sessionUser, pseudoTaken } from './accounts';
+export { cleanPseudo, cleanName, cleanChat };
+
 const SPEEDS = [1, 1.5];
 export type Mode = '1v1' | '2v2';
 export const seatsOf = (mode: Mode) => mode === '2v2' ? 4 : 2;
@@ -39,7 +30,8 @@ export function cleanSettings(o: any, prev = { map: 'amboise', mode: '1v1' as Mo
 
 /** une place du salon : libre, tenue par l'IA, ou par un joueur (son identifiant de session) */
 type Slot = { kind: 'open' | 'ai' | 'human', id?: string };
-type Player = { id: string, pseudo: string, slot: number, ready: boolean, at: number };
+/** `acct` : le joueur est connecté à son compte (pseudo réservé, badge dans le salon) */
+type Player = { id: string, pseudo: string, slot: number, ready: boolean, at: number, acct: boolean, userId?: number };
 type Chat = { who?: string, team?: number, text: string, sys?: boolean };
 const SLOT_NAMES = ['à gauche', 'à droite', 'en bas à gauche', 'en bas à droite'];
 
@@ -142,16 +134,20 @@ export class GameRoom extends Room {
     return true;
   }
 
-  onJoin(client: Client, o: any = {}) {
+  async onJoin(client: Client, o: any = {}) {
+    // connecté : on prend le pseudo du compte. Invité : il ne peut pas se faire passer pour un compte existant.
+    let acct: any = null;
+    if (o.token) try { acct = await sessionUser(String(o.token)) } catch (e) { console.error('session :', e) }
+    let pseudo = acct ? acct.pseudo : cleanPseudo(o.pseudo) || 'Seigneur', n = 2;
+    if (!acct) try { if (await pseudoTaken(pseudo)) pseudo = pseudo.slice(0, 9).trim() + ' invité' } catch (e) {}
     const used = new Set([...this.players.values()].map(p => p.pseudo.toLowerCase()));
-    let pseudo = cleanPseudo(o.pseudo) || 'Seigneur', n = 2;
     const base = pseudo.slice(0, 13);
     while (used.has(pseudo.toLowerCase())) pseudo = `${base} ${n++}`;
     // première place libre, en alternant les camps (0 gauche, 1 droite, 2 gauche, 3 droite)
     const slot = this.slots.findIndex(s => s.kind === 'open');
     if (slot < 0) { client.leave(4002); return }
     this.slots[slot] = { kind: 'human', id: client.sessionId };
-    this.players.set(client.sessionId, { id: client.sessionId, pseudo, slot, ready: false, at: Date.now() });
+    this.players.set(client.sessionId, { id: client.sessionId, pseudo, slot, ready: false, at: Date.now(), acct: !!acct, userId: acct ? acct.id : undefined });
     if (!this.host) this.host = client.sessionId;
     client.send('chatLog', this.chat);
     this.system(this.players.size === 1 ? `${pseudo} a ouvert le salon.` : `${pseudo} a rejoint le salon.`);
@@ -191,7 +187,7 @@ export class GameRoom extends Room {
   /** état complet du salon, envoyé à chaque changement (quatre joueurs au plus : pas besoin de plus fin) */
   pushState() {
     if (this.worker) return;
-    const players = [...this.players.values()].sort((a, b) => a.slot - b.slot).map(p => ({ id: p.id, pseudo: p.pseudo, team: p.slot, slot: p.slot, ready: p.ready, host: p.id === this.host }));
+    const players = [...this.players.values()].sort((a, b) => a.slot - b.slot).map(p => ({ id: p.id, pseudo: p.pseudo, team: p.slot, slot: p.slot, ready: p.ready, host: p.id === this.host, acct: p.acct }));
     const slots = this.slots.map(s => ({ kind: s.kind, id: s.id || null }));
     for (const c of this.clients) c.send('salon', { code: this.roomId, name: this.title, priv: this.priv, host: this.host, you: c.sessionId, max: this.slots.length, slots, ...this.opts, players });
   }

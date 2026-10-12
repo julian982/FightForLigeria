@@ -1,5 +1,6 @@
 # Serveur de jeu FightForLigeria sur le VPS, derrière le Traefik commun (dépôt vps-infra).
 # Projet Docker indépendant : il ne voit rien des autres projets (TTS, ...) et n'ouvre aucun port.
+# Les réglages secrets (mot de passe de la base, SMTP) sont dans /opt/fightforligeria/.env (modèle : .env.example).
 name: fightforligeria
 
 services:
@@ -7,14 +8,17 @@ services:
     image: ghcr.io/julian982/fightforligeria-server:latest
     container_name: ffl-game
     restart: unless-stopped
+    env_file: .env
     environment:
       PORT: "2567"
-    networks: [edge]
+    # pas de depends_on : le jeu démarre même si la base est en panne (les comptes reviennent tout seuls quand elle répond)
+    networks: [edge, ffl-db]
     labels:
       - traefik.enable=true
       - traefik.http.routers.ffl.rule=Host(`fightforligeria.trouve-ton-serveur.fr`)
       - traefik.http.routers.ffl.middlewares=security-headers@file
       - traefik.http.services.ffl.loadbalancer.server.port=2567
+      - traefik.docker.network=edge
     # limites : le jeu ne peut pas étouffer les autres projets du VPS
     mem_limit: 512m
     cpus: 1.0
@@ -22,10 +26,64 @@ services:
     read_only: true
     tmpfs: [/tmp]
     security_opt: [no-new-privileges:true]
-    logging:
+    logging: &logs
       driver: json-file
       options: { max-size: "10m", max-file: "3" }
+
+  # base des comptes (et plus tard de l'Elo et de l'historique) : propre au jeu, séparée de celle de TTS
+  db:
+    image: mariadb:11.4
+    container_name: ffl-db
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ffl
+      MARIADB_USER: ffl
+      MARIADB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD manquant dans /opt/fightforligeria/.env}
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+    command: [--innodb-buffer-pool-size=64M, --max-connections=40, --performance-schema=OFF, --character-set-server=utf8mb4, --collation-server=utf8mb4_unicode_ci]
+    volumes: [ffl-db-data:/var/lib/mysql]
+    networks: [ffl-db] # réseau interne : joignable uniquement par le jeu et la sauvegarde
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    mem_limit: 384m
+    cpus: 0.5
+    security_opt: [no-new-privileges:true]
+    logging: *logs
+
+  # sauvegarde quotidienne de la base dans /opt/fightforligeria/backups (14 jours gardés)
+  backup:
+    image: mariadb:11.4
+    container_name: ffl-backup
+    restart: unless-stopped
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      MYSQL_PWD: ${DB_PASSWORD:?DB_PASSWORD manquant dans /opt/fightforligeria/.env}
+    entrypoint:
+      - sh
+      - -c
+      - |
+        while true; do
+          f=/backups/ffl-$$(date +%Y-%m-%d).sql.gz
+          if mariadb-dump -h db -u ffl --single-transaction --routines ffl | gzip > "$$f.tmp"; then mv "$$f.tmp" "$$f"; echo "sauvegarde : $$f"; else rm -f "$$f.tmp"; echo "sauvegarde ratée" >&2; fi
+          find /backups -name 'ffl-*.sql.gz' -mtime +14 -delete
+          sleep 86400
+        done
+    volumes: [./backups:/backups]
+    networks: [ffl-db]
+    mem_limit: 128m
+    cpus: 0.25
+    security_opt: [no-new-privileges:true]
+    logging: *logs
+
+volumes:
+  ffl-db-data:
 
 networks:
   edge:
     external: true # créé par vps-infra (scripts/bootstrap.sh)
+  ffl-db:
+    internal: true # pas d'accès à internet ni depuis internet

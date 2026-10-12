@@ -24,8 +24,8 @@ fightforligeria/
 │   └── src/
 │       ├── render/     moteur 3D, décor, modèles, synchro scène, minicarte
 │       └── ui/         accueil, HUD, entrées clavier/souris, écran de fin
-├── server/      → le serveur de jeu en ligne (Node.js + Colyseus) : liste des parties, salons, parties 1v1
-├── deploy/      → hébergement du serveur sur un VPS (Docker, Nginx, guide pas à pas)
+├── server/      → le serveur de jeu en ligne (Node.js + Colyseus) : liste des parties, salons, parties 1v1 et 2v2, comptes (MariaDB)
+├── deploy/      → hébergement du serveur et de sa base sur un VPS (Docker, Traefik, guide pas à pas)
 └── .github/workflows/pages.yml → tests puis déploiement sur GitHub Pages à chaque push
 ```
 
@@ -47,8 +47,10 @@ npm run typecheck    # vérification des types
 npm run build        # site statique dans client/dist
 npm run build:single # un seul fichier HTML autonome dans client/dist-single
 npm run dev:server   # serveur de jeu en ligne sur ws://localhost:2567
-npm run test:server  # test de bout en bout : deux joueurs se connectent et jouent
+npm run test:server  # test de bout en bout : deux joueurs se connectent et jouent (+ les comptes si DB_HOST est défini)
 ```
+
+Pour essayer les comptes en local, il faut une MariaDB. Lance le serveur avec `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` et `DB_NAME` (voir `deploy/.env.example`). Sans SMTP, les emails, et donc le lien de confirmation, s'affichent dans le terminal du serveur.
 
 ## Jouer en ligne avec un ami (serveur local)
 
@@ -146,12 +148,35 @@ En classé, la carte sera tirée au sort parmi les trois.
 - **Contre l'IA** : partie libre sur la carte choisie.
 - **Partie classée** (en préparation) : file d'attente 1v1 ou 2v2, carte tirée au sort, fait bouger l'Elo.
 - **Contre l'IA** : choix de la carte, stock de départ (normal ou généreux), vitesse (normale ou rapide) et couleur du royaume.
-- **Parties en ligne** (jamais classées) : pseudo, liste des parties publiques en direct, parties privées par code, salon d'attente avec discussion, réglages de l'hôte, « prêt » et exclusion.
+- **Parties en ligne** (jamais classées) : pseudo (ou compte), liste des parties publiques en direct, parties privées par code, salon d'attente avec discussion, réglages de l'hôte, « prêt » et exclusion.
   - **1v1** ou **2v2**. En 2v2, chaque carte existe en version deux fois plus haute : quatre châteaux, deux par camp l'un au-dessus de l'autre, un gisement de pierre par château et un gisement de fer par rangée.
   - Chaque joueur a son château, ses ressources et son armée ; les alliés ne se blessent jamais. Un joueur dont le seigneur tombe est éliminé (ses soldats se rendent) et regarde la suite ; un camp perd quand ses deux seigneurs sont tombés.
   - L'hôte peut mettre une IA sur une place libre (par exemple deux amis contre deux IA) ; chacun peut changer de place.
   - La discussion du salon continue pendant la partie (touche Entrée pour écrire, Échap pour fermer) et sur l'écran de fin, à côté du bilan.
   - À la fin de la partie, le salon est gardé : « Retour au salon » pour une revanche avec les mêmes réglages, ou « Quitter le salon ».
+
+## Comptes (facultatifs)
+
+On peut toujours jouer en invité avec un simple pseudo. Un compte sert à réserver son pseudo ; il servira ensuite à la partie classée et à l'historique des parties.
+
+- **Inscription.**
+  - On donne un pseudo, un email et un mot de passe (8 caractères au moins), et on accepte les conditions d'utilisation.
+  - **La confirmation par email est obligatoire** avant la première connexion. Le lien est valable 48 h, et seul le dernier lien envoyé fonctionne.
+  - Un compte jamais confirmé est effacé au bout de 7 jours.
+- **Pseudo réservé, email caché.**
+  - Le pseudo d'un compte est unique, sans tenir compte des majuscules ni des accents (`Julian` = `julian` = `Juliàn`).
+  - En ligne, il porte un écusson. Un invité qui prend le même pseudo devient « Julian invité ».
+  - L'email n'est jamais montré aux autres joueurs.
+- **Mot de passe oublié.** Un lien valable 1 h est envoyé par email. Changer de mot de passe déconnecte toutes les sessions.
+- **Suppression du compte** depuis « Mon compte », immédiate et définitive.
+- **Sécurité.**
+  - Les mots de passe sont hachés avec scrypt.
+  - Les jetons de session et les liens envoyés par email sont stockés uniquement sous forme d'empreinte (SHA-256).
+  - Le nombre de tentatives de connexion et d'inscription est limité.
+  - Les réponses ne révèlent pas si un email a déjà un compte.
+- **Pages légales.** Mentions légales, confidentialité et conditions d'utilisation, en pied de page. Les informations sur l'éditeur et l'hébergeur restent à compléter.
+
+L'API des comptes est servie par le serveur de jeu, sur la même adresse (`/api/...`). La base MariaDB est propre au jeu ; le schéma est créé et mis à jour au démarrage. Si la base est en panne, les parties en invité continuent de marcher.
 
 ## Classement et Elo (en préparation)
 
@@ -172,5 +197,5 @@ Prototype jouable en solo contre une IA. La simulation (`shared/`) est isolée d
 
 Pistes pour la suite :
 - multijoueur 1v1 et 2v2, avec un serveur qui fait autorité (fait) ;
-- lobbies en ligne et classement réel ;
+- lobbies en ligne (fait), comptes (fait) et classement réel ;
 - plusieurs cartes.

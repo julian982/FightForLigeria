@@ -1,5 +1,6 @@
 // La connexion au serveur de jeu : liste des parties, salon d'attente (réglages, prêt, discussion), puis la partie.
 import { Client } from '@colyseus/sdk';
+import { currentUser, sessionToken } from './account';
 import { net } from './act';
 import { applySnapshot } from './mirror';
 
@@ -20,7 +21,7 @@ export function setServerUrl(v: string) { try { v = v.trim(); if (!v || v === de
 // ---- pseudo (en attendant les comptes) : mêmes règles que le serveur ----
 export function cleanPseudo(v: string) { return String(v || '').replace(/[^\p{L}\p{N} _-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 16) }
 export const pseudoOk = (v: string) => cleanPseudo(v).length >= 3;
-export function getPseudo() { let v = ''; try { v = localStorage.getItem(PSEUDO_KEY) || '' } catch (e) {} return pseudoOk(v) ? cleanPseudo(v) : '' }
+export function getPseudo() { const u = currentUser(); if (u) return u.pseudo; let v = ''; try { v = localStorage.getItem(PSEUDO_KEY) || '' } catch (e) {} return pseudoOk(v) ? cleanPseudo(v) : '' }
 export function setPseudo(v: string) { const p = cleanPseudo(v); try { localStorage.setItem(PSEUDO_KEY, p) } catch (e) {} return p }
 
 /** ce que la partie (main.ts) doit savoir */
@@ -94,12 +95,12 @@ async function connect(fn: (c: any) => Promise<any>, what: string) {
 }
 /** crée un salon (on en est l'hôte) */
 export function createRoom(o: { name: string, priv: boolean, map: string, mode: string, rich: boolean, speed: number }) {
-  return connect(c => c.create('ffl', { ...o, pseudo: getPseudo() }), '');
+  return connect(c => c.create('ffl', { ...o, pseudo: getPseudo(), token: sessionToken() || undefined }), '');
 }
 /** rejoint un salon par son code (affiché dans la liste, ou envoyé par un ami pour un salon privé) */
 export function joinRoom(code: string) {
   const id = code.trim().toUpperCase();
-  return connect(c => c.joinById(id, { pseudo: getPseudo() }), id);
+  return connect(c => c.joinById(id, { pseudo: getPseudo(), token: sessionToken() || undefined }), id);
 }
 /** depuis l'écran de fin : revenir dans le salon (le serveur y est déjà revenu) */
 export function backToSalon() { if (nstate !== 'ended' || !net.room) return false; nstate = 'salon'; return true }

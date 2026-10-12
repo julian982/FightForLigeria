@@ -19,7 +19,11 @@
         <a href="#classement" data-view="classement">Classement</a>
         <a href="#guide" data-view="guide">Comment jouer</a>
       </div>
-      <button class="pseudo-chip" id="pseudoChip" type="button" hidden>Tu joues en tant que <b id="pseudoName"></b> <span>modifier</span></button>
+      <div class="who-box">
+        <button class="pseudo-chip" id="pseudoChip" type="button" hidden>Tu joues en tant que <b id="pseudoName"></b> <span>modifier</span></button>
+        <a class="pseudo-chip acct-chip" id="acctChip" href="#compte" hidden><svg class="acct-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg><b id="acctName"></b> <span>Mon compte</span></a>
+        <a class="login-link" id="loginLink" href="#compte">Se connecter</a>
+      </div>
     </nav>
 
     <div class="view" id="v-jouer">
@@ -374,6 +378,158 @@
     </section>
     <p class="home-foot">Clavier et souris requis. L'ennemi attaque à partir de la 4<sup>e</sup> minute.</p>
     </div>
+
+    <div class="view" id="v-compte" hidden>
+    <section class="sub-sec" aria-labelledby="acT">
+      <a class="back" href="#jouer">← Jouer</a>
+      <h2 id="acT">Mon compte</h2>
+      <p class="net-msg" id="acMsg" role="status"></p>
+      <p class="help ac-why" id="acWhy">Un compte est <b>facultatif</b> : tu peux toujours jouer en invité. Il réserve ton pseudo et servira à la partie classée et à ton historique de parties.</p>
+      <div class="ac-grid" id="acForms">
+        <form class="panel ac-form" id="loginForm" novalidate>
+          <h3 class="step">Se connecter</h3>
+          <div class="field"><label class="lbl" for="liId">Pseudo ou email</label><input class="txt" id="liId" autocomplete="username" required></div>
+          <div class="field"><label class="lbl" for="liPw">Mot de passe</label><input class="txt" id="liPw" type="password" autocomplete="current-password" required></div>
+          <p class="net-msg warn" id="liMsg" role="alert"></p>
+          <button class="go big" type="submit">Se connecter</button>
+          <button class="linkbtn" type="button" id="toForgot">Mot de passe oublié ?</button>
+        </form>
+        <form class="panel ac-form" id="regForm" novalidate>
+          <h3 class="step">Créer un compte</h3>
+          <div class="field"><label class="lbl" for="rgPseudo">Pseudo</label><input class="txt" id="rgPseudo" maxlength="16" autocomplete="nickname" required><span class="help small">3 à 16 caractères : lettres, chiffres, espaces, tirets. Il sera réservé à ton compte.</span></div>
+          <div class="field"><label class="lbl" for="rgEmail">Email</label><input class="txt" id="rgEmail" type="email" maxlength="254" autocomplete="email" required><span class="help small">Jamais affiché en jeu. Il sert à confirmer ton compte et à retrouver ton mot de passe.</span></div>
+          <div class="field"><label class="lbl" for="rgPw">Mot de passe</label><input class="txt" id="rgPw" type="password" minlength="8" autocomplete="new-password" required><span class="help small">8 caractères au moins.</span></div>
+          <div class="field"><label class="lbl" for="rgPw2">Confirme le mot de passe</label><input class="txt" id="rgPw2" type="password" autocomplete="new-password" required></div>
+          <label class="chk terms"><input type="checkbox" id="rgTerms"> <span>J'accepte les <a href="#cgu" target="_blank">conditions d'utilisation</a> et la <a href="#confidentialite" target="_blank">politique de confidentialité</a>.</span></label>
+          <p class="net-msg warn" id="rgMsg" role="alert"></p>
+          <button class="go big" type="submit">Créer mon compte</button>
+        </form>
+      </div>
+      <div class="panel ac-box" id="acPending" hidden>
+        <h3 class="step">Vérifie ta boîte mail</h3>
+        <p>Un email de confirmation a été envoyé à <b id="pdEmail"></b>. Clique sur le lien qu'il contient pour activer ton compte (pense à regarder dans les indésirables).</p>
+        <p class="net-msg" id="pdMsg" role="status"></p>
+        <div class="end-btns"><button class="go ghost" type="button" id="pdResend">Renvoyer l'email</button><button class="go ghost" type="button" id="pdBack">J'ai confirmé : me connecter</button></div>
+      </div>
+      <form class="panel ac-box" id="forgotForm" hidden novalidate>
+        <h3 class="step">Mot de passe oublié</h3>
+        <p class="help">Entre l'email de ton compte : tu recevras un lien pour choisir un nouveau mot de passe.</p>
+        <div class="field"><label class="lbl" for="fgEmail">Email</label><input class="txt" id="fgEmail" type="email" autocomplete="email" required></div>
+        <p class="net-msg" id="fgMsg" role="status"></p>
+        <div class="end-btns"><button class="go" type="submit">Envoyer le lien</button><button class="go ghost" type="button" id="fgBack">Retour</button></div>
+      </form>
+      <div class="ac-grid" id="acProfile" hidden>
+        <div class="panel">
+          <h3 class="step">Profil</h3>
+          <div class="kv"><div><span>Pseudo</span><b id="pfPseudo"></b></div><div><span>Email</span><b id="pfEmail"></b></div><div><span>Membre depuis</span><b id="pfSince"></b></div></div>
+          <p class="help small">Ton email n'est jamais montré aux autres joueurs.</p>
+          <div class="grow"></div>
+          <button class="go ghost" type="button" id="pfLogout">Se déconnecter</button>
+        </div>
+        <form class="panel" id="delForm" novalidate>
+          <h3 class="step">Supprimer mon compte</h3>
+          <p class="help">La suppression est immédiate et définitive : ton compte, ton email et ton pseudo réservé sont effacés.</p>
+          <div class="field"><label class="lbl" for="delPw">Mot de passe pour confirmer</label><input class="txt" id="delPw" type="password" autocomplete="current-password" required></div>
+          <p class="net-msg warn" id="delMsg" role="alert"></p>
+          <button class="go danger" type="submit">Supprimer définitivement mon compte</button>
+        </form>
+      </div>
+    </section>
+    </div>
+
+    <div class="view" id="v-reinit" hidden>
+    <section class="sub-sec" aria-labelledby="riT">
+      <a class="back" href="#compte">← Mon compte</a>
+      <h2 id="riT">Nouveau mot de passe</h2>
+      <form class="panel ac-box" id="resetForm" novalidate>
+        <div class="field"><label class="lbl" for="riPw">Nouveau mot de passe</label><input class="txt" id="riPw" type="password" minlength="8" autocomplete="new-password" required><span class="help small">8 caractères au moins.</span></div>
+        <div class="field"><label class="lbl" for="riPw2">Confirme le mot de passe</label><input class="txt" id="riPw2" type="password" autocomplete="new-password" required></div>
+        <p class="net-msg" id="riMsg" role="status"></p>
+        <button class="go big" type="submit">Enregistrer</button>
+      </form>
+    </section>
+    </div>
+
+    <div class="view" id="v-mentions" hidden>
+    <section class="sub-sec legal" aria-labelledby="mlT">
+      <a class="back" href="#jouer">← Jouer</a>
+      <h2 id="mlT">Mentions légales</h2>
+      <h3>Éditeur</h3>
+      <p>FightForLigeria est édité par <mark class="todo">[À compléter : nom et prénom, ou nom commercial]</mark>, <mark class="todo">[À compléter : statut, par exemple « micro-entrepreneur », et numéro SIRET]</mark>, <mark class="todo">[À compléter : adresse ou domiciliation]</mark>.</p>
+      <p>Contact : <mark class="todo">[À compléter : adresse email de contact]</mark>.</p>
+      <p>Directeur de la publication : <mark class="todo">[À compléter : nom]</mark>.</p>
+      <h3>Hébergement</h3>
+      <p>La page du jeu est hébergée par GitHub Pages : GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, États-Unis.</p>
+      <p>Le serveur de jeu et les comptes sont hébergés par <mark class="todo">[À compléter : nom, adresse et téléphone de l'hébergeur du serveur]</mark>.</p>
+      <h3>Propriété</h3>
+      <p>Le jeu, son code, ses graphismes et ses textes appartiennent à l'éditeur, sauf mention contraire. Toute reproduction sans autorisation est interdite.</p>
+    </section>
+    </div>
+
+    <div class="view" id="v-confidentialite" hidden>
+    <section class="sub-sec legal" aria-labelledby="pcT">
+      <a class="back" href="#jouer">← Jouer</a>
+      <h2 id="pcT">Politique de confidentialité</h2>
+      <p class="help">Version du 12 octobre 2026. En bref : un compte est facultatif, on ne garde que le strict nécessaire, rien n'est vendu, et tu peux tout effacer en un clic.</p>
+      <h3>Qui est responsable de tes données ?</h3>
+      <p>L'éditeur du jeu (voir les <a href="#mentions">mentions légales</a>). Pour toute question : <mark class="todo">[À compléter : adresse email de contact]</mark>.</p>
+      <h3>Sans compte (invité)</h3>
+      <p>Ton pseudo est enregistré uniquement dans ton navigateur. Pendant une partie en ligne, il est montré aux autres joueurs du salon. Les messages de discussion ne sont pas enregistrés : ils disparaissent quand le salon se ferme.</p>
+      <h3>Avec un compte</h3>
+      <ul>
+        <li>ton pseudo, ton adresse email et ton mot de passe, enregistré uniquement sous forme chiffrée irréversible (on ne peut pas le lire) ;</li>
+        <li>la date de création du compte, la date de ta dernière connexion et la version des conditions que tu as acceptées ;</li>
+        <li>tes sessions de connexion (une empreinte de ton jeton de connexion et ses dates).</li>
+      </ul>
+      <p>Ton email n'est jamais montré aux autres joueurs. Il sert uniquement à confirmer ton compte et à t'envoyer un lien si tu oublies ton mot de passe : pas de lettre d'information, pas de publicité.</p>
+      <h3>Pourquoi, et sur quelle base ?</h3>
+      <p>Pour créer et gérer ton compte, réserver ton pseudo et, à venir, tenir ton classement et ton historique de parties. La base légale est l'exécution des <a href="#cgu">conditions d'utilisation</a> que tu acceptes en créant ton compte. Les limites de tentatives de connexion et les journaux techniques relèvent de l'intérêt légitime : protéger le service et les comptes.</p>
+      <h3>Combien de temps ?</h3>
+      <ul>
+        <li>le compte : jusqu'à ce que tu le supprimes ;</li>
+        <li>un compte jamais confirmé : effacé au bout de 7 jours ;</li>
+        <li>une session : 30 jours après ta dernière visite ;</li>
+        <li>les liens envoyés par email : 48 heures (confirmation) ou 1 heure (mot de passe) ;</li>
+        <li>les journaux techniques du serveur, qui peuvent contenir ton adresse IP : effacés automatiquement au bout de <mark class="todo">[À compléter : durée, par exemple 30 jours]</mark>.</li>
+      </ul>
+      <h3>Qui y a accès ?</h3>
+      <p>Seulement l'éditeur, et ses prestataires techniques pour ce qui les concerne : l'hébergeur du serveur (<mark class="todo">[À compléter : nom de l'hébergeur]</mark>), le service d'envoi des emails (<mark class="todo">[À compléter : nom du service d'envoi]</mark>) et GitHub, qui héberge la page du jeu et reçoit donc ton adresse IP quand tu l'ouvres. Tes données ne sont ni vendues ni cédées.</p>
+      <h3>Ce qui est enregistré dans ton navigateur</h3>
+      <p>Uniquement ce qui sert au jeu : ton pseudo, ta session de connexion, tes réglages (carte, couleur, son) et l'adresse du serveur. Il n'y a ni cookie publicitaire, ni outil de mesure d'audience, ni traceur.</p>
+      <h3>Tes droits</h3>
+      <p>Tu peux consulter tes informations dans « Mon compte » et supprimer ton compte à tout moment depuis cette même page. Tu disposes aussi d'un droit d'accès, de rectification, d'effacement, de limitation, d'opposition et de portabilité : écris à <mark class="todo">[À compléter : adresse email de contact]</mark>. Si tu estimes que tes droits ne sont pas respectés, tu peux saisir la CNIL (cnil.fr).</p>
+      <h3>Sécurité</h3>
+      <p>Connexions chiffrées (HTTPS), mots de passe chiffrés de façon irréversible, nombre de tentatives de connexion limité, liens à usage unique.</p>
+      <h3>Âge</h3>
+      <p>Il faut avoir au moins 15 ans pour créer un compte, ou l'accord d'un parent en dessous.</p>
+    </section>
+    </div>
+
+    <div class="view" id="v-cgu" hidden>
+    <section class="sub-sec legal" aria-labelledby="cgT">
+      <a class="back" href="#jouer">← Jouer</a>
+      <h2 id="cgT">Conditions d'utilisation</h2>
+      <p class="help">Version du 12 octobre 2026.</p>
+      <h3>1. Le jeu</h3>
+      <p>FightForLigeria est un jeu de stratégie gratuit, jouable dans le navigateur, contre l'ordinateur ou en ligne. On peut jouer sans compte, en invité.</p>
+      <h3>2. Le compte</h3>
+      <p>Le compte est facultatif. Il faut avoir au moins 15 ans, ou l'accord d'un parent. Tu t'engages à donner une adresse email qui t'appartient et à garder ton mot de passe pour toi : tu es responsable de ce qui est fait avec ton compte.</p>
+      <h3>3. Bonne conduite</h3>
+      <p>Dans les pseudos, les noms de partie et la discussion, sont interdits : les insultes, le harcèlement, les propos haineux ou discriminatoires, les contenus choquants ou illégaux, la publicité et l'usurpation de l'identité d'un autre joueur. La triche, l'exploitation de failles et toute tentative de perturber le serveur sont aussi interdites.</p>
+      <p>En cas de manquement, l'éditeur peut exclure un joueur d'un salon, suspendre ou supprimer son compte, sans préavis dans les cas graves.</p>
+      <h3>4. Disponibilité</h3>
+      <p>Le jeu est fourni tel quel, en développement. Il peut être interrompu, modifié ou arrêté à tout moment. Les données de jeu (classement, historique) peuvent être remises à zéro, par exemple lors d'un changement d'équilibrage.</p>
+      <h3>5. Données personnelles</h3>
+      <p>Voir la <a href="#confidentialite">politique de confidentialité</a>. Tu peux supprimer ton compte à tout moment depuis « Mon compte ».</p>
+      <h3>6. Propriété</h3>
+      <p>Le jeu, son code, ses graphismes et ses textes appartiennent à l'éditeur, sauf mention contraire.</p>
+      <h3>7. Modifications</h3>
+      <p>Ces conditions peuvent évoluer. En cas de changement important, tu seras invité à accepter la nouvelle version.</p>
+      <h3>8. Droit applicable</h3>
+      <p>Ces conditions sont soumises au droit français. Contact : <mark class="todo">[À compléter : adresse email de contact]</mark>.</p>
+    </section>
+    </div>
+    <footer class="site-foot"><a href="#mentions">Mentions légales</a><a href="#confidentialite">Confidentialité</a><a href="#cgu">Conditions d'utilisation</a></footer>
   </div>
 </main>
 <dialog class="dlg" id="pseudoDlg" aria-labelledby="pseudoT">
@@ -382,7 +538,7 @@
     <p>C'est le nom que verront les autres joueurs dans la liste des parties, le salon et la discussion.</p>
     <div class="field"><label class="lbl" for="pseudoIn">Pseudo</label><input id="pseudoIn" class="txt big" maxlength="16" autocomplete="nickname" required><span class="help" id="pseudoHelp">3 à 16 caractères : lettres, chiffres, espaces, tirets.</span></div>
     <div class="dlg-btns"><button class="go ghost" type="button" id="pseudoCancel">Annuler</button><button class="go" type="submit">Continuer</button></div>
-    <p class="g-note">Mémorisé dans ce navigateur, modifiable à tout moment. Les vrais comptes arriveront avec les parties classées.</p>
+    <p class="g-note">Mémorisé dans ce navigateur, modifiable à tout moment. Tu as un compte ? <a href="#compte" id="pseudoLogin">Connecte-toi</a> pour utiliser ton pseudo réservé.</p>
   </form>
 </dialog>
 

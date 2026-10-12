@@ -1,6 +1,7 @@
 // Les parties en ligne : pseudo, liste des parties publiques, création d'une partie, salon d'attente (joueurs, réglages, prêt, discussion).
 // La connexion elle-même est dans net/online.ts ; quand l'hôte lance, main.ts prend la main pour la partie.
 import { MAPS } from '@ffl/shared';
+import { currentUser } from '../net/account';
 import { THUMBS } from './thumbs';
 import * as N from '../net/online';
 
@@ -28,7 +29,7 @@ export function initOnline() {
 
   // ---------- pseudo ----------
   const dlg = $('pseudoDlg'), pin = $('pseudoIn');
-  function renderChip() { const p = N.getPseudo(); $('pseudoChip').hidden = !p; $('pseudoName').textContent = p }
+  function renderChip() { const p = N.getPseudo(); $('pseudoChip').hidden = !p || !!currentUser(); $('pseudoName').textContent = p }
   function askPseudo(then: (() => void) | null = null) {
     afterPseudo = then; pin.value = N.getPseudo(); $('pseudoHelp').classList.remove('warn');
     if (!dlg.open) dlg.showModal(); pin.focus(); pin.select();
@@ -43,7 +44,8 @@ export function initOnline() {
   $('pseudoCancel').addEventListener('click', () => dlg.close('cancel'));
   dlg.addEventListener('close', () => { if (dlg.returnValue !== 'ok') { afterPseudo = null; if (!N.getPseudo() && (view === 'en-ligne' || view === 'creer')) go('jouer') } });
   $('pseudoChip').addEventListener('click', () => askPseudo());
-  renderChip();
+  $('pseudoLogin').addEventListener('click', (e: Event) => { e.preventDefault(); afterPseudo = null; dlg.close('ok'); go('compte') });
+  renderChip(); addEventListener('ffl:account', renderChip);
   const withPseudo = (f: () => void) => N.getPseudo() ? f() : askPseudo(f);
 
   // ---------- navigation entre les écrans ----------
@@ -165,7 +167,7 @@ export function initOnline() {
     // chaque camp a ses places : 0 (et 2 en 2v2) à gauche, 1 (et 3) à droite. Ton camp est affiché en premier.
     const card = (i: number) => {
       const sl = s.slots[i], p = s.players.find((x: any) => x.slot === i), where = duo ? (i < 2 ? 'Château du haut' : 'Château du bas') : '';
-      if (sl.kind === 'human' && p) return `<div class="sa-p${p.id === s.you ? ' mine' : ''}"><div class="who"><b>${esc(p.pseudo)}${p.host ? '<small>· hôte</small>' : ''}</b><span>${p.id === s.you ? 'C\'est toi' : (p.slot & 1) === mySide ? 'Allié' : 'Adversaire'}${where ? ' · ' + where : ''}</span></div>
+      if (sl.kind === 'human' && p) return `<div class="sa-p${p.id === s.you ? ' mine' : ''}"><div class="who"><b>${esc(p.pseudo)}${p.acct ? '<span class="acct-badge" title="Compte vérifié"><svg class="acct-ic" viewBox="0 0 24 24" role="img" aria-label="compte vérifié"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></span>' : ''}${p.host ? '<small>· hôte</small>' : ''}</b><span>${p.id === s.you ? 'C\'est toi' : (p.slot & 1) === mySide ? 'Allié' : 'Adversaire'}${where ? ' · ' + where : ''}</span></div>
           <div class="side"><span class="rdy${p.ready ? ' on' : ''}">${p.ready ? 'Prêt' : 'Pas prêt'}</span>${isHost && p.id !== s.you ? `<button class="kick" type="button" data-kick="${esc(p.id)}" aria-label="Exclure ${esc(p.pseudo)}" title="Exclure du salon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>` : ''}</div></div>`;
       if (sl.kind === 'ai') return `<div class="sa-p ai"><div class="who"><b>IA</b><span>Jouée par l'ordinateur${where ? ' · ' + where : ''}</span></div><div class="side">${isHost ? `<button class="go ghost" type="button" data-ai="${i}" data-on="0">Retirer</button>` : ''}</div></div>`;
       return `<div class="sa-p empty"><div class="who"><b>Place libre</b><span>${where ? where + ' · ' : ''}${s.priv ? 'envoie le code à un ami' : 'en attente d\'un joueur'}</span></div>
