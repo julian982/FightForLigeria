@@ -93,7 +93,7 @@ Clavier et souris requis.
 
 - **Victoire** : abattre le seigneur ennemi. Sa vie n'est pas affichée.
 - **Ressources** : bois, pierre (tuffeau), blé, fer. Petit stock au départ (30 bois, 10 pierre, 20 blé, 8 flèches) : le bois et la pierre n'arrivent qu'une fois la réserve posée, le blé une fois le grenier posé.
-- **Stockage** : réserve, grenier et armurerie, gratuits, un de chaque. Bois, pierre et fer vont à la réserve, le blé au grenier, les arcs, lances et épées à l'armurerie, les flèches au donjon. Si un bâtiment de stockage est détruit, son stock est perdu.
+- **Stockage** : réserve et grenier gratuits, armurerie à 5 bois, un de chaque. Bois, pierre et fer vont à la réserve, le blé au grenier, les arcs, lances et épées à l'armurerie, les flèches au donjon. Si un bâtiment de stockage est détruit, son stock est perdu.
 - **Ateliers** : l'artisan (arcs, lances, flèches, forge) va chercher ses matières à la réserve, les apporte à son atelier, fabrique, puis range le résultat. S'il manque une matière, il attend devant la réserve.
 - **Nourriture** : ouvriers et soldats mangent 1 blé toutes les 12 s pour 4 bouches. En famine (blé à 0), ils perdent 50 % de vitesse et 25 % de vie.
 - **Flèches du seigneur** : 8 au départ, une par tir. Sur un autre seigneur, elles font 25 % de dégâts en moins. L'atelier de flèches en fabrique d'autres avec du bois. Les archers n'en consomment pas.
@@ -118,7 +118,7 @@ Clavier et souris requis.
 | 9 | Caserne | 15 bois · 23 pierre | Transforme les armes en soldats |
 | 0 | Mine de fer | 30 bois · 15 pierre | 1 fer par voyage |
 | ) | Forge | 20 bois · 20 pierre | 1 épée pour 2 fer et 3 bois |
-| = | Armurerie | Gratuit | Stocke arcs, lances et épées |
+| = | Armurerie | 5 bois | Stocke arcs, lances et épées |
 
 ### Unités (15 soldats maximum)
 

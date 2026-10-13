@@ -434,12 +434,15 @@ describe('armurerie et ateliers', () => {
   });
   it('une armurerie détruite fait perdre les armes ; démolie, elles attendent la suivante', () => {
     loadMap('amboise'); newGame({ ai: [false, false] });
-    expect(build('armurerie')).toBeNull();
-    const tm = G.teams[0]; tm.res.arc = 2; tm.res.epee = 1; tm.res.fleche = 5;
+    const tm = G.teams[0];
+    expect(build('armurerie')).toBe('Il manque 5 bois'); // elle coûte 5 bois
+    tm.res.bois = 5; expect(build('armurerie')).toBeNull(); expect(tm.res.bois).toBe(0);
+    tm.res.arc = 2; tm.res.epee = 1; tm.res.fleche = 5;
     let a = G.buildings.find(b => b.team === 0 && b.type === 'armurerie');
     expect(demolish(0, a)).toBeNull();
     expect(tm.res.arc).toBe(0); expect(tm.stash.arc).toBe(2);
-    expect(build('armurerie')).toBeNull();
+    expect(tm.res.bois).toBe(2); // démolie : la moitié du coût revient
+    tm.res.bois = 5; expect(build('armurerie')).toBeNull();
     expect(tm.res.arc).toBe(2); expect(tm.res.epee).toBe(1);
     a = G.buildings.find(b => b.team === 0 && b.type === 'armurerie' && !b.dead);
     hit(a, 9999, false);

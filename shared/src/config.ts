@@ -12,7 +12,7 @@ export const DEF: Record<string, any> = {
   keep:    {name:'Donjon',w:3,h:3,hp:1500},
   reserve: {name:'Réserve',w:2,h:2,cost:{},hp:300,store:'goods'},
   grenier: {name:'Grenier',w:2,h:2,cost:{},hp:250,store:'food'},
-  armurerie:{name:'Armurerie',w:2,h:2,cost:{},hp:300,store:'arms'},
+  armurerie:{name:'Armurerie',w:2,h:2,cost:{bois:5},hp:300,store:'arms'},
   bucheron:{name:'Bûcheron',w:2,h:2,cost:{bois:6},hp:180,key:1,work:3,out:['bois',3]},
   carriere:{name:'Carrière',w:2,h:2,cost:{bois:12},hp:220,key:2,work:5,out:['pierre',2]},
   ferme:   {name:'Ferme à blé',w:3,h:3,cost:{bois:15},hp:160,key:3,work:9,out:['ble',5]},
