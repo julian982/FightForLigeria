@@ -35,9 +35,9 @@ export function applySnapshot(s: Snapshot) {
   G.units = sync(G.units, byId.u, s.u, r => ({ kind: 'unit', id: r[0], team: r[1], type: U_TYPES[r[2]], r: UT[U_TYPES[r[2]]].r, x: r[3], y: r[4], face: r[5], vx: 0, vy: 0 }),
     (u, r) => { u.nx = r[3]; u.ny = r[4]; u.nface = r[5]; u.hp = r[6]; u.maxhp = r[7]; u.dead = !!r[8]; u.charge = r[9]; u.lunge = r[10]; u.flash = r[11] });
   G.workers = sync(G.workers, byId.w, s.w, r => ({ kind: 'worker', id: r[0], team: r[1], r: 7, x: r[3], y: r[4], face: r[5], vx: 0, vy: 0 }),
-    (w, r) => { w.nx = r[3]; w.ny = r[4]; w.nface = r[5]; w.hp = r[6]; w.maxhp = r[7]; w.carry = r[8] ? { type: CARRY_TYPES[r[8]] } : null;
-      const f = r[9]; w.working = !!(f & WF.working); w.need = !!(f & WF.need); w.state = w.need ? 'working' : ''; w.idle = !!(f & WF.idle);
-      w.noStore = f & WF.noReserve ? 'reserve' : f & WF.noGrenier ? 'grenier' : null;
+    (w, r) => { const f = r[9]; w.nx = r[3]; w.ny = r[4]; w.nface = r[5]; w.hp = r[6]; w.maxhp = r[7]; w.carry = r[8] ? { type: CARRY_TYPES[r[8]], input: !!(f & WF.supply) } : null;
+      w.working = !!(f & WF.working); w.need = !!(f & WF.need); w.state = f & WF.fetch ? 'toFetch' : w.working ? 'working' : ''; w.idle = !!(f & WF.idle);
+      w.noStore = f & WF.noReserve ? 'reserve' : f & WF.noGrenier ? 'grenier' : f & WF.noArmory ? 'armurerie' : null;
       const b = byId.b.get(r[2]); w.b = b; if (b) b.worker = w });
   G.arrows = sync(G.arrows, byId.a, s.a, r => ({ id: r[0], team: r[1], lord: !!r[2], x: r[3], y: r[4] }),
     (a, r) => { a.x = r[3]; a.y = r[4]; a.vx = r[5]; a.vy = r[6]; a.d = r[7]; a.md = r[8] });

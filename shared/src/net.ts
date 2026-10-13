@@ -45,8 +45,9 @@ export const U_TYPES = ['lord', 'archer', 'lancier', 'spadassin'];
 export const B_TYPES = Object.keys(DEF);
 export const CARRY_TYPES = ['', 'bois', 'pierre', 'ble', 'fer', 'arc', 'lance', 'epee', 'fleche'];
 const r1 = v => Math.round(v * 10) / 10, r2 = v => Math.round(v * 100) / 100;
-/** drapeaux d'un ouvrier, pour l'affichage (au travail, il manque une matière, plus d'arbres, pas de réserve/grenier) */
-export const WF = { working: 1, need: 2, idle: 4, noReserve: 8, noGrenier: 16 };
+/** drapeaux d'un ouvrier, pour l'affichage (au travail, il manque une matière, plus d'arbres, pas de réserve/grenier/armurerie,
+ * va chercher ses matières à la réserve, les apporte à l'atelier) */
+export const WF = { working: 1, need: 2, idle: 4, noReserve: 8, noGrenier: 16, fetch: 32, supply: 64, noArmory: 128 };
 
 export interface Snapshot {
   t: number;
@@ -79,7 +80,8 @@ export function makeSnapshot(fell: number[]): Snapshot {
     ctrl: G.ctrl.map(c => [c.charging ? 1 : 0, r2(c.start)]),
     u: G.units.map(u => [u.id, u.team, U_TYPES.indexOf(u.type), r1(u.x), r1(u.y), r2(u.face), Math.ceil(u.hp), u.maxhp, u.dead ? 1 : 0, r2(u.charge || 0), r2(u.lunge || 0), r2(Math.max(0, u.flash))]),
     w: G.workers.map(w => [w.id, w.team, w.b ? w.b.id : 0, r1(w.x), r1(w.y), r2(w.face), Math.ceil(w.hp), w.maxhp, w.carry ? CARRY_TYPES.indexOf(w.carry.type) : 0,
-      (w.working ? WF.working : 0) | (w.state === 'working' && w.need ? WF.need : 0) | (w.idle ? WF.idle : 0) | (w.noStore === 'reserve' ? WF.noReserve : 0) | (w.noStore === 'grenier' ? WF.noGrenier : 0)]),
+      (w.working ? WF.working : 0) | (w.need ? WF.need : 0) | (w.idle ? WF.idle : 0) | (w.noStore === 'reserve' ? WF.noReserve : 0) | (w.noStore === 'grenier' ? WF.noGrenier : 0) | (w.noStore === 'armurerie' ? WF.noArmory : 0)
+      | (w.state === 'toFetch' ? WF.fetch : 0) | (w.carry && w.carry.input ? WF.supply : 0)]),
     b: G.buildings.map(b => [b.id, b.team, B_TYPES.indexOf(b.type), b.tx, b.ty, Math.ceil(b.hp), b.maxhp, r2(b.grow || 0), b.respawn == null ? -1 : r1(b.respawn), r2(Math.max(0, b.flash))]),
     a: G.arrows.map(a => [a.id, a.team, a.lord ? 1 : 0, r1(a.x), r1(a.y), r1(a.vx), r1(a.vy), r1(a.d), r1(a.md)]),
     fx, fell,

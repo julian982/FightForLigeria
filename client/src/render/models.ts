@@ -143,6 +143,17 @@ export const BUILD:Record<string,(g:any,b:any)=>void>={
     flag(g,b,1,-.85,-.85);
     b.pile=new THREE.Group();g.add(b.pile);
   },
+  armurerie(g,b){
+    // petite maison de pierre au toit de tuiles, écu aux couleurs du royaume, râtelier d'armes devant
+    hut(g,b,{x:-.25,z:-.35,w:1.15,d:.85,h:.75,wall:'stone',roof:'tile'});
+    const sh=new THREE.Group();sh.position.set(.18,.55,.08);
+    sh.add(mk(new THREE.CylinderGeometry(.16,.16,.04,6).rotateX(Math.PI/2),M(TEAMC[b.team].hex)));
+    sh.add(mk(B(.04,.26,.05),M(0xe3b54e)));sh.add(mk(B(.22,.04,.05),M(0xe3b54e)));g.add(sh);
+    const wd=M(0x6b4a28);
+    g.add(boxM(.06,.55,.06,wd,.45,0,.35));g.add(boxM(.06,.55,.06,wd,.85,0,.35));g.add(boxM(.5,.05,.07,wd,.65,.45,.35));g.add(boxM(.5,.04,.06,wd,.65,.12,.35));
+    b.pile=new THREE.Group();b.pile.position.set(-.45,0,.55);g.add(b.pile);
+    flag(g,b,1,.85,-.8);
+  },
   grenier(g,b){
     g.add(boxM(1.5,.28,1.3,TM('stone',2,1),-.1,0,-.15));
     for(const [x,z] of [[-.75,-.72],[.55,-.72],[-.75,.42],[.55,.42]])g.add(cylM(.06,.07,.28,6,M(0x6b4a28),x,0,z));

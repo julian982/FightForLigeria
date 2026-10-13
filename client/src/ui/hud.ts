@@ -26,10 +26,10 @@ $('bLancier').addEventListener('click',()=>askRecruit('lancier'));
 $('bSpad').addEventListener('click',()=>askRecruit('spadassin'));
 export function setChip(id,v,low=false,wait=0){const el=$(id);el.querySelector('b').textContent=v;el.classList.toggle('low',!!low);
   // stock en attente d'une réserve ou d'un grenier
-  let w=el.querySelector('em');if(wait>0){if(!w){w=document.createElement('em');el.appendChild(w)}const t='+'+wait;if(w.textContent!==t)w.textContent=t;el.title=wait+' en attente : pose '+(id==='cBle'?'ton grenier':'ta réserve')}else if(w){w.remove();el.title=''}}
+  let w=el.querySelector('em');if(wait>0){if(!w){w=document.createElement('em');el.appendChild(w)}const t='+'+wait;if(w.textContent!==t)w.textContent=t;el.title=wait+' en attente : pose '+(id==='cBle'?'ton grenier':['cArc','cLance','cEpee'].includes(id)?'ton armurerie':'ta réserve')}else if(w){w.remove();el.title=''}}
 export function refreshHud(){
   const tm=G.teams[ME],r=tm.res;
-  const sh=tm.stash;setChip('cBois',r.bois,false,sh.bois);setChip('cPierre',r.pierre,false,sh.pierre);setChip('cBle',r.ble,r.ble<=0&&sh.ble<=0,sh.ble);setChip('cFer',r.fer,false,sh.fer);setChip('cArc',r.arc);setChip('cLance',r.lance);setChip('cEpee',r.epee);setChip('cFleche',r.fleche,r.fleche<=2);
+  const sh=tm.stash;setChip('cBois',r.bois,false,sh.bois);setChip('cPierre',r.pierre,false,sh.pierre);setChip('cBle',r.ble,r.ble<=0&&sh.ble<=0,sh.ble);setChip('cFer',r.fer,false,sh.fer);setChip('cArc',r.arc,false,sh.arc||0);setChip('cLance',r.lance,false,sh.lance||0);setChip('cEpee',r.epee,false,sh.epee||0);setChip('cFleche',r.fleche,r.fleche<=2);
   setChip('cArmy',armySize(ME));
   for(const b of bb.children){const t=b.dataset.b,missing=DEF[t].store&&!G.buildings.some(o=>o.team===ME&&o.type===t&&!o.dead);b.classList.toggle('poor',!afford(tm,t)||!!(DEF[t].store&&!missing));b.classList.toggle('active',ui.placing===t);b.classList.toggle('need',!!missing)}
   const cas=G.buildings.some(b=>b.team===ME&&b.type==='caserne');
@@ -77,14 +77,20 @@ bldPanel.addEventListener('click',(e:any)=>{
 // ---- fiche de l'ouvrier sélectionné : portrait, prénom et nom, métier, ce qu'il fait ----
 const WITH:Record<string,string>={bois:'du bois',pierre:'de la pierre',ble:'du blé',fer:'du fer',arc:'un arc',lance:'une lance',epee:'une épée',fleche:'des flèches'};
 const DOING:Record<string,string>={bucheron:'Coupe du bois',carriere:'Taille la pierre',ferme:'Cultive le blé',arcs:'Fabrique un arc',lances:'Fabrique une lance',mine:'Extrait du fer',forge:'Forge une épée',fleches:'Taille des flèches'};
-const STORE_NAME:Record<string,string>={reserve:'à la réserve',grenier:'au grenier'};
+const STORE_NAME:Record<string,string>={reserve:'à la réserve',grenier:'au grenier',armurerie:'à l\'armurerie'};
+const WORKSHOP:Record<string,string>={arcs:'à l\'atelier',lances:'à l\'atelier',fleches:'à l\'atelier',forge:'à la forge'};
+const TAKE:Record<string,string>={arcs:'du bois',lances:'du bois',fleches:'du bois',forge:'du fer et du bois'};
 /** ce que fait l'ouvrier, lisible en solo comme en ligne (seuls les drapeaux affichés sont transmis par le réseau) */
 export function workerActivity(w){
   const b=w.b;if(!b)return '';
-  if(w.noStore)return w.noStore==='grenier'?'Attend un grenier pour ranger son blé':'Attend une réserve pour ranger '+(WITH[w.carry?.type]||'sa production');
+  if(w.noStore==='grenier')return 'Attend un grenier pour ranger son blé';
+  if(w.noStore==='armurerie')return 'Attend une armurerie pour ranger '+(WITH[w.carry?.type]||'son arme');
+  if(w.noStore)return w.state==='toFetch'||!w.carry?'Attend une réserve pour y prendre '+(TAKE[b.type]||'ses matières'):'Attend une réserve pour ranger '+(WITH[w.carry.type]||'sa production');
   if(w.idle)return 'Plus d\'arbres à couper';
+  if(w.need){const inp=DEF[b.type].input||{},r=G.teams[w.team].res;const m=Object.keys(inp).filter(k=>r[k]<inp[k]).map(k=>RESN[k]);return 'Attend '+(m.length?m.join(' et '):'ses matières')+' à la réserve'}
+  if(w.state==='toFetch')return 'Va chercher '+(TAKE[b.type]||'ses matières')+' à la réserve';
+  if(w.carry&&w.carry.input)return 'Apporte '+(TAKE[b.type]||'ses matières')+' '+(WORKSHOP[b.type]||'à l\'atelier');
   if(w.carry)return 'Rapporte '+(WITH[w.carry.type]||'sa production')+' '+(STORE_NAME[STORE_OF[w.carry.type]]||'au donjon');
-  if(w.need){const inp=DEF[b.type].input||{},r=G.teams[w.team].res;const m=Object.keys(inp).filter(k=>r[k]<inp[k]).map(k=>RESN[k]);return m.length?'Attend '+m.join(' et '):'Attend ses matières'}
   if(w.working)return DOING[b.type]||'Travaille';
   return 'Se rend au travail';
 }

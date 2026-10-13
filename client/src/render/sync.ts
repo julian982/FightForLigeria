@@ -66,7 +66,7 @@ export function syncScene(dt){
   updMarks(dt);
   for(const tm of G.teams){
     if(!tm.pile){tm.pile=new THREE.Group();const sp=stockPt(tm.id);tm.pile.position.set(sp.x*S,gh(sp.x,sp.y),sp.y*S+.25);dyn.add(tm.pile);tm.pileKey=''}
-    const r=tm.res,res=G.buildings.find(o=>o.team===tm.id&&o.type==='reserve'&&!o.dead),gre=G.buildings.find(o=>o.team===tm.id&&o.type==='grenier'&&!o.dead);
+    const r=tm.res,res=G.buildings.find(o=>o.team===tm.id&&o.type==='reserve'&&!o.dead),gre=G.buildings.find(o=>o.team===tm.id&&o.type==='grenier'&&!o.dead),arm=G.buildings.find(o=>o.team===tm.id&&o.type==='armurerie'&&!o.dead);
     const n=[Math.min(12,Math.ceil(r.bois/6)),Math.min(9,Math.ceil(r.pierre/4)),Math.min(8,Math.ceil(r.ble/8)),Math.min(4,r.arc),Math.min(4,r.lance),Math.min(9,r.fer),Math.min(3,r.epee),Math.min(5,Math.ceil(r.fleche/4))];
     // réserve : bois, pierre, fer
     if(res){const key=n[0]+','+n[1]+','+n[5];if(res.pileKey!==key){res.pileKey=key;const g=res.pile;while(g.children.length)g.remove(g.children[0]);
@@ -76,12 +76,14 @@ export function syncScene(dt){
     // grenier : sacs de blé
     if(gre){const key=''+n[2];if(gre.pileKey!==key){gre.pileKey=key;const g=gre.pile;while(g.children.length)g.remove(g.children[0]);
       for(let k=0;k<n[2];k++){const sk=new THREE.DodecahedronGeometry(.11,0);sk.scale(1,1.2,1);g.add(mk(sk,M(k%2?0xd9b452:0xc9a446),(k%3)*.2-.2,.13+(k/3|0)*.2,(k%2)*.08))}}}
-    // donjon : armes et flèches
-    const key=n.slice(3,5).join()+','+n[6]+','+n[7];
+    // armurerie : arcs, lances (au râtelier) et épées
+    if(arm){const key=n[3]+','+n[4]+','+n[6];if(arm.pileKey!==key){arm.pileKey=key;const g=arm.pile;while(g.children.length)g.remove(g.children[0]);
+      for(let k=0;k<n[3];k++)g.add(mk(new THREE.TorusGeometry(.14,.015,3,8,Math.PI*.8).rotateX(-Math.PI/2),M(0x6b4520),k*.1,.03+k*.02,0));
+      for(let k=0;k<n[4];k++)g.add(mk(C(.012,.012,.62,4).rotateX(-.25),M(0x8a6a40),1.0+k*.08,.3,-.12));
+      for(let k=0;k<n[6];k++)g.add(mk(B(.5,.03,.04),M(0xd8dde2),.55,.04+k*.04,.12+k*.05));}}
+    // donjon : les flèches du seigneur
+    const key=''+n[7];
     if(key!==tm.pileKey){tm.pileKey=key;const g=tm.pile;while(g.children.length)g.remove(g.children[0]);
-      for(let k=0;k<n[3];k++)g.add(mk(new THREE.TorusGeometry(.14,.015,3,8,Math.PI*.8).rotateX(-Math.PI/2),M(0x6b4520),-.5+k*.1,.03+k*.02,.35));
-      for(let k=0;k<n[4];k++)g.add(mk(C(.012,.012,.6,4).rotateZ(Math.PI/2),M(0x8a6a40),.2,.03+k*.03,.32+k*.04));
-      for(let k=0;k<n[6];k++)g.add(mk(B(.5,.03,.04),M(0xd8dde2),.8,.04+k*.04,.35+k*.05));
       for(let k=0;k<n[7];k++)g.add(mk(C(.05,.05,.4,6).rotateZ(Math.PI/2),M(0xc9b48a),-1.0,.05+k*.06,.2+(k%2)*.06));
     }
   }

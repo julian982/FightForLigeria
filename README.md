@@ -93,9 +93,10 @@ Clavier et souris requis.
 
 - **Victoire** : abattre le seigneur ennemi. Sa vie n'est pas affichée.
 - **Ressources** : bois, pierre (tuffeau), blé, fer. Petit stock au départ (30 bois, 10 pierre, 20 blé, 8 flèches) : le bois et la pierre n'arrivent qu'une fois la réserve posée, le blé une fois le grenier posé.
-- **Stockage** : réserve et grenier, gratuits, un de chaque. Bois, pierre et fer vont à la réserve, le blé au grenier, les armes et flèches au donjon. Si la réserve ou le grenier est détruit, son stock est perdu.
+- **Stockage** : réserve, grenier et armurerie, gratuits, un de chaque. Bois, pierre et fer vont à la réserve, le blé au grenier, les arcs, lances et épées à l'armurerie, les flèches au donjon. Si un bâtiment de stockage est détruit, son stock est perdu.
+- **Ateliers** : l'artisan (arcs, lances, flèches, forge) va chercher ses matières à la réserve, les apporte à son atelier, fabrique, puis range le résultat. S'il manque une matière, il attend devant la réserve.
 - **Nourriture** : ouvriers et soldats mangent 1 blé toutes les 12 s pour 4 bouches. En famine (blé à 0), ils perdent 50 % de vitesse et 25 % de vie.
-- **Flèches du seigneur** : 8 au départ, une par tir. L'atelier de flèches en fabrique d'autres avec du bois. Les archers n'en consomment pas.
+- **Flèches du seigneur** : 8 au départ, une par tir. Sur un autre seigneur, elles font 25 % de dégâts en moins. L'atelier de flèches en fabrique d'autres avec du bois. Les archers n'en consomment pas.
 - **Construction** : tu poses tes bâtiments où tu veux dans ta moitié de carte (la gauche ou la droite selon ton camp ; en 2v2, la moitié est partagée avec ton allié).
 - **Fer** : un seul gisement, au centre de la carte, à égale distance des deux joueurs. La mine est le seul bâtiment qui se pose hors de ta moitié de carte.
 - **Ouvrier tué** : le bâtiment s'arrête (icône rouge) et un remplaçant sort du donjon 20 s plus tard.
@@ -117,6 +118,7 @@ Clavier et souris requis.
 | 9 | Caserne | 15 bois · 23 pierre | Transforme les armes en soldats |
 | 0 | Mine de fer | 30 bois · 15 pierre | 1 fer par voyage |
 | ) | Forge | 20 bois · 20 pierre | 1 épée pour 2 fer et 3 bois |
+| = | Armurerie | Gratuit | Stocke arcs, lances et épées |
 
 ### Unités (15 soldats maximum)
 

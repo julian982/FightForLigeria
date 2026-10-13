@@ -395,3 +395,69 @@ describe('identité des ouvriers', () => {
     expect(makeSnapshot([]).sd).toBe(G.seed);
   });
 });
+
+describe('armurerie et ateliers', () => {
+  it('l\'ouvrier prend le bois à la réserve, fabrique, puis range l\'arc à l\'armurerie', () => {
+    loadMap('amboise'); newGame({ ai: [false, false] });
+    expect(build('reserve')).toBeNull();
+    const tm = G.teams[0]; tm.res.bois = 60; tm.res.pierre = 20;
+    expect(build('arcs')).toBeNull();
+    const w = G.workers.find(w => w.team === 0 && w.b.type === 'arcs');
+    const res = G.buildings.find(b => b.team === 0 && b.type === 'reserve');
+    run(1);
+    expect(w.state).toBe('toFetch');
+    // il va à la réserve et y prend 3 bois, qu'il porte jusqu'à l'atelier
+    const bois0 = tm.res.bois; let near = false;
+    run(30, () => { if (Math.hypot(w.x - res.x, w.y - res.y) < 70) near = true; return w.state === 'toWork' && w.carry?.input });
+    expect(near).toBe(true);
+    expect(tm.res.bois).toBe(bois0 - 3); expect(w.carry.type).toBe('bois');
+    // sans armurerie, l'arc fabriqué attend
+    run(60, () => w.noStore === 'armurerie');
+    expect(w.noStore).toBe('armurerie'); expect(tm.res.arc).toBe(0);
+    const sp = findSpot(0, 'armurerie')!;
+    expect(placeBuilding(0, 'armurerie', sp.tx, sp.ty)).toBeNull();
+    expect(canPlace(0, 'armurerie', sp.tx, sp.ty)).toBe('Tu as déjà une armurerie');
+    run(40, () => tm.res.arc > 0);
+    expect(tm.res.arc).toBe(1);
+  });
+  it('sans assez de bois à la réserve, l\'ouvrier attend devant', () => {
+    loadMap('amboise'); newGame({ ai: [false, false] });
+    expect(build('reserve')).toBeNull();
+    const tm = G.teams[0]; tm.res.bois = 50; tm.res.pierre = 20;
+    expect(build('forge')).toBeNull(); // fer 2 + bois 3
+    const w = G.workers.find(w => w.team === 0 && w.b.type === 'forge');
+    tm.res.fer = 0; const bois0 = tm.res.bois;
+    run(30);
+    expect(w.state).toBe('toFetch'); expect(w.need).toBe(true); expect(tm.res.bois).toBe(bois0);
+    tm.res.fer = 2; run(2);
+    expect(w.need).toBe(false); expect(tm.res.fer).toBe(0); expect(tm.res.bois).toBe(bois0 - 3);
+  });
+  it('une armurerie détruite fait perdre les armes ; démolie, elles attendent la suivante', () => {
+    loadMap('amboise'); newGame({ ai: [false, false] });
+    expect(build('armurerie')).toBeNull();
+    const tm = G.teams[0]; tm.res.arc = 2; tm.res.epee = 1; tm.res.fleche = 5;
+    let a = G.buildings.find(b => b.team === 0 && b.type === 'armurerie');
+    expect(demolish(0, a)).toBeNull();
+    expect(tm.res.arc).toBe(0); expect(tm.stash.arc).toBe(2);
+    expect(build('armurerie')).toBeNull();
+    expect(tm.res.arc).toBe(2); expect(tm.res.epee).toBe(1);
+    a = G.buildings.find(b => b.team === 0 && b.type === 'armurerie' && !b.dead);
+    hit(a, 9999, false);
+    expect(tm.res.arc).toBe(0); expect(tm.res.epee).toBe(0);
+    expect(tm.res.fleche).toBe(5); // les flèches du seigneur restent au donjon
+  });
+});
+
+describe('duel de seigneurs', () => {
+  it('une flèche de seigneur fait un peu moins de dégâts à un autre seigneur', () => {
+    loadMap('amboise'); newGame({ ai: [false, false] });
+    const L1 = G.teams[1].lord, w = G.workers[0];
+    L1.x = 1300; L1.y = 700;
+    fireArrow(0, 1200, 700, 0, 1); run(.4);
+    expect(L1.maxhp - L1.hp).toBe(Math.round(60 * .75));
+    // contre un soldat, plein dégât
+    const s = spawnUnit(1, 'lancier', { x: 1300, y: 900 }); s.x = 1300; s.y = 900;
+    fireArrow(0, 1200, 900, 0, 1); run(.4);
+    expect(s.maxhp - s.hp).toBe(60);
+  });
+});

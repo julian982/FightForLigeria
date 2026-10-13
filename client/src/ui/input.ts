@@ -87,6 +87,7 @@ addEventListener('keydown',(e:any)=>{
   const m=/^(?:Digit|Numpad)([0-9])$/.exec(e.code);
   if(m){selectBuild(BUILD_LIST[m[1]==='0'?9:+m[1]-1]);return}
   if(e.code==='Minus'){selectBuild(BUILD_LIST[10]);return}
+  if(e.code==='Equal'){selectBuild(BUILD_LIST[11]);return}
   if(e.code==='Escape'){ui.placing=null;ui.selB=null;ui.selW=null;sel.clear();refreshHud()}
   if(e.code==='KeyF'){sel.clear();for(const u of G.units)if(u.team===ME&&u.type!=='lord'&&!u.dead)sel.add(u)}
   if(e.code==='KeyR')askRecruit('archer');

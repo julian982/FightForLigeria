@@ -1,6 +1,6 @@
 // La simulation : création de partie, ouvriers, combat, famine, commandes des joueurs.
 // Aucun accès au DOM ni à Three.js : le client lit `G` pour dessiner, et reçoit les événements par `hooks`.
-import { T, GW, GH, W, H, TERR, S, DEF, ARMY_MAX, STORE_OF, START_RES, RICH_RES, UT, RESN, NEED, STONES, IRONS, ROCKS, RESPAWN, TREE_R, CHARGE_T, AI_ARCHER_RANGE, KEEPS, PLAYERS, sideOf, isFoe, inHalf } from './config';
+import { T, GW, GH, W, H, TERR, S, DEF, ARMY_MAX, STORE_OF, START_RES, RICH_RES, UT, RESN, NEED, STONES, IRONS, ROCKS, RESPAWN, TREE_R, CHARGE_T, AI_ARCHER_RANGE, KEEPS, PLAYERS, sideOf, isFoe, inHalf, STORE_ART, LORD_VS_LORD } from './config';
 import { rawWater, genTrees, gh } from './maps';
 import { dist, dE, rectDist, rectClamp, inRect } from './util';
 import { G, trees, setG, setTrees, hooks } from './state';
@@ -31,7 +31,7 @@ export function newGame(opts: GameOptions = {}) {
     ctrl: ids.map(i => newCtrl(ai[i])) });
   for (const id of ids) {
     // le stock de départ attend dans les charrettes : il n'apparaît qu'une fois la réserve (bois, pierre, fer) ou le grenier (blé) posé
-    const tm = { id, side: sideOf(id), out: false, res: { ...START_RES, bois: 0, pierre: 0, fer: 0, ble: 0 }, stash: { bois: START_RES.bois, pierre: START_RES.pierre, fer: START_RES.fer, ble: START_RES.ble }, keep: null, lord: null, starving: false };
+    const tm = { id, side: sideOf(id), out: false, res: { ...START_RES, bois: 0, pierre: 0, fer: 0, ble: 0 }, stash: { bois: START_RES.bois, pierre: START_RES.pierre, fer: START_RES.fer, ble: START_RES.ble, arc: 0, lance: 0, epee: 0 }, keep: null, lord: null, starving: false };
     G.teams.push(tm);
     tm.keep = addBuilding(id, 'keep', KEEPS[id].tx, KEEPS[id].ty);
     tm.lord = spawnUnit(id, 'lord', { x: tm.keep.x + (tm.side === 0 ? 110 : -110), y: tm.keep.y });
@@ -41,7 +41,7 @@ export function newGame(opts: GameOptions = {}) {
   return G;
 }
 /** ressources rangées dans chaque bâtiment de stockage */
-export const STORED: Record<string, string[]> = { reserve: ['bois', 'pierre', 'fer'], grenier: ['ble'] };
+export const STORED: Record<string, string[]> = { reserve: ['bois', 'pierre', 'fer'], grenier: ['ble'], armurerie: ['arc', 'lance', 'epee'] };
 /** le stock en attente rejoint la réserve ou le grenier qu'on vient de poser */
 function unstash(tm, type) { for (const k of STORED[type]) { tm.res[k] += tm.stash[k]; tm.stash[k] = 0 } }
 export function addBuilding(team, type, tx, ty) {
@@ -83,7 +83,7 @@ export function canPlace(team, type, tx, ty): string | null {
   for (let sx = x - 16; sx <= x + w + 16; sx += 20) for (let sy = y - 16; sy <= y + h + 16; sy += 20) if (rawWater(sx, sy)) return 'Trop près de l\'eau';
   // on construit où on veut dans sa moitié de carte ; seule la mine va sur le gisement de fer du centre
   if (type !== 'mine' && !inHalf(team, x, w)) return 'Hors de ta moitié de carte';
-  if (d.store && G.buildings.some(o => o.team === team && o.type === type && !o.dead)) return 'Tu as déjà un' + (type === 'reserve' ? 'e réserve' : ' grenier');
+  if (d.store && G.buildings.some(o => o.team === team && o.type === type && !o.dead)) return 'Tu as déjà ' + STORE_ART[type];
   for (const b of G.buildings) if (!b.dead && x < b.bx + b.bw && x + w > b.bx && y < b.by + b.bh && y + h > b.by) return 'Emplacement occupé';
   for (const e of [...G.units, ...G.workers]) if (!e.dead && e.x > x - e.r && e.x < x + w + e.r && e.y > y - e.r && e.y < y + h + e.r) return 'Des personnes sont sur l\'emplacement';
   const sp = stockPt(team); if (sp.x > x - 30 && sp.x < x + w + 30 && sp.y > y - 10 && sp.y < y + h + 24) return 'Laisse libre l\'entrée du donjon';
@@ -139,11 +139,11 @@ export function hit(e, dmg, showNum, by?: number) {
     if (e.kind === 'building') {
       if (e.worker) e.worker.dead = true;
       const own = e.team, other = by;
-      if (e.type === 'grenier' || e.type === 'reserve') {
-        const r = G.teams[e.team].res, lost = e.type === 'grenier' ? ['ble'] : ['bois', 'pierre', 'fer'];
-        for (const k of lost) r[k] = 0;
-        hooks.notify(own, e.type === 'grenier' ? 'Ton grenier est détruit : tout ton blé est perdu !' : 'Ta réserve est détruite : bois, pierre et fer perdus !', 'warn');
-        if (other != null) hooks.notify(other, e.type === 'grenier' ? 'Grenier ennemi détruit : l\'ennemi n\'a plus de blé' : 'Réserve ennemie détruite', '');
+      if (STORED[e.type]) {
+        const r = G.teams[e.team].res;
+        for (const k of STORED[e.type]) r[k] = 0;
+        hooks.notify(own, ({ grenier: 'Ton grenier est détruit : tout ton blé est perdu !', reserve: 'Ta réserve est détruite : bois, pierre et fer perdus !', armurerie: 'Ton armurerie est détruite : arcs, lances et épées perdus !' })[e.type], 'warn');
+        if (other != null) hooks.notify(other, ({ grenier: 'Grenier ennemi détruit : l\'ennemi n\'a plus de blé', reserve: 'Réserve ennemie détruite', armurerie: 'Armurerie ennemie détruite : ses armes sont perdues' })[e.type], '');
       }
       for (let i = 0; i < 9; i++) puff(e.bx + Math.random() * e.bw, e.by + Math.random() * e.bh, 14, .4 + Math.random());
       hooks.notify(own, 'Tu as perdu : ' + DEF[e.type].name.toLowerCase(), 'warn');
@@ -207,10 +207,31 @@ function updUnit(u, dt) {
 }
 
 // ================= Ouvriers =================
+/** ce qu'un atelier va chercher à la réserve avant chaque fabrication (la plus grosse part de la charge, pour l'affichage) */
+const mainInput = d => Object.keys(d.input).sort((a, b) => d.input[b] - d.input[a])[0];
+/** porte d'un bâtiment de stockage, gardée en mémoire tant que les obstacles ne changent pas */
+function storeDoor(w, sb) { if (w.destB !== sb || w.destVer !== navVer) { w.dest = doorSpot(sb); w.destB = sb; w.destVer = navVer } return w.dest }
 function updWorker(w, dt) {
   const b = w.b; if (!b || b.dead) { w.dead = true; return }
   const tm = G.teams[w.team], d = DEF[b.type], eff = 1;
   w.working = false;
+  // les ateliers (arcs, lances, forge, flèches) vont d'abord chercher leurs matières à la réserve
+  if (w.state === 'toWork' && d.input && !w.got) w.state = 'toFetch';
+  if (w.state === 'toFetch') {
+    const sb = G.buildings.find(o => o.team === w.team && o.type === 'reserve' && !o.dead);
+    if (!sb) { w.noStore = 'reserve'; w.need = false; nav(w, b.x, b.by + b.bh + 12, dt, 10); return }
+    w.noStore = null;
+    // l'IA ne stocke pas plus de 30 flèches
+    if (b.type === 'fleches' && G.ctrl[b.team].ai && tm.res.fleche >= 30) return;
+    const door = storeDoor(w, sb);
+    if (!nav(w, door.x, door.y, dt, 4)) return;
+    const inp = d.input;
+    // pas assez dans la réserve : il attend devant
+    if (!Object.keys(inp).every(k => tm.res[k] >= inp[k])) { w.need = true; return }
+    for (const k in inp) tm.res[k] -= inp[k];
+    w.need = false; w.got = true; w.carry = { type: mainInput(d), n: 0, input: true }; w.state = 'toWork';
+    return;
+  }
   if (w.state === 'toWork') {
     if (!w.spot || w.spotVer !== navVer || (b.type === 'bucheron' && (!w.tree || w.tree.wood <= 0))) {
       w.spotVer = navVer;
@@ -223,15 +244,17 @@ function updWorker(w, dt) {
     }
     if (b.type === 'bucheron' && !w.tree) { if (nav(w, w.spot.x, w.spot.y, dt, 4)) w.idle = true; return }
     w.idle = false;
-    if (nav(w, w.spot.x, w.spot.y, dt, 4)) { w.state = 'working'; w.timer = d.work; w.need = !!d.input; const f = b.type === 'bucheron' ? w.tree : b; w.face = Math.atan2(f.y - w.y, f.x - w.x) }
+    if (nav(w, w.spot.x, w.spot.y, dt, 4)) {
+      w.state = 'working'; w.timer = d.work; w.need = false;
+      if (w.carry && w.carry.input) w.carry = null; // les matières sont déposées à l'atelier
+      const f = b.type === 'bucheron' ? w.tree : b; w.face = Math.atan2(f.y - w.y, f.x - w.x);
+    }
   } else if (w.state === 'working') {
-    if (b.type === 'fleches' && G.ctrl[b.team].ai && tm.res.fleche >= 30) return; // l'IA ne stocke pas plus de 30 flèches
-    if (w.need) { const inp = d.input; if (Object.keys(inp).every(k => tm.res[k] >= inp[k])) { for (const k in inp) tm.res[k] -= inp[k]; w.need = false } else return }
     if (b.type === 'bucheron' && (!w.tree || w.tree.wood <= 0)) { w.state = 'toWork'; return }
     w.timer -= dt * eff; w.anim = (w.anim || 0) + dt; w.working = true;
     if (b.type === 'ferme') b.grow = Math.min(1, 1 - w.timer / d.work);
     if (w.timer <= 0) {
-      w.carry = { type: d.out[0], n: d.out[1] };
+      w.carry = { type: d.out[0], n: d.out[1] }; w.got = false;
       if (b.type === 'bucheron') { w.tree.wood--; if (w.tree.wood <= 0) { stump(w.tree); dirtyNav() } }
       if (b.type === 'ferme') b.grow = 0;
       w.state = 'toStock';
@@ -242,8 +265,7 @@ function updWorker(w, dt) {
       const sb = G.buildings.find(o => o.team === w.team && o.type === kind && !o.dead);
       if (!sb) { w.noStore = kind; nav(w, w.b.x, w.b.by + w.b.bh + 12, dt, 10); return }
       w.noStore = null;
-      if (w.destB !== sb || w.destVer !== navVer) { w.dest = doorSpot(sb); w.destB = sb; w.destVer = navVer }
-      dest = w.dest;
+      dest = storeDoor(w, sb);
     } else { const sp = stockPt(w.team); dest = { x: sp.x + ((w.b.id % 5) - 2) * 7, y: sp.y } }
     if (nav(w, dest.x, dest.y, dt, 4)) { tm.res[w.carry.type] += w.carry.n; G.st[w.team].prod[w.carry.type] += w.carry.n; w.carry = null; w.state = 'toWork' }
   }
@@ -388,7 +410,7 @@ export function update(dt) {
   for (const a of G.arrows) {
     a.x += a.vx * dt; a.y += a.vy * dt; a.d += Math.hypot(a.vx, a.vy) * dt;
     // les flèches traversent les alliés sans les blesser
-    for (const e of G.units) { if (!isFoe(e.team, a.team) || e.dead) continue; if (dE(a, e) < e.r + 3) { const dm = e.type === 'spadassin' ? Math.ceil(a.dmg * .5) : a.dmg; if (a.lord) lordHit(a, dm); hit(e, dm, a.lord, a.team); a.dead = true; break } }
+    for (const e of G.units) { if (!isFoe(e.team, a.team) || e.dead) continue; if (dE(a, e) < e.r + 3) { const dm = e.type === 'spadassin' ? Math.ceil(a.dmg * .5) : a.lord && e.type === 'lord' ? Math.round(a.dmg * LORD_VS_LORD) : a.dmg; if (a.lord) lordHit(a, dm); hit(e, dm, a.lord, a.team); a.dead = true; break } }
     if (!a.dead) for (const w of G.workers) { if (!isFoe(w.team, a.team) || w.dead) continue; if (dE(a, w) < w.r + 3) { if (a.lord) lordHit(a, a.dmg); hit(w, a.dmg, a.lord, a.team); a.dead = true; break } }
     if (!a.dead) for (const b of G.buildings) { if (b.dead) continue;
       if (isFoe(b.team, a.team) && b.type !== 'keep' && a.x > b.bx && a.x < b.bx + b.bw && a.y > b.by && a.y < b.by + b.bh) { const dm = Math.ceil(a.dmg * .4); if (a.lord) lordHit(a, dm); hit(b, dm, a.lord, a.team); a.dead = true; break }

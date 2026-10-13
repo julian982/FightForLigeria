@@ -12,6 +12,7 @@ export const DEF: Record<string, any> = {
   keep:    {name:'Donjon',w:3,h:3,hp:1500},
   reserve: {name:'Réserve',w:2,h:2,cost:{},hp:300,store:'goods'},
   grenier: {name:'Grenier',w:2,h:2,cost:{},hp:250,store:'food'},
+  armurerie:{name:'Armurerie',w:2,h:2,cost:{},hp:300,store:'arms'},
   bucheron:{name:'Bûcheron',w:2,h:2,cost:{bois:6},hp:180,key:1,work:3,out:['bois',3]},
   carriere:{name:'Carrière',w:2,h:2,cost:{bois:12},hp:220,key:2,work:5,out:['pierre',2]},
   ferme:   {name:'Ferme à blé',w:3,h:3,cost:{bois:15},hp:160,key:3,work:9,out:['ble',5]},
@@ -23,11 +24,15 @@ export const DEF: Record<string, any> = {
   fleches: {name:'Atelier de flèches',w:2,h:2,cost:{bois:12},hp:180,key:9,work:10,out:['fleche',4],input:{bois:2}},
 };
 export const ARMY_MAX = 15;
-export const BUILD_LIST = ['reserve','grenier','bucheron','carriere','ferme','fleches','arcs','lances','caserne','mine','forge'];
-export const BUILD_KEYS = ['1','2','3','4','5','6','7','8','9','0',')'];
+export const BUILD_LIST = ['reserve','grenier','bucheron','carriere','ferme','fleches','arcs','lances','caserne','mine','forge','armurerie'];
+export const BUILD_KEYS = ['1','2','3','4','5','6','7','8','9','0',')','='];
 BUILD_LIST.forEach((t, i) => DEF[t].key = BUILD_KEYS[i]);
-// stockage : le blé va au grenier, bois/pierre/fer à la réserve, les armes et flèches au donjon
-export const STORE_OF: Record<string, string> = {ble:'grenier',bois:'reserve',pierre:'reserve',fer:'reserve'};
+// stockage : le blé va au grenier, bois/pierre/fer à la réserve, les armes à l'armurerie, les flèches (celles du seigneur) au donjon
+export const STORE_OF: Record<string, string> = {ble:'grenier',bois:'reserve',pierre:'reserve',fer:'reserve',arc:'armurerie',lance:'armurerie',epee:'armurerie'};
+/** article pour les messages : « une réserve », « un grenier », « une armurerie » */
+export const STORE_ART: Record<string, string> = {reserve:'une réserve',grenier:'un grenier',armurerie:'une armurerie'};
+/** dégâts d'une flèche de seigneur sur un autre seigneur (part des dégâts normaux) */
+export const LORD_VS_LORD = .75;
 export const START_ARROWS = 8;
 export const START_RES = {bois:30,pierre:10,ble:20,fer:0,arc:0,lance:0,epee:0,fleche:START_ARROWS};
 export const RICH_RES = {bois:120,pierre:60,ble:90,fleche:16};
@@ -39,7 +44,7 @@ export const UT: Record<string, any> = {
 };
 export const RESN: Record<string, string> = {bois:'bois',pierre:'pierre',ble:'blé',fer:'fer',arc:'arc',lance:'lance',epee:'épée',fleche:'flèche'};
 export const NEED: Record<string, string> = {archer:'arc',lancier:'lance',spadassin:'epee'};
-export const AI_ORDER = ['reserve','grenier','bucheron','ferme','bucheron','fleches','carriere','bucheron','arcs','lances','caserne','ferme','bucheron','mine','forge'];
+export const AI_ORDER = ['reserve','grenier','bucheron','ferme','bucheron','fleches','carriere','bucheron','armurerie','arcs','lances','caserne','ferme','bucheron','mine','forge'];
 // ---- disposition des joueurs et des gisements (1v1 : une rangée, 2v2 : deux rangées) ----
 // Joueurs : 0 et 2 à gauche (camp 0), 1 et 3 à droite (camp 1). En 2v2, 0 et 1 en haut, 2 et 3 en bas.
 export type Mode = '1v1' | '2v2';

@@ -59,7 +59,7 @@ function targetLord(team) {
 /** économie et armée d'un joueur contrôlé par l'IA, toutes les 1,5 s */
 export function aiTick(p, dt) {
   const A = G.ai[p], tm = G.teams[p]; A.t += dt; if (A.t < 1.5) return; A.t = 0;
-  for (const st of ['reserve', 'grenier']) if (A.i > 2 && !G.buildings.some(b => b.team === p && b.type === st && !b.dead)) { const sp = findSpot(p, st); if (sp) addBuilding(p, st, sp.tx, sp.ty) }
+  for (const st of ['reserve', 'grenier', 'armurerie']) if (A.i > Math.max(2, AI_ORDER.indexOf(st)) && !G.buildings.some(b => b.team === p && b.type === st && !b.dead)) { const sp = findSpot(p, st); if (sp) addBuilding(p, st, sp.tx, sp.ty) }
   if (A.i < AI_ORDER.length) { const type = AI_ORDER[A.i]; if (afford(tm, type)) { const s = findSpot(p, type); if (s) { pay(tm, type); addBuilding(p, type, s.tx, s.ty) } A.i++ } }
   else { const cap = { bucheron: 5, ferme: 4, carriere: 2, arcs: 2, lances: 2 }; for (const type of ['bucheron', 'ferme', 'arcs', 'lances', 'carriere']) { const n = G.buildings.filter(b => b.team === p && b.type === type).length; if (n < cap[type] && afford(tm, type)) { const s = findSpot(p, type); if (s) { pay(tm, type); addBuilding(p, type, s.tx, s.ty) } break } } }
   const cas = G.buildings.find(b => b.team === p && b.type === 'caserne' && !b.dead);
