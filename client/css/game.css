@@ -81,6 +81,20 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 #bldPanel .demo{margin-top:10px;width:100%;font:inherit;font-weight:700;color:#fff1c9;background:#6e2a1f;border:1px solid #a8452f;border-radius:3px;padding:6px 8px;cursor:pointer}
 #bldPanel .demo:hover{background:#86331f}
 #bldPanel .demo small{font-weight:500;opacity:.85}
+ /* fiche de l'ouvrier sélectionné */
+#wkPanel{position:absolute;right:16px;bottom:calc(100% + 8px);width:300px;padding:10px 12px;display:flex;gap:12px;align-items:flex-start;background:rgba(31,26,21,.94);border:1px solid var(--rule);border-radius:3px}
+#wkPanel[hidden]{display:none}
+#wkPanel .wk-pic{flex:none;line-height:0;border-radius:6px;box-shadow:0 0 0 1px var(--rule)}
+#wkPanel .wk-txt{flex:1;min-width:0}
+#wkPanel .bp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+#wkPanel .bp-head b{font-family:var(--f-title,serif);font-size:17px;line-height:1.15;color:var(--gold)}
+#wkPanel .x{font:inherit;font-size:18px;line-height:1;color:var(--text);background:none;border:0;cursor:pointer;padding:0 2px}
+#wkPanel p{margin:3px 0 0;font-size:13px}
+#wkPanel .who{color:#a99d87}
+#wkPanel .bp-hp{margin-top:6px;height:5px;background:rgba(0,0,0,.5);border-radius:2px;overflow:hidden}
+#wkPanel .bp-hp div{height:100%;background:var(--me)}
+#wkPanel .act{color:var(--text)}
+#wkPanel .act:empty{display:none}
 .chip em{font-style:normal;font-size:12px;font-weight:700;color:#a99d87;margin-left:-2px}
 /* réglages du son */
 .snd{position:relative}

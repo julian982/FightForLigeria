@@ -1,6 +1,6 @@
 // La simulation : création de partie, ouvriers, combat, famine, commandes des joueurs.
 // Aucun accès au DOM ni à Three.js : le client lit `G` pour dessiner, et reçoit les événements par `hooks`.
-import { T, GW, GH, W, H, TERR, S, DEF, ARMY_MAX, STORE_OF, START_RES, RICH_RES, UT, RESN, NEED, STONES, IRONS, ROCKS, RESPAWN, TREE_R, CHARGE_T, AI_ARCHER_RANGE, KEEPS, PLAYERS, sideOf, isFoe } from './config';
+import { T, GW, GH, W, H, TERR, S, DEF, ARMY_MAX, STORE_OF, START_RES, RICH_RES, UT, RESN, NEED, STONES, IRONS, ROCKS, RESPAWN, TREE_R, CHARGE_T, AI_ARCHER_RANGE, KEEPS, PLAYERS, sideOf, isFoe, inHalf } from './config';
 import { rawWater, genTrees, gh } from './maps';
 import { dist, dE, rectDist, rectClamp, inRect } from './util';
 import { G, trees, setG, setTrees, hooks } from './state';
@@ -26,7 +26,7 @@ export function newGame(opts: GameOptions = {}) {
   // la disposition (1v1 ou 2v2) vient de la carte chargée par loadMap
   const N = PLAYERS, ids = Array.from({ length: N }, (_, i) => i);
   const ai = ids.map(i => opts.ai ? !!opts.ai[i] : N === 2 && i === 1);
-  setG({ t: 0, teams: [], buildings: [], units: [], workers: [], arrows: [], fx: [], over: null, winner: null, foodT: 0, nid: 1, uid: 1, aid: 1,
+  setG({ t: 0, seed: Math.random() * 2 ** 31 | 0, teams: [], buildings: [], units: [], workers: [], arrows: [], fx: [], over: null, winner: null, foodT: 0, nid: 1, uid: 1, aid: 1,
     ai: ids.map(() => ({ i: 0, t: 0, wave: 5, next: 240 })), stats: { kills: 0, recruits: 0 }, st: ids.map(newStats), histT: 0,
     ctrl: ids.map(i => newCtrl(ai[i])) });
   for (const id of ids) {
@@ -81,8 +81,8 @@ export function canPlace(team, type, tx, ty): string | null {
   if (tx < 0 || ty < 0 || tx + d.w > GW || ty + d.h > GH) return 'Hors de la carte';
   const x = tx * T, y = ty * T, w = d.w * T, h = d.h * T, cx = x + w / 2, cy = y + h / 2;
   for (let sx = x - 16; sx <= x + w + 16; sx += 20) for (let sy = y - 16; sy <= y + h + 16; sy += 20) if (rawWater(sx, sy)) return 'Trop près de l\'eau';
-  const k = G.teams[team].keep;
-  if (type !== 'mine' && dist(cx, cy, k.x, k.y) > TERR) return 'Hors de ton territoire';
+  // on construit où on veut dans sa moitié de carte ; seule la mine va sur le gisement de fer du centre
+  if (type !== 'mine' && !inHalf(team, x, w)) return 'Hors de ta moitié de carte';
   if (d.store && G.buildings.some(o => o.team === team && o.type === type && !o.dead)) return 'Tu as déjà un' + (type === 'reserve' ? 'e réserve' : ' grenier');
   for (const b of G.buildings) if (!b.dead && x < b.bx + b.bw && x + w > b.bx && y < b.by + b.bh && y + h > b.by) return 'Emplacement occupé';
   for (const e of [...G.units, ...G.workers]) if (!e.dead && e.x > x - e.r && e.x < x + w + e.r && e.y > y - e.r && e.y < y + h + e.r) return 'Des personnes sont sur l\'emplacement';

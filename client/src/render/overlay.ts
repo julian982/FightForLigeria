@@ -25,6 +25,9 @@ export function drawOverlay(){
   const sb=ui.selB;if(sb&&!sb.dead){const q=[[sb.bx,sb.by],[sb.bx+sb.bw,sb.by],[sb.bx+sb.bw,sb.by+sb.bh],[sb.bx,sb.by+sb.bh]].map(([x,y])=>toScreen(x,y,.06));
     octx.strokeStyle='#ffe08a';octx.lineWidth=2;octx.setLineDash([6,4]);octx.beginPath();q.forEach((p,i)=>i?octx.lineTo(p.x,p.y):octx.moveTo(p.x,p.y));octx.closePath();octx.stroke();octx.setLineDash([])}
   const z=view.ppu/46;
+  // anneau doré sous l'ouvrier sélectionné
+  const sw=ui.selW;if(sw&&!sw.dead){const c=toScreen(sw.x,sw.y,.02),rx=14*z,ry=rx*Math.max(.35,Math.sin(view.pitch));
+    octx.strokeStyle='#ffe08a';octx.lineWidth=2;octx.beginPath();octx.ellipse(c.x,c.y,rx,ry,0,0,Math.PI*2);octx.stroke()}
   for(const u of G.units){if(u.dead)continue;const lord=u.type==='lord';if(!lord&&u.hp>=u.maxhp)continue;
     const p=toScreen(u.x,u.y,lord?1.35:1.05);if(!lord||!isFoe(u.team,ME))bar(p.x,p.y,(lord?38:22)*z,u.hp/u.maxhp,TEAMC[u.team].m);
     if(lord&&u.charge>0){const q=toScreen(u.x,u.y,.5);octx.strokeStyle=u.charge>=1?'#ffe08a':'#e3b54e';octx.lineWidth=3;octx.beginPath();octx.arc(q.x,q.y,22*z,-Math.PI/2,-Math.PI/2+u.charge*Math.PI*2);octx.stroke()}}

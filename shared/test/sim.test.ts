@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   loadMap, newGame, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater,
   placeBuilding, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
-  START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRONS, shotClear, findPath, buildNav, KEEPS, PLAYERS, H, isFoe, onPath, MAP, fireArrow, orderAttack, applyCommand, makeSnapshot, B_TYPES, forfeit,
+  START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRONS, shotClear, findPath, buildNav, KEEPS, PLAYERS, H, isFoe, onPath, MAP, fireArrow, orderAttack, applyCommand, makeSnapshot, B_TYPES, forfeit, canPlace, GW, GH, identityOf, jobOf,
 } from '../src/index';
 
 const DT = 1 / 60;
@@ -353,5 +353,45 @@ describe('2v2', () => {
     expect(notesFor.every(t => t === 1 || t === 3 || t === 0)).toBe(true);
     for (const u of G.units) if (u.team === 2 && u.order && u.order.ai) expect(Math.abs(u.order.x - G.teams[0].lord.x) + Math.abs(u.order.y - G.teams[0].lord.y)).toBeGreaterThan(200);
     const s = makeSnapshot([]); expect(s.tm.length).toBe(4); expect(s.ctrl.length).toBe(4);
+  });
+});
+
+describe('construction dans sa moitié de carte', () => {
+  /** une case libre (canPlace OK) dans la zone donnée, ou null */
+  function freeSpot(team: number, type: string, x0: number, x1: number, y0: number, y1: number) {
+    for (let ty = y0; ty < y1; ty++) for (let tx = x0; tx < x1; tx++) if (!canPlace(team, type, tx, ty)) return { tx, ty };
+    return null;
+  }
+  it.each(['1v1', '2v2'] as const)('%s : partout dans sa moitié, jamais dans celle d\'en face', mode => {
+    loadMap('amboise', mode); newGame();
+    for (let p = 0; p < PLAYERS; p++) {
+      const left = (p & 1) === 0, mid = GW / 2;
+      // loin du donjon mais dans sa moitié (près de la ligne du milieu) : autorisé
+      const near = left ? freeSpot(p, 'fleches', mid - 6, mid - 2, 0, GH) : freeSpot(p, 'fleches', mid, mid + 4, 0, GH);
+      expect(near, 'emplacement près du milieu pour le joueur ' + p).toBeTruthy();
+      // à cheval sur la ligne du milieu, ou chez l'adversaire : refusé
+      expect(canPlace(p, 'fleches', mid - 1, near!.ty)).toBe('Hors de ta moitié de carte');
+      const other = left ? freeSpot(1, 'fleches', mid, GW - 2, 0, GH) : freeSpot(0, 'fleches', 1, mid - 2, 0, GH);
+      expect(canPlace(p, 'fleches', other!.tx, other!.ty)).toBe('Hors de ta moitié de carte');
+    }
+    // la mine reste au centre, sur le gisement de fer
+    const I = IRONS[0];
+    expect(canPlace(0, 'mine', Math.round(I.x / 40 - 1), Math.round(I.y / 40 - 1))).not.toBe('Hors de ta moitié de carte');
+  });
+});
+
+describe('identité des ouvriers', () => {
+  it('nom stable pour une partie, différent d\'une partie à l\'autre', () => {
+    const a = identityOf(7, 123), b = identityOf(7, 123), c = identityOf(7, 999);
+    expect(a).toEqual(b);
+    expect(a.first + a.last + a.age).not.toBe(c.first + c.last + c.age);
+    const names = new Set(Array.from({ length: 40 }, (_, i) => { const d = identityOf(i, 42); return d.first + ' ' + d.last }));
+    expect(names.size).toBeGreaterThan(35);
+    for (let i = 0; i < 200; i++) { const d = identityOf(i, 5); expect(d.age).toBeGreaterThanOrEqual(16); expect(d.age).toBeLessThan(57); if (d.female) expect(d.face.beard).toBe(0) }
+    expect(jobOf('bucheron', true)).toBe('Bûcheronne');
+  });
+  it('la graine de la partie part avec l\'instantané réseau', () => {
+    loadMap('amboise'); newGame();
+    expect(makeSnapshot([]).sd).toBe(G.seed);
   });
 });

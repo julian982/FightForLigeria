@@ -57,6 +57,8 @@ export let ROCKS: any[] = [];
 export const sideOf = (p: number) => p & 1;
 /** deux joueurs sont-ils ennemis ? (les alliés ne se font jamais de dégâts) */
 export const isFoe = (a: number, b: number) => ((a ^ b) & 1) === 1;
+/** un rectangle (en px) est-il entièrement dans la moitié de carte du camp de ce joueur ? (gauche pour le camp 0, droite pour le camp 1) */
+export const inHalf = (p: number, x: number, w: number) => sideOf(p) === 0 ? x + w <= W / 2 : x >= W / 2;
 /** installe la disposition d'un mode de jeu (à appeler avant de générer la carte) */
 export function setLayout(mode: Mode) {
   MODE = mode === '2v2' ? '2v2' : '1v1';

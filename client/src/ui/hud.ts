@@ -1,5 +1,7 @@
 // Le bandeau du haut (ressources, vie du seigneur) et celui du bas (bâtiments, recrutement).
-import { BUILD_LIST, DEF, G, RESN, afford, armySize, missing, refundOf } from '@ffl/shared';
+import { BUILD_LIST, DEF, G, RESN, STORE_OF, afford, armySize, identityOf, isFoe, jobOf, missing, refundOf } from '@ffl/shared';
+import { TEAMC } from '../render/engine';
+import { portraitSvg } from './portrait';
 import { act } from '../net/act';
 import { $, ME, sel, ui } from '../state';
 
@@ -13,7 +15,7 @@ export const bb=$('buildBtns');
 for(const t of BUILD_LIST){const d=DEF[t],b=document.createElement('button');b.className='btn';b.type='button';b.dataset.b=t;
   b.title=d.name+" : "+costStr(d.cost);b.innerHTML=`<kbd>${d.key}</kbd><span class="n">${SHORT[t]||d.name}</span><span class="c">${costHtml(d.cost)}</span>`;
   b.addEventListener('click',()=>selectBuild(t));bb.appendChild(b)}
-export function selectBuild(t){if(!ui.running)return;ui.placing=ui.placing===t?null:t;ui.selB=null;act.cancel();refreshHud()}
+export function selectBuild(t){if(!ui.running)return;ui.placing=ui.placing===t?null:t;ui.selB=null;ui.selW=null;act.cancel();refreshHud()}
 export function askRecruit(type){
   if(!ui.running)return;
   const err=act.recruit(type);if(err){toast(err);return}
@@ -71,3 +73,36 @@ bldPanel.addEventListener('click',(e:any)=>{
   if(e.target.closest('.x')){ui.selB=null;renderBldPanel();return}
   if(e.target.closest('.demo')&&ui.selB){const err=act.demolish(ui.selB);if(err)toast(err,'warn');else{toast(DEF[ui.selB.type].name+' démoli');ui.selB=null;refreshHud()}renderBldPanel()}
 });
+
+// ---- fiche de l'ouvrier sélectionné : portrait, prénom et nom, métier, ce qu'il fait ----
+const WITH:Record<string,string>={bois:'du bois',pierre:'de la pierre',ble:'du blé',fer:'du fer',arc:'un arc',lance:'une lance',epee:'une épée',fleche:'des flèches'};
+const DOING:Record<string,string>={bucheron:'Coupe du bois',carriere:'Taille la pierre',ferme:'Cultive le blé',arcs:'Fabrique un arc',lances:'Fabrique une lance',mine:'Extrait du fer',forge:'Forge une épée',fleches:'Taille des flèches'};
+const STORE_NAME:Record<string,string>={reserve:'à la réserve',grenier:'au grenier'};
+/** ce que fait l'ouvrier, lisible en solo comme en ligne (seuls les drapeaux affichés sont transmis par le réseau) */
+export function workerActivity(w){
+  const b=w.b;if(!b)return '';
+  if(w.noStore)return w.noStore==='grenier'?'Attend un grenier pour ranger son blé':'Attend une réserve pour ranger '+(WITH[w.carry?.type]||'sa production');
+  if(w.idle)return 'Plus d\'arbres à couper';
+  if(w.carry)return 'Rapporte '+(WITH[w.carry.type]||'sa production')+' '+(STORE_NAME[STORE_OF[w.carry.type]]||'au donjon');
+  if(w.need){const inp=DEF[b.type].input||{},r=G.teams[w.team].res;const m=Object.keys(inp).filter(k=>r[k]<inp[k]).map(k=>RESN[k]);return m.length?'Attend '+m.join(' et '):'Attend ses matières'}
+  if(w.working)return DOING[b.type]||'Travaille';
+  return 'Se rend au travail';
+}
+export const wkPanel=$('wkPanel');let wkId=-1,wkKey='';
+export function renderWkPanel(){
+  let w=ui.selW;if(w&&(w.dead||!ui.running||!G.workers.includes(w))){w=ui.selW=null}
+  if(!w){if(wkId!==-1){wkId=-1;wkKey='';wkPanel.hidden=true;wkPanel.innerHTML=''}return}
+  const idn=identityOf(w.id,G.seed||0),mine=w.team===ME,foe=isFoe(w.team,ME);
+  if(w.id!==wkId){
+    wkId=w.id;wkKey='';wkPanel.hidden=false;
+    wkPanel.innerHTML=`<div class="wk-pic">${portraitSvg(idn,TEAMC[w.team].m,64)}</div><div class="wk-txt"><div class="bp-head"><b></b><button type="button" class="x" aria-label="Fermer">×</button></div>
+      <p class="who"></p><div class="bp-hp"><div></div></div><p class="act"></p></div>`;
+    wkPanel.querySelector('.bp-head b').textContent=idn.first+' '+idn.last;
+  }
+  const job=jobOf(w.b?.type,idn.female),act=mine?workerActivity(w):'',starve=G.teams[w.team]?.starving;
+  const key=[job,act,Math.ceil(w.hp),w.maxhp,starve].join('|');if(key===wkKey)return;wkKey=key;
+  wkPanel.querySelector('.who').textContent=`${job} · ${idn.age} ans${mine?'':foe?' · ennemi':' · allié'}`;
+  (wkPanel.querySelector('.bp-hp div') as HTMLElement).style.width=Math.max(0,w.hp/w.maxhp*100)+'%';
+  wkPanel.querySelector('.act').textContent=(starve&&mine?'Affamé · ':'')+act;
+}
+wkPanel.addEventListener('click',(e:any)=>{if(e.target.closest('.x')){ui.selW=null;renderWkPanel()}});

@@ -50,6 +50,8 @@ export const WF = { working: 1, need: 2, idle: 4, noReserve: 8, noGrenier: 16 };
 
 export interface Snapshot {
   t: number;
+  /** graine de la partie (noms des ouvriers) */
+  sd: number;
   /** un par joueur (2 en 1v1, 4 en 2v2) ; `out` : éliminé */
   tm: { res: any, stash: any, starving: boolean, keep: number, lord: number, out?: boolean }[];
   ctrl: [number, number][];
@@ -72,6 +74,7 @@ export function makeSnapshot(fell: number[]): Snapshot {
   for (const f of G.fx) if (!f.sent) { f.sent = 1; const o: any = { ...f }; delete o.sent; fx.push(o) }
   return {
     t: r2(G.t),
+    sd: G.seed || 0,
     tm: G.teams.map(tm => ({ res: tm.res, stash: tm.stash, starving: !!tm.starving, keep: tm.keep.id, lord: tm.lord.id, out: !!tm.out })),
     ctrl: G.ctrl.map(c => [c.charging ? 1 : 0, r2(c.start)]),
     u: G.units.map(u => [u.id, u.team, U_TYPES.indexOf(u.type), r1(u.x), r1(u.y), r2(u.face), Math.ceil(u.hp), u.maxhp, u.dead ? 1 : 0, r2(u.charge || 0), r2(u.lunge || 0), r2(Math.max(0, u.flash))]),

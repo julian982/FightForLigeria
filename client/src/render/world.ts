@@ -5,6 +5,8 @@ import { BRIDGE_Y, GH, GW, GXV, H, IRONS, MAP, ROCKS, S, STONES, T, TERR, W, dis
 import { B, I, M, TEAMC, TM, VC, boxM, cylM, merge, mk, world } from './engine';
 import { buildGrass, resetLife, rippleMat, setRipples, waterMat } from './life';
 export const terrRing=[];
+/** ombre posée sur la moitié de carte d'un camp (0 gauche, 1 droite) : là où l'autre camp ne peut pas construire */
+export const halfShade=[];
 export let groundMesh:any=null;
 /** pose une géométrie sur le relief */
 export function drape(geo,lift=0){const p=geo.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,p.getY(i)+gh(p.getX(i)*T,p.getZ(i)*T)+lift);p.needsUpdate=true;geo.computeVertexNormals();return geo}
@@ -81,12 +83,21 @@ export function buildWorld(){
   const dm=mk(drape(merge(deco)),VC);dm.castShadow=false;world.add(dm);
   // herbe qui ondule au vent
   world.add(buildGrass(r));
-  // cercles de territoire
+  // limite des deux moitiés (on construit où on veut dans la sienne) : une ligne discrète au milieu
+  const ml=new THREE.PlaneGeometry(.08,GH,1,GH*2);ml.rotateX(-Math.PI/2);ml.translate(GW/2,0,GH/2);drape(ml,.08);
+  const line=new THREE.Mesh(ml,new THREE.MeshBasicMaterial({color:0xfff1c9,transparent:true,opacity:.28,depthWrite:false}));line.renderOrder=2;world.add(line);
+  // zone constructible de chaque joueur (sa moitié), affichée seulement pendant qu'il pose un bâtiment
   terrRing.length=0;
-  for(const [id,c] of keepCenters().entries()){
-    const rg=new THREE.RingGeometry(TERR*S-.07,TERR*S,160);rg.rotateX(-Math.PI/2);rg.translate(c.x*S,0,c.y*S);drape(rg,.1);
-    const m=new THREE.Mesh(rg,new THREE.MeshBasicMaterial({color:TEAMC[id].light,transparent:true,opacity:.22,depthWrite:false}));
-    world.add(m);terrRing[id]=m;
+  for(const id of keepCenters().keys()){
+    const left=(id&1)===0,hg=new THREE.PlaneGeometry(GW/2,GH,GW,GH*2);hg.rotateX(-Math.PI/2);hg.translate(left?GW/4:GW*3/4,0,GH/2);drape(hg,.06);
+    const m=new THREE.Mesh(hg,new THREE.MeshBasicMaterial({color:TEAMC[id].light,transparent:true,opacity:.16,depthWrite:false}));
+    m.visible=false;m.renderOrder=1;world.add(m);terrRing[id]=m;
+  }
+  halfShade.length=0;
+  for(const side of [0,1]){
+    const hg=new THREE.PlaneGeometry(GW/2,GH,GW,GH*2);hg.rotateX(-Math.PI/2);hg.translate(side?GW*3/4:GW/4,0,GH/2);drape(hg,.07);
+    const m=new THREE.Mesh(hg,new THREE.MeshBasicMaterial({color:0x140c08,transparent:true,opacity:.32,depthWrite:false}));
+    m.visible=false;m.renderOrder=1;world.add(m);halfShade[side]=m;
   }
 }
 

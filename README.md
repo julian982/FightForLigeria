@@ -96,7 +96,8 @@ Clavier et souris requis.
 - **Stockage** : réserve et grenier, gratuits, un de chaque. Bois, pierre et fer vont à la réserve, le blé au grenier, les armes et flèches au donjon. Si la réserve ou le grenier est détruit, son stock est perdu.
 - **Nourriture** : ouvriers et soldats mangent 1 blé toutes les 12 s pour 4 bouches. En famine (blé à 0), ils perdent 50 % de vitesse et 25 % de vie.
 - **Flèches du seigneur** : 8 au départ, une par tir. L'atelier de flèches en fabrique d'autres avec du bois. Les archers n'en consomment pas.
-- **Fer** : un seul gisement, au centre de la carte, à égale distance des deux joueurs. La mine est le seul bâtiment qui se pose hors de ton territoire.
+- **Construction** : tu poses tes bâtiments où tu veux dans ta moitié de carte (la gauche ou la droite selon ton camp ; en 2v2, la moitié est partagée avec ton allié).
+- **Fer** : un seul gisement, au centre de la carte, à égale distance des deux joueurs. La mine est le seul bâtiment qui se pose hors de ta moitié de carte.
 - **Ouvrier tué** : le bâtiment s'arrête (icône rouge) et un remplaçant sort du donjon 20 s plus tard.
 - **Collisions** : arbres, bâtiments et rochers bloquent les unités et les flèches. Les rivières bloquent les unités (sauf sur les ponts), pas les flèches.
 - **Couleur du royaume** : 8 couleurs au choix sur l'accueil, appliquées aux soldats, bâtiments, drapeaux et flèches.

@@ -5,7 +5,7 @@ import { DEF, G, S, T, afford, canPlace, gh, isFoe, stockPt, trees } from '@ffl/
 import { B, C, CAM_D, I, ISO, M, SUN_OFF, VC, VCF, boxM, camT, camera, dyn, mk, scene, sun } from './engine';
 import { birdsTakeOff, life } from './life';
 import { AGEO, CARRY, RINGGEO, RINGMAT, STUMPGEO, arrowObj, buildingObj, treeObj, unitObj } from './models';
-import { groundMesh, terrRing } from './world';
+import { groundMesh, halfShade, terrRing } from './world';
 import { $, ME, keys, mouse, sel, tilt, ui, view } from '../state';
 export const ray=new THREE.Raycaster(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),V2=new THREE.Vector2(),V3=new THREE.Vector3(),HIT=new THREE.Vector3();
 export function screenToWorld(sx,sy){V2.set(sx/view.VW*2-1,-(sy/view.VH)*2+1);ray.setFromCamera(V2,camera);if(groundMesh){const h=ray.intersectObject(groundMesh,false)[0];if(h)return{x:h.point.x*T,y:h.point.z*T}}return ray.ray.intersectPlane(plane,HIT)?{x:HIT.x*T,y:HIT.z*T}:{x:0,y:0}}
@@ -89,7 +89,10 @@ export function syncScene(dt){
   const showAim=ui.running&&!L.dead&&G.ctrl[ME].charging;aimLine.visible=aimEnd.visible=showAim;
   if(showAim){const md=(200+520*L.charge)*S,c=Math.cos(L.face),s=Math.sin(L.face);aimLine.scale.x=Math.max(.1,md-.4);aimLine.position.set(L.x*S+c*(md/2+.2),gh(L.x,L.y)+.12,L.y*S+s*(md/2+.2));aimLine.rotation.y=-L.face;aimEnd.position.set(L.x*S+c*md,gh(L.x+c*md*T,L.y+s*md*T)+.1,L.y*S+s*md);aimLine.material.opacity=.3+L.charge*.5}
   ghost.visible=ghostRange.visible=false;
-  if(terrRing[ME])terrRing[ME].material.opacity=ui.placing&&ui.running?.6:.22;
+  // en posant un bâtiment : sa moitié s'éclaire, celle d'en face s'assombrit (la mine, elle, se pose au centre)
+  const placing=!!ui.placing&&ui.running&&ui.placing!=='mine';
+  terrRing.forEach((m,id)=>{if(m)m.visible=placing&&id===ME});
+  halfShade.forEach((m,side)=>{if(m)m.visible=placing&&side!==(ME&1)});
   if(ui.placing&&ui.running){
     const d=DEF[ui.placing],g=ghostTile(),ok=!canPlace(ME,ui.placing,g.tx,g.ty)&&afford(G.teams[ME],ui.placing);
     ghost.visible=true;ghost.scale.set(d.w,.9,d.h);ghost.position.set(g.tx+d.w/2,gh((g.tx+d.w/2)*T,(g.ty+d.h/2)*T)+.45,g.ty+d.h/2);ghost.material.color.setHex(ok?0x79c06a:0xe3634f);

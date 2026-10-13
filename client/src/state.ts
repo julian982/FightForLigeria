@@ -12,6 +12,8 @@ export const ui = {
   box: null as null | { sx: number, sy: number },
   /** bâtiment sélectionné (fenêtre d'info / démolition) */
   selB: null as any,
+  /** ouvrier sélectionné (fiche avec portrait et nom) */
+  selW: null as any,
   /** vue seigneur (première personne) */
   fps: false,
 };
