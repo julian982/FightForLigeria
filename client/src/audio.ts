@@ -1,10 +1,22 @@
-// Le son : l'ambiance nature (boucle) et les bruitages (arc), avec volumes réglables et coupure. Réglages gardés dans le navigateur.
-import natureUrl from './assets/sounds/ambiance-nature.mp3?url';
+// Le son : l'ambiance de forêt (boucle générée : vent, feuillages, oiseaux au loin) et les bruitages (arc, travail des
+// ouvriers, dépôts), avec volumes réglables et coupure. Réglages gardés dans le navigateur.
+import natureUrl from './assets/sounds/ambiance-foret.mp3?url';
 import bandUrl from './assets/sounds/arc-bander.mp3?url';
 import tirUrl from './assets/sounds/arc-tir.mp3?url';
 import chairUrl from './assets/sounds/impact-chair.mp3?url';
 import boisUrl from './assets/sounds/impact-bois.mp3?url';
 import solUrl from './assets/sounds/impact-sol.mp3?url';
+import coupeUrl from './assets/sounds/coupe-bois.mp3?url';
+import tailleUrl from './assets/sounds/taille-pierre.mp3?url';
+import picUrl from './assets/sounds/pic-fer.mp3?url';
+import enclumeUrl from './assets/sounds/enclume.mp3?url';
+import atelierUrl from './assets/sounds/atelier.mp3?url';
+import fauxUrl from './assets/sounds/faux.mp3?url';
+import dBoisUrl from './assets/sounds/depot-bois.mp3?url';
+import dPierreUrl from './assets/sounds/depot-pierre.mp3?url';
+import dFerUrl from './assets/sounds/depot-fer.mp3?url';
+import dBleUrl from './assets/sounds/depot-ble.mp3?url';
+import dArmesUrl from './assets/sounds/depot-armes.mp3?url';
 
 const KEY = 'ffl.audio';
 export const audio = { ambiance: .5, sfx: .7, muted: false };
@@ -36,7 +48,7 @@ export async function startAmbiance() {
   wanted = true;
   try {
     if (!ensure()) return; await loadAmb(); if (!wanted) return;
-    if (!ambSrc) { ambSrc = ctx.createBufferSource(); ambSrc.buffer = ambBuf; ambSrc.loop = true; ambSrc.connect(ambGain); ambSrc.start(0, Math.random() * ambBuf.duration) }
+    if (!ambSrc) { ambSrc = ctx.createBufferSource(); ambSrc.buffer = ambBuf; ambSrc.loop = true; ambSrc.loopStart = .06; ambSrc.loopEnd = Math.max(1, ambBuf.duration - .06); ambSrc.connect(ambGain); ambSrc.start(0, Math.random() * ambBuf.duration) }
     ramp(ambGain, ambTarget(), 2.5);
   } catch (e) { /* pas de son : le jeu continue */ }
 }
@@ -54,7 +66,9 @@ document.addEventListener('visibilitychange', () => { if (!ctx) return; if (docu
 export function audioState() { return { sfx: { ...sfxCount }, sfxLoaded: Object.keys(sfxBuf).length, ctx: ctx ? ctx.state : null, playing: !!ambSrc, loaded: !!ambBuf, gain: ambGain ? +ambGain.gain.value.toFixed(2) : 0, dur: ambBuf ? Math.round(ambBuf.duration) : 0 } }
 
 // ---- bruitages ----
-const SFX_URL: Record<string, string> = { bander: bandUrl, tir: tirUrl, chair: chairUrl, bois: boisUrl, sol: solUrl };
+const SFX_URL: Record<string, string> = { bander: bandUrl, tir: tirUrl, chair: chairUrl, bois: boisUrl, sol: solUrl,
+  coupe: coupeUrl, taille: tailleUrl, pic: picUrl, enclume: enclumeUrl, atelier: atelierUrl, faux: fauxUrl,
+  'd-bois': dBoisUrl, 'd-pierre': dPierreUrl, 'd-fer': dFerUrl, 'd-ble': dBleUrl, 'd-armes': dArmesUrl };
 const sfxBuf: Record<string, AudioBuffer> = {};
 /** nombre de bruitages joués, par nom (pour les tests) */
 const sfxCount: Record<string, number> = {};
