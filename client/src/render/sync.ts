@@ -6,6 +6,7 @@ import { B, C, CAM_D, I, ISO, M, SUN_OFF, VC, VCF, boxM, camT, camera, dyn, mk, 
 import { birdsTakeOff, life } from './life';
 import { AGEO, CARRY, RINGGEO, RINGMAT, STUMPGEO, arrowObj, buildingObj, treeObj, unitObj } from './models';
 import { groundMesh, halfShade, terrRing } from './world';
+import { updSmoke } from './stylized';
 import { $, ME, keys, mouse, sel, tilt, ui, view } from '../state';
 export const ray=new THREE.Raycaster(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),V2=new THREE.Vector2(),V3=new THREE.Vector3(),HIT=new THREE.Vector3();
 export function screenToWorld(sx,sy){V2.set(sx/view.VW*2-1,-(sy/view.VH)*2+1);ray.setFromCamera(V2,camera);if(groundMesh){const h=ray.intersectObject(groundMesh,false)[0];if(h)return{x:h.point.x*T,y:h.point.z*T}}return ray.ray.intersectPlane(plane,HIT)?{x:HIT.x*T,y:HIT.z*T}:{x:0,y:0}}
@@ -61,6 +62,7 @@ export function syncScene(dt){
     if(b.rise<1){b.rise=Math.min(1,b.rise+dt*1.8);const e=1-Math.pow(1-b.rise,3);g.scale.y=.05+.95*e}
     g.position.x=b.x*S+(b.flash>0?(Math.random()-.5)*.06:0);
     for(let i=0;i<b.flags.length;i++)b.flags[i].rotation.y=Math.sin(t*2.6+b.id+i)*.35;
+    if(b.smoke)updSmoke(b,dt);
     if(b.wheat){b.wheat.scale.y=.35+.65*b.grow;b.wheat.material.color.setRGB(.48+.4*b.grow,.66+.06*b.grow,.24-.02*b.grow)}
   }
   updMarks(dt);

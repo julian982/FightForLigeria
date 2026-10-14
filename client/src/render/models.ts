@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { S, gh, isFoe } from '@ffl/shared';
 import { B, C, I, K, M, TEAMC, TM, VC, boxM, cylM, companion, dyn, gableGeo, merge, mk, teamColor } from './engine';
 import { terrRing } from './world';
+import { buildKeep, buildHut, buildQuarry, buildBarracks } from './stylized';
 import { ME } from '../state';
 export const TREEGEO=[
   merge([[C(.06,.09,.45,5).translate(0,.22,0),0x6b4526],[K(.46,.72,6).translate(0,.75,0),0x2f5e2c],[K(.36,.6,6).translate(0,1.08,0),0x3a6e33],[K(.22,.45,6).translate(0,1.38,0),0x467d3a]]),
@@ -33,53 +34,9 @@ export function hut(g,b,o){
 export function stoneBlocks(g,n,x,z){for(let i=0;i<n;i++)g.add(boxM(.2,.16,.2,M(i%2?0xe9e0c8:0xd9ceb3),x+(i%3)*.22-.22,(i/3|0)*.16,z+(i/3|0)*.06))}
 export function logs(g,n,x,z){const rows=[3,2,1];let i=0;for(let row=0;row<3;row++)for(let j=0;j<rows[row]&&i<n;j++,i++)g.add(mk(C(.08,.08,.7,6).rotateZ(Math.PI/2),M(0x8a5a2b),x,.08+row*.14,z+(j-(rows[row]-1)/2)*.17))}
 export const BUILD:Record<string,(g:any,b:any)=>void>={
-  keep(g,b){
-    g.add(boxM(3,.16,3,M(0x6e685d)));
-    g.add(boxM(2.1,.08,2.1,M(0x8f7a58),0,.12,0));
-    const wall=TM('stone',3,1),cr=M(0xd9ceb3);
-    g.add(boxM(2.4,1,.3,wall,0,.16,-1.1));g.add(boxM(.3,1,2.4,wall,-1.1,.16,0));g.add(boxM(.3,1,2.4,wall,1.1,.16,0));
-    g.add(boxM(.85,1,.3,wall,-.78,.16,1.1));g.add(boxM(.85,1,.3,wall,.78,.16,1.1));
-    g.add(boxM(.7,.35,.3,wall,0,.81,1.1));
-    g.add(boxM(.5,.62,.06,TM('planks',1,1,0x7a6a5a),0,.16,1.12));
-    for(let i=-4;i<=4;i+=2){const o=i*.13;g.add(boxM(.14,.16,.32,cr,o,1.16,-1.1));g.add(boxM(.32,.16,.14,cr,-1.1,1.16,o));g.add(boxM(.32,.16,.14,cr,1.1,1.16,o));if(Math.abs(o)>.4)g.add(boxM(.14,.16,.32,cr,o,1.16,1.1))}
-    for(const [x,z] of [[-1.15,-1.15],[1.15,-1.15],[-1.15,1.15],[1.15,1.15]]){
-      g.add(cylM(.36,.42,1.55,8,TM('stone',2,1),x,.16,z));
-      g.add(cylM(.42,.42,.12,8,cr,x,1.7,z));
-      g.add(mk(K(.5,.75,8),M(TEAMC[b.team].hex),x,1.82+.37,z));
-    }
-    g.add(boxM(1.15,2.3,1.15,TM('stone',1,2),0,.16,-.2));
-    for(let i=-1;i<=1;i++){const o=i*.42;g.add(boxM(.18,.18,.2,cr,o,2.46,-.72));g.add(boxM(.18,.18,.2,cr,o,2.46,.32));g.add(boxM(.2,.18,.18,cr,-.52,2.46,o-.2));g.add(boxM(.2,.18,.18,cr,.52,2.46,o-.2))}
-    g.add(boxM(.14,.3,.04,M(0x1f1a14),0,1.3,.38));g.add(boxM(.04,.3,.14,M(0x1f1a14),.58,1.4,-.2));
-    flag(g,b,1.1,0,-.2,true,2.46);
-  },
-  bucheron(g,b){
-    // cahute en rondins, toit d'une seule pente en planches, gros tas de bûches
-    const L1=M(0x7a5230),L2=M(0x664224),cx=-.32,cz=-.28,w=.95,d=.8;
-    g.add(boxM(w+.2,.05,d+.2,M(0x5e4a33),cx,0,cz));
-    for(let r=0;r<5;r++){const y=.08+r*.11;
-      for(const sd of [-1,1]){
-        g.add(mk(C(.058,.058,w+.16,6).rotateZ(Math.PI/2),r%2?L1:L2,cx,y,cz+sd*d/2));
-        g.add(mk(C(.058,.058,d+.16,6).rotateX(Math.PI/2),r%2?L2:L1,cx+sd*w/2,y+.055,cz));
-      }}
-    for(const [x,z] of [[-w/2,-d/2],[w/2,-d/2],[-w/2,d/2],[w/2,d/2]])g.add(mk(C(.03,.03,.02,6).rotateZ(Math.PI/2),M(0xc9a06a),cx+x+(x>0?.08:-.08),.19,cz+z));
-    const roof=mk(B(w+.42,.05,d+.5),TM('planks',2,2,0x9c7b52),cx,.72,cz);roof.rotation.x=.42;g.add(roof);
-    g.add(mk(B(.05,.32,.05),L2,cx-w/2-.08,.5,cz+d/2+.18));g.add(mk(B(.05,.32,.05),L2,cx+w/2+.08,.5,cz+d/2+.18));
-    g.add(boxM(.24,.34,.03,M(0x24180e),cx+.12,.04,cz+d/2+.07));
-    logs(g,6,.5,.42);logs(g,3,.5,-.55);
-    g.add(cylM(.16,.18,.22,8,M(0x7a5230),-.55,0,.55));g.add(mk(C(.15,.15,.01,8),M(0xc9a06a),-.55,.225,.55));
-    g.add(mk(B(.03,.4,.03).rotateZ(.45),M(0x5a3a1e),-.48,.36,.55));g.add(mk(B(.13,.07,.02),M(0xb8bec4),-.4,.53,.55));
-    flag(g,b,.9,-.85,-.78);
-  },
-  carriere(g,b){
-    g.add(boxM(1.8,.06,1.8,M(0x5a5750)));
-    g.add(boxM(1.2,.1,1.2,M(0x46433d),-.15,.02,-.15));
-    for(let i=0;i<6;i++){const k=.12+i%3*.05;g.add(mk(new THREE.DodecahedronGeometry(k,0),M(0x9a968c),-.55+(i%3)*.35,k*.5,-.6+(i/3|0)*.4))}
-    stoneBlocks(g,6,.5,.45);
-    const wd=M(0x6b4a28);
-    g.add(cylM(.04,.05,1.4,5,wd,-.7,0,.65));g.add(mk(B(1.0,.06,.06).rotateY(.75),wd,-.36,1.36,.33));
-    g.add(mk(C(.008,.008,.7,3),M(0xdddddd),-.02,1.0,.0));g.add(boxM(.18,.14,.18,M(0xe9e0c8),-.02,.5,0));
-    flag(g,b,.9,.8,-.8);
-  },
+  keep:buildKeep,
+  bucheron:buildHut,
+  carriere:buildQuarry,
   ferme(g,b){
     g.add(boxM(2.2,.06,2.7,TM('soil',2,3),-.35,0,0));
     const parts=[];for(let r=0;r<6;r++)for(let i=0;i<8;i++)parts.push([K(.07,.34,4).translate(-1.3+r*.35+((i%2)*.04),.17,-1.15+i*.33),0xffffff]);
@@ -189,16 +146,7 @@ export const BUILD:Record<string,(g:any,b:any)=>void>={
     for(let i=0;i<3;i++)g.add(mk(B(.02,.42,.05).rotateZ(.15),M(0xc3c9cf),-.8+i*.1,.3,.42));
     flag(g,b,.95,-.85,.75);
   },
-  caserne(g,b){
-    g.add(boxM(2.9,.1,1.9,M(0x7d776b)));
-    g.add(boxM(2.6,.5,1.4,TM('stone',4,1),0,.1,-.15));
-    g.add(boxM(2.6,.5,1.4,TM('timber',3,1),0,.6,-.15));
-    g.add(mk(gableGeo(1.6,2.8,.8).rotateY(Math.PI/2),TM('slate',3,2),0,1.1,-.15));
-    g.add(boxM(.36,.56,.04,TM('planks',1,1,0x7a6a5a),0,.1,.56));
-    for(const x of [-.75,.75]){g.add(boxM(.3,.55,.03,M(TEAMC[b.team].hex),x,.42,.57));g.add(boxM(.3,.05,.035,M(0xe3b54e),x,.95,.57))}
-    g.add(boxM(.05,.6,.05,M(0x6b4a28),1.2,0,.75));g.add(boxM(.36,.05,.05,M(0x6b4a28),1.2,.42,.75));g.add(mk(I(.09),M(0xc9a36a),1.2,.68,.75));
-    flag(g,b,1.4,-1.25,.65,true);
-  },
+  caserne:buildBarracks,
 };
 export function buildingObj(b){
   const g=new THREE.Group();b.flags=[];BUILD[b.type](g,b);
