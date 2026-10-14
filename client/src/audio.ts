@@ -1,6 +1,6 @@
-// Le son : l'ambiance de forêt (boucle générée : vent, feuillages, oiseaux au loin) et les bruitages (arc, travail des
-// ouvriers, dépôts), avec volumes réglables et coupure. Réglages gardés dans le navigateur.
-import natureUrl from './assets/sounds/ambiance-foret.mp3?url';
+// Le son : l'ambiance nature (boucle) et les bruitages (arc, travail des ouvriers, dépôts), avec volumes réglables
+// et coupure. Réglages gardés dans le navigateur.
+import natureUrl from './assets/sounds/ambiance-nature.mp3?url';
 import bandUrl from './assets/sounds/arc-bander.mp3?url';
 import tirUrl from './assets/sounds/arc-tir.mp3?url';
 import chairUrl from './assets/sounds/impact-chair.mp3?url';
@@ -48,7 +48,7 @@ export async function startAmbiance() {
   wanted = true;
   try {
     if (!ensure()) return; await loadAmb(); if (!wanted) return;
-    if (!ambSrc) { ambSrc = ctx.createBufferSource(); ambSrc.buffer = ambBuf; ambSrc.loop = true; ambSrc.loopStart = .06; ambSrc.loopEnd = Math.max(1, ambBuf.duration - .06); ambSrc.connect(ambGain); ambSrc.start(0, Math.random() * ambBuf.duration) }
+    if (!ambSrc) { ambSrc = ctx.createBufferSource(); ambSrc.buffer = ambBuf; ambSrc.loop = true; ambSrc.connect(ambGain); ambSrc.start(0, Math.random() * ambBuf.duration) }
     ramp(ambGain, ambTarget(), 2.5);
   } catch (e) { /* pas de son : le jeu continue */ }
 }
