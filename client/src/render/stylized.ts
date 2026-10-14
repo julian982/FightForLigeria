@@ -18,6 +18,7 @@ export const P = {
   shingle: 0x96533a, shingleL: 0xa65e3f, shingleD: 0x6f3a26,
   slate: 0x4f5a68, slateL: 0x5f6b7a, slateD: 0x3a424d,
   window: 0xffc56a, flame: 0xffb03a, straw: 0xd9b765, cloth: 0xd8c08a,
+  wood: 0x8f5d35, leatherD: 0x553820, white: 0xf2ece0,
 };
 
 // ---- formes de base ----
@@ -474,4 +475,250 @@ export function buildGranary(g: any, b: any) {
   k.build(g);
   flagPivot(g, b, .85, 1.64, -.85, .34, .2, team, k);
   b.pile = new THREE.Group(); b.pile.position.set(.62, .06, .62); g.add(b.pile);
+}
+
+// =====================================================================
+// Pièces communes aux ateliers
+// =====================================================================
+/**
+ * maisonnette à colombages : murs crépis, ossature sombre, toit à deux pans en rangs (chaume, bardeaux ou ardoise)
+ * centrée en (x, z), faîtage le long de x ; renvoie la hauteur du haut des murs
+ */
+function cottage(k: Kit, x: number, z: number, W: number, D: number, H: number, roof: 'thatch' | 'shingle' | 'slate', rise = .55) {
+  const C = P, wallC = 0xe8dcc0;
+  const roofs = { thatch: [0xb8923f, C.straw, 0xc9a24c, 0xa8823a], shingle: [C.shingleD, C.shingle, C.shingleL, C.woodDD], slate: [C.slateD, C.slate, C.slateL, C.slateD] }[roof];
+  k.at(x, 0, z, 0, () => {
+    k.add(k.stone(W + .1, .12, D + .1, .02), C.stoneM, 0, 0, 0);
+    k.add(cbox(W, H, D, .02), wallC, 0, .1, 0);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) k.add(cbox(.08, H + .02, .08, .015), C.woodDD, sx * W / 2, .1, sz * D / 2);
+    for (const s of [-1, 1]) { k.add(cbox(W + .06, .07, .08, .015), C.woodDD, 0, .1 + H - .05, s * D / 2); k.add(cbox(.08, .07, D + .06, .015), C.woodDD, s * W / 2, .1 + H - .05, 0) }
+    for (const s of [-1, 1]) { k.add(cbox(.05, H * 1.05, .05, .01), C.woodDD, -W / 4, .12, s * (D / 2 + .005), 0, 0, s * .55); k.add(cbox(.05, H * 1.05, .05, .01), C.woodDD, W / 4, .12, s * (D / 2 + .005), 0, 0, -s * .55) }
+    const top = .1 + H, over = .16;
+    for (const s of [-1, 1]) {
+      const tri = new THREE.Shape(); tri.moveTo(-D / 2 - .03, 0); tri.lineTo(D / 2 + .03, 0); tri.lineTo(0, rise); tri.lineTo(-D / 2 - .03, 0);
+      k.add(new THREE.ExtrudeGeometry(tri, { depth: .05, bevelEnabled: false }), roof === 'slate' ? C.tuf : C.woodL, s * (W / 2 + .02), top, 0, 0, Math.PI / 2);
+    }
+    const slope = Math.atan2(rise, D / 2), len = (D / 2 + over) / Math.cos(slope), thick = roof === 'thatch' ? .14 : .08;
+    for (const s of [-1, 1]) k.at(0, top + rise + .03, 0, 0, () => {
+      k.add(roof === 'thatch' ? k.jitter(cbox(W + .4, thick, len + .05, .04), .02) : cbox(W + .36, thick, len + .04, .02), roofs[0], 0, -.04, s * len / 2);
+      for (let row = 0; row < 3; row++) k.add(roof === 'thatch' ? k.jitter(cbox(W + .44, .09, len / 3 + .07, .03), .02) : cbox(W + .38, .05, len / 3 + .05, .012), roofs[1 + row % 2], 0, .03 + row * .015, s * (len - (row + .5) * len / 3 + .03));
+    }, s * slope);
+    k.add(roof === 'thatch' ? k.jitter(new THREE.CylinderGeometry(.1, .1, W + .5, 7), .02) : cbox(W + .42, .08, .12, .02), roofs[3], 0, top + rise + (roof === 'thatch' ? .08 : .02), 0, 0, 0, roof === 'thatch' ? Math.PI / 2 : 0);
+    // porte et fenêtre éclairée en façade (+z)
+    k.add(cbox(.26, .46, .04, .01), C.woodM, -W / 2 + .3, .1, D / 2 + .02);
+    k.add(cbox(.18, .16, .03, .005), C.window, W / 2 - .3, .42, D / 2 + .015, 0, 0, 0, true);
+    k.add(cbox(.24, .04, .07, .01), C.woodD, W / 2 - .3, .37, D / 2 + .03);
+  });
+  return .1 + H;
+}
+/** fumée de cheminée (animée par updSmoke) */
+function smoke(g: any, b: any, x: number, y: number, z: number) {
+  b.smoke = b.smoke || [];
+  for (let i = 0; i < 4; i++) {
+    const m = new THREE.Mesh(new THREE.IcosahedronGeometry(.08, 0), new THREE.MeshStandardMaterial({ color: 0xe9e4dc, flatShading: true, transparent: true, opacity: .8, depthWrite: false }));
+    m.userData = { t: i / 4, x, y, z }; g.add(m); b.smoke.push(m);
+  }
+}
+const ground = (k: Kit, color: number, w = 2.0, d = 2.0) => k.add(k.jitter(cbox(w, .22, d), .04), color, 0, -.16, 0);
+const barrel = (k: Kit, x: number, y: number, z: number, top = P.woodEnd) => k.at(x, y, z, 0, () => { k.add(cyl(.1, .1, .24, 8), P.woodM); k.add(cyl(.11, .11, .1, 8), P.woodM, 0, .07); for (const yy of [.03, .19]) k.add(cyl(.105, .105, .025, 8), P.iron, 0, yy); k.add(cyl(.085, .085, .012, 8), top, 0, .235) });
+const pole = (k: Kit, x: number, y: number, z: number, h: number) => k.add(cyl(.02, .02, h, 5), P.woodDD, x, y, z);
+
+// =====================================================================
+// Ferme à blé (3 × 3 cases) : champ en sillons, chaumière, meules, épouvantail
+// =====================================================================
+export function buildFarm(g: any, b: any) {
+  const k = new Kit(b.id * 1499 + 29), team = teamPal(b.team), C = P;
+  ground(k, C.dirt, 3.0, 3.0);
+  // sillons du champ
+  for (let r = 0; r < 7; r++) k.add(k.jitter(cbox(.28, .06, 2.7), .015), r % 2 ? 0x6a4a2a : 0x7a5632, -1.35 + r * .32 + .15, 0, 0);
+  // clôture basse autour du champ
+  for (const z of [-1.42, 1.42]) { for (let x = -1.45; x <= .8; x += .45) k.add(cbox(.06, .32, .06, .01), C.woodM, x, 0, z); k.add(cbox(2.3, .04, .03, .008), C.woodL, -.35, .22, z) }
+  for (let z = -1.42; z <= 1.43; z += .47) k.add(cbox(.06, .32, .06, .01), C.woodM, -1.47, 0, z);
+  k.add(cbox(.03, .04, 2.85, .008), C.woodL, -1.47, .22, 0);
+  // chaumière dans le coin, meules de foin, épouvantail aux couleurs du royaume
+  cottage(k, 1.05, -.85, .8, .9, .55, 'thatch', .5);
+  for (const [x, z] of [[1.0, .45], [1.22, .62], [1.05, .78]]) k.at(x, 0, z, k.rnd() * 2, () => { k.add(k.jitter(cyl(.16, .17, .2, 8), .02), C.straw); k.add(k.jitter(cone(.165, .14, 8), .02), 0xc9a24c, 0, .2) });
+  k.at(.3, 0, .9, 0, () => {
+    k.add(cyl(.02, .025, .75, 5), C.woodD); k.add(cbox(.03, .03, .5, .008), C.woodD, 0, .5, 0);
+    k.add(cbox(.12, .2, .2, .03), team.main, 0, .38, 0); k.add(k.jitter(new THREE.IcosahedronGeometry(.08, 0), .02), C.cloth, 0, .66, 0);
+    k.add(cyl(.13, .13, .02, 8), C.straw, 0, .72); k.add(cone(.07, .08, 6), C.straw, 0, .73);
+    for (const s of [-1, 1]) k.add(cone(.03, .1, 4), C.straw, 0, .5, s * .27, 0, 0, s * Math.PI / 2);
+  });
+  pole(k, 1.35, 0, 1.3, 1.1);
+  k.build(g);
+  flagPivot(g, b, 1.35, 1.08, 1.3, .32, .2, team, k);
+  // le blé : une touffe stylisée par pied, teintée et haussée par la scène selon la pousse (b.wheat)
+  const W = new Kit(b.id + 3);
+  for (let r = 0; r < 7; r++) for (let i = 0; i < 9; i++) {
+    const x = -1.35 + r * .32 + .15 + (W.rnd() - .5) * .06, z = -1.2 + i * .3 + (W.rnd() - .5) * .06;
+    W.add(cone(.05, .32, 5), 0xffffff, x, 0, z, (W.rnd() - .5) * .2, 0, (W.rnd() - .5) * .2);
+    W.add(cone(.04, .26, 5), 0xf2f2f2, x + .05, 0, z + .04, (W.rnd() - .5) * .3, 0, (W.rnd() - .5) * .3);
+  }
+  const wm = new THREE.MeshStandardMaterial({ vertexColors: true, color: 0x7aa83c, flatShading: true, roughness: .9 });
+  const wheat = mk(merge(W.parts), wm, 0, .06, 0); wheat.receiveShadow = false; g.add(wheat); b.wheat = wheat;
+}
+
+// =====================================================================
+// Armurerie (2 × 2 cases) : réserve de pierre aux armes, râtelier, les armes rangées s'empilent devant (b.pile)
+// =====================================================================
+export function buildArmory(g: any, b: any) {
+  const k = new Kit(b.id * 977 + 31), team = teamPal(b.team), C = P;
+  ground(k, C.dirt);
+  const W = 1.4, D = .9, H = .8;
+  k.at(-.05, 0, -.42, 0, () => {
+    k.add(k.stone(W + .14, .14, D + .14, .02), C.stoneD);
+    k.add(cbox(W, H, D, .03), C.stoneL, 0, .12);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (let i = 0; i < 4; i++) { const big = i % 2; k.add(k.stone(big ? .26 : .16, .19, big ? .16 : .26, .012), k.pick([C.stoneM, C.stoneL2, C.stoneD]), sx * (W / 2 - (big ? .1 : .05)), .14 + i * .2, sz * (D / 2 - (big ? .05 : .1))) }
+    for (let i = 0; i < 10; i++) { const u = (k.rnd() - .5) * (W - .4); if (Math.abs(u) < .28) continue; k.add(k.stone(.16 + k.rnd() * .1, .09 + k.rnd() * .05, .04, .01), k.pick([C.stoneM, C.stoneL2]), u, .25 + k.rnd() * .5, D / 2 + .005) }
+    // toit de tuiles à quatre pans aux couleurs du royaume
+    k.add(k.stone(W + .1, .08, D + .1, .01), C.stoneM, 0, H + .1);
+    k.add(frustum4(1.05, .55, .32), team.main, 0, H + .18); k.add(frustum4(.6, .001, .36), team.light, 0, H + .48);
+    // porte bardée de fer, écu aux épées croisées
+    k.add(arch(.34, .5, .05), C.woodM, 0, .12, D / 2 + .02);
+    for (const y of [.22, .42]) k.add(cbox(.34, .04, .02, .006), C.iron, 0, .12 + y, D / 2 + .05);
+    k.at(0, .78, D / 2 + .05, 0, () => {
+      k.add(new THREE.CylinderGeometry(.15, .15, .04, 8), team.main, 0, 0, 0, Math.PI / 2);
+      k.add(new THREE.CylinderGeometry(.155, .155, .02, 8), C.gold, 0, 0, -.015, Math.PI / 2);
+      for (const s of [-1, 1]) k.add(cbox(.025, .36, .015, .005), C.steel, 0, -.18, .03, 0, 0, s * .6);
+    });
+  });
+  // râtelier de lances sur le côté
+  k.at(.82, 0, .05, -Math.PI / 2, () => {
+    for (const x of [-.22, .22]) k.add(cyl(.025, .03, .62, 5), C.woodD, x, 0, 0);
+    for (const y of [.16, .5]) k.add(cbox(.5, .04, .05, .01), C.woodD, 0, y, 0);
+    for (let i = 0; i < 4; i++) { const x = -.15 + i * .1; k.add(cyl(.012, .012, .8, 4), C.woodL, x, 0, .05, -.18); k.add(cone(.025, .1, 4), C.steel, x, .8 * Math.cos(.18) - .02, .05 - .8 * Math.sin(.18), -.18) }
+  });
+  barrel(k, -.78, .06, .72); pole(k, -.85, .06, -.9, 1.5);
+  k.build(g);
+  flagPivot(g, b, -.85, 1.54, -.9, .34, .2, team, k);
+  b.pile = new THREE.Group(); b.pile.position.set(-.45, .06, .55); g.add(b.pile);
+}
+
+// =====================================================================
+// Atelier d'arcs (2 × 2) : chaumière d'artisan, auvent, douelles qui sèchent, cible
+// =====================================================================
+export function buildBowyer(g: any, b: any) {
+  const k = new Kit(b.id * 761 + 37), team = teamPal(b.team), C = P;
+  ground(k, C.dirtL);
+  cottage(k, -.15, -.38, 1.2, .9, .6, 'thatch');
+  // auvent devant l'atelier, établi avec des arcs en cours
+  for (const x of [-.65, .35]) k.add(cyl(.03, .035, .72, 5), C.woodD, x, 0, .3);
+  k.at(-.15, .78, .1, 0, () => k.add(cbox(1.15, .05, .55, .015), C.shingleD), -.3);
+  k.add(cbox(.7, .05, .22, .01), C.woodL, -.15, .34, .2); for (const x of [-.45, .15]) k.add(cbox(.05, .34, .18, .01), C.woodD, x, 0, .2);
+  for (let i = 0; i < 2; i++) k.add(new THREE.TorusGeometry(.2, .014, 4, 10, Math.PI * .75), C.wood, -.3 + i * .25, .41, .2 - i * .03, Math.PI / 2, 0, i * .4);
+  // râtelier de douelles d'if qui sèchent
+  k.at(.7, 0, .55, -.5, () => { for (const x of [-.18, .18]) k.add(cyl(.02, .025, .6, 5), C.woodD, x, 0, 0); k.add(cbox(.44, .035, .035, .008), C.woodD, 0, .55, 0); for (let i = 0; i < 6; i++) k.add(cyl(.012, .012, .62, 4), k.pick([0xc89a5a, 0xb07a45, C.woodL]), -.15 + i * .06, 0, .06, -.1) });
+  // petite cible d'essai
+  k.at(.75, 0, -.55, -.9, () => { k.add(cyl(.02, .02, .45, 5), C.woodD, 0, 0, -.04, .2); k.at(0, .3, 0, 0, () => { k.add(new THREE.CylinderGeometry(.16, .16, .07, 10), C.straw, 0, 0, 0, Math.PI / 2); for (const [r, c] of [[.12, 0xf2ece0], [.08, 0xc9402e], [.035, C.gold]] as [number, number][]) k.add(new THREE.CylinderGeometry(r, r, .01, 10), c, 0, 0, .04, Math.PI / 2) }) });
+  pole(k, .85, .06, .9, 1.2);
+  k.build(g);
+  flagPivot(g, b, .85, 1.24, .9, .3, .18, team, k);
+}
+
+// =====================================================================
+// Atelier de lances (2 × 2) : atelier de bardeaux, perches de frêne, chevalet, pointes
+// =====================================================================
+export function buildSpearmaker(g: any, b: any) {
+  const k = new Kit(b.id * 541 + 41), team = teamPal(b.team), C = P;
+  ground(k, C.dirtL);
+  cottage(k, -.2, -.4, 1.15, .85, .62, 'shingle');
+  // perches appuyées contre le mur et faisceau de lances finies
+  for (let i = 0; i < 5; i++) k.add(cyl(.016, .016, 1.1, 4), k.pick([C.woodL, 0xc89a5a]), .45 + i * .07, .02, .05, -.25, 0, .05);
+  k.at(.75, 0, .55, 0, () => { for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; k.at(Math.cos(a) * .06, 0, Math.sin(a) * .06, 0, () => { k.add(cyl(.014, .014, .95, 4), C.woodL); k.add(cone(.03, .1, 4), C.steel, 0, .95) }, Math.sin(a) * .12, -Math.cos(a) * .12) } k.add(cyl(.09, .09, .04, 8), C.leatherD, 0, .45) });
+  // chevalet avec une perche à dégrossir, copeaux, caisse de pointes
+  k.at(-.2, 0, .45, 0, () => { for (const s of [-1, 1]) for (const t of [-1, 1]) k.add(cbox(.04, .4, .04, .008), C.woodD, s * .28, 0, t * .08, t * .25); k.add(cbox(.65, .05, .08, .01), C.woodM, 0, .36, 0); k.add(new THREE.CylinderGeometry(.02, .02, .9, 5), C.woodL, 0, .42, 0, 0, 0, Math.PI / 2) });
+  for (let i = 0; i < 10; i++) k.add(cbox(.04, .01, .02, .003), C.woodEnd, -.2 + (k.rnd() - .5) * .7, .06, .5 + (k.rnd() - .5) * .3, 0, k.rnd() * 3);
+  k.at(-.75, .06, .6, .3, () => { k.add(cbox(.24, .16, .2, .02), C.woodL); for (let i = 0; i < 4; i++) k.add(cone(.025, .08, 4), C.steel, -.06 + i * .04, .16, 0, 0, 0, Math.PI / 2) });
+  pole(k, .85, .06, -.9, 1.5);
+  k.build(g);
+  flagPivot(g, b, .85, 1.54, -.9, .32, .2, team, k);
+}
+
+// =====================================================================
+// Atelier de flèches (2 × 2) : hutte ronde au chaume conique, tonneaux de flèches, plumes qui sèchent
+// =====================================================================
+export function buildFletcher(g: any, b: any) {
+  const k = new Kit(b.id * 307 + 43), team = teamPal(b.team), C = P;
+  ground(k, C.dirtL);
+  k.at(-.3, 0, -.3, 0, () => {
+    k.add(k.jitter(cyl(.62, .64, .12, 10), .02), C.stoneM);
+    k.add(cyl(.55, .57, .6, 10), 0xe8dcc0, 0, .1);
+    for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; k.add(cbox(.06, .62, .06, .01), C.woodDD, Math.cos(a) * .56, .1, Math.sin(a) * .56) }
+    k.add(k.jitter(cone(.82, .5, 10), .03), 0xb8923f, 0, .68); k.add(k.jitter(cone(.6, .45, 10), .03), C.straw, 0, .9); k.add(k.jitter(cone(.32, .32, 10), .02), 0xc9a24c, 0, 1.2);
+    k.add(cbox(.26, .44, .05, .01), C.woodM, .35, .1, .44, 0, .65, 0);
+    k.add(cbox(.16, .14, .04, .005), C.window, -.4, .4, .38, 0, -.75, 0, true);
+  });
+  // tonneaux pleins de flèches (plumes blanches et rouges)
+  for (const [x, z] of [[.55, .3], [.75, .5]]) { barrel(k, x, .06, z, C.woodD); for (let i = 0; i < 7; i++) { const a = i / 7 * 6.28; k.add(cyl(.006, .006, .22, 3), C.woodL, x + Math.cos(a) * .05, .3, z + Math.sin(a) * .05, Math.sin(a) * .2, 0, Math.cos(a) * .2); k.add(cbox(.018, .05, .018, .004), i % 2 ? C.white : 0xc9402e, x + Math.cos(a) * .07, .5, z + Math.sin(a) * .07) } }
+  // corde à plumes entre deux poteaux, établi
+  for (const x of [-.75, .1]) k.add(cyl(.02, .025, .62, 5), C.woodD, x, .06, .75);
+  k.add(cyl(.005, .005, .85, 3), 0xe6dcc2, -.32, .64, .75, 0, 0, Math.PI / 2);
+  for (let i = 0; i < 8; i++) k.add(cbox(.02, .07, .03, .005), i % 3 ? C.white : 0xc9402e, -.68 + i * .1, .55, .75);
+  k.add(cbox(.5, .05, .22, .01), C.woodL, .45, .32, -.55); for (const x of [.25, .65]) k.add(cbox(.04, .32, .18, .008), C.woodD, x, 0, -.55);
+  for (let i = 0; i < 4; i++) k.add(cyl(.006, .006, .3, 3), C.woodL, .32 + i * .08, .38, -.55, Math.PI / 2);
+  pole(k, .85, .06, -.88, 1.3);
+  k.build(g);
+  flagPivot(g, b, .85, 1.34, -.88, .3, .18, team, k);
+}
+
+// =====================================================================
+// Mine de fer (2 × 2, sur le gisement du centre) : butte rocheuse, galerie boisée, wagonnet de minerai
+// =====================================================================
+export function buildMine(g: any, b: any) {
+  const k = new Kit(b.id * 211 + 47), team = teamPal(b.team), C = P;
+  ground(k, 0x6b5e52);
+  const rockC = [0x5a4f48, 0x6a5d55, 0x4a423d, 0x7a6c62];
+  // butte de roche sombre au fond, veines de minerai rouille
+  for (let i = 0; i < 16; i++) { const a = (k.rnd() - .5) * Math.PI * 1.1, r = .3 + k.rnd() * .55; k.add(k.rock(.22 + k.rnd() * .2, .25), k.pick(rockC), Math.sin(a) * r * 1.1, .05 + k.rnd() * .2, -.45 - Math.cos(a) * r * .5, 0, k.rnd() * 6) }
+  k.add(k.jitter(cone(.85, .9, 8), .1), 0x5a4f48, 0, 0, -.55); k.add(k.jitter(cone(.55, .5, 7), .08), 0x6a5d55, -.35, .5, -.7);
+  for (let i = 0; i < 9; i++) k.add(k.rock(.06 + k.rnd() * .05), k.pick([0xc8642c, 0xa8501e]), (k.rnd() - .5) * 1.2, .3 + k.rnd() * .5, -.4 - k.rnd() * .3);
+  // entrée de galerie : deux poteaux, un linteau, le noir de la galerie, une lanterne
+  k.at(0, 0, -.12, 0, () => {
+    k.add(cbox(.5, .58, .3, .03), C.dark, 0, 0, -.05);
+    for (const s of [-1, 1]) k.add(cbox(.08, .64, .08, .015), C.woodM, s * .27, 0, .1);
+    k.add(cbox(.68, .09, .1, .02), C.woodD, 0, .62, .1);
+    k.add(cbox(.06, .08, .06, .01), C.window, .27, .5, .17, 0, 0, 0, true);
+  });
+  // rails et wagonnet chargé de minerai
+  for (const s of [-1, 1]) k.add(cbox(.025, .025, 1.0, .005), C.iron, s * .12, .06, .45);
+  for (let i = 0; i < 5; i++) k.add(cbox(.34, .025, .06, .008), C.woodD, 0, .04, .02 + i * .21);
+  k.at(0, .09, .55, 0, () => {
+    k.add(cbox(.3, .18, .34, .02), C.woodM, 0, .04, 0); for (const y of [.08, .18]) k.add(cbox(.31, .025, .35, .005), C.iron, 0, y, 0);
+    for (const sx of [-1, 1]) for (const sz of [-.1, .1]) k.add(new THREE.CylinderGeometry(.05, .05, .03, 8), C.iron, sx * .16, .03, sz, 0, 0, Math.PI / 2);
+    for (let i = 0; i < 6; i++) k.add(k.rock(.06), k.pick([0xc8642c, 0x5a4f48, 0xa8501e]), (k.rnd() - .5) * .18, .24, (k.rnd() - .5) * .22);
+  });
+  k.at(-.7, .06, .55, .5, () => { k.add(cyl(.014, .016, .45, 5), C.woodL, 0, 0, 0, 0, 0, .35); k.add(cbox(.28, .04, .04, .01), C.iron, -.12, .42, 0, 0, 0, .35) });
+  for (let i = 0; i < 6; i++) k.add(k.rock(.05 + k.rnd() * .04), k.pick([0xc8642c, 0x5a4f48]), .55 + (k.rnd() - .5) * .3, .06, .6 + (k.rnd() - .5) * .3);
+  pole(k, .8, .06, -.85, 1.5);
+  k.build(g);
+  flagPivot(g, b, .8, 1.54, -.85, .32, .2, team, k);
+}
+
+// =====================================================================
+// Forge (2 × 2) : halle ouverte sous bardeaux, foyer de pierre rougeoyant, enclume, cheminée qui fume
+// =====================================================================
+export function buildForge(g: any, b: any) {
+  const k = new Kit(b.id * 103 + 53), team = teamPal(b.team), C = P;
+  ground(k, 0x7a6a58);
+  // mur de fond en pierre, poteaux, toit de bardeaux à un pan
+  k.add(k.stone(1.7, .9, .22, .02), C.stoneM, 0, .06, -.72);
+  for (const x of [-.8, .8]) for (const z of [-.6, .45]) k.add(cyl(.045, .05, .95, 6), C.woodD, x, .06, z);
+  k.at(0, 1.05, -.1, 0, () => { k.add(cbox(1.95, .08, 1.45, .02), C.shingleD); for (let r = 0; r < 3; r++) k.add(cbox(1.97, .05, .5, .012), r % 2 ? C.shingle : C.shingleL, 0, .06 + r * .012, .5 - r * .45) }, .22);
+  // foyer de pierre avec braises, cheminée
+  k.at(-.45, .06, -.45, 0, () => {
+    k.add(k.stone(.6, .4, .45, .02), C.stoneD);
+    k.add(k.jitter(cbox(.4, .06, .3, .02), .02), 0xff7a2a, 0, .4, .02, 0, 0, 0, true);
+    for (let i = 0; i < 5; i++) k.add(k.rock(.05), 0x3a2a22, (k.rnd() - .5) * .3, .45, (k.rnd() - .5) * .2);
+    for (let i = 0; i < 9; i++) k.add(k.stone(i < 4 ? .42 : .32, .17, i < 4 ? .36 : .28, .02), k.pick([C.stoneM, C.stoneD, C.stoneL2]), 0, .4 + i * .16, -.12, 0, k.rnd() * .2);
+    k.add(k.stone(.4, .06, .34, .01), C.stoneDD, 0, .4 + 9 * .16, -.12);
+  });
+  // soufflet, enclume sur sa souche, baquet de trempe, râtelier d'épées
+  k.at(-.05, .06, -.5, 0, () => { k.add(cbox(.26, .08, .16, .03), C.leatherD, 0, .32, 0, 0, 0, .15); k.add(cbox(.3, .03, .16, .01), C.woodM, 0, .28, 0); k.add(cyl(.02, .02, .2, 5), C.iron, .2, .3, 0, 0, 0, Math.PI / 2) });
+  k.at(.25, .06, .1, .3, () => { k.add(cyl(.13, .15, .3, 8), C.woodD); k.add(cbox(.28, .1, .12, .02), C.iron, 0, .3, 0); k.add(cone(.05, .12, 4), C.iron, .19, .35, 0, 0, 0, -Math.PI / 2); k.add(cbox(.18, .05, .1, .01), C.iron, 0, .4, 0) });
+  k.at(.65, .06, .55, 0, () => { k.add(cyl(.17, .15, .22, 8), C.woodM); k.add(cyl(.175, .175, .025, 8), C.iron, 0, .15); k.add(cyl(.14, .14, .01, 8), 0x4b86ad, 0, .2) });
+  k.at(.7, .06, -.55, 0, () => { k.add(cbox(.5, .05, .06, .01), C.woodD, 0, .5, 0); for (const x of [-.22, .22]) k.add(cbox(.05, .55, .05, .01), C.woodD, x, 0, 0); for (let i = 0; i < 3; i++) k.add(cbox(.03, .45, .012, .005), C.steel, -.12 + i * .12, .04, .04) });
+  pole(k, -.85, .06, .85, 1.4);
+  k.build(g);
+  flagPivot(g, b, -.85, 1.44, .85, .32, .2, team, k);
+  smoke(g, b, -.45, .06 + .4 + 9 * .16 + .12, -.57);
 }
