@@ -38,7 +38,7 @@ export function findSpot(team, type) {
   for (let i = 0; i < 280; i++) {
     let cx, cy;
     if (type === 'mine') { const I = IRONS.reduce((a, b) => dist(a.x, a.y, k.x, k.y) <= dist(b.x, b.y, k.x, k.y) ? a : b), a = Math.random() * 6.28, r = Math.random() * (I.r - 14); cx = I.x + Math.cos(a) * r; cy = I.y + Math.sin(a) * r }
-    else if (type === 'carriere') { const s = STONES.find(s => dist(s.x, s.y, k.x, k.y) < TERR); if (!s) return null; const a = Math.random() * 6.28, r = Math.random() * (s.r - 20); cx = s.x + Math.cos(a) * r; cy = s.y + Math.sin(a) * r }
+    else if (type === 'carriere') { const s = STONES.reduce((a, b) => dist(a.x, a.y, k.x, k.y) <= dist(b.x, b.y, k.x, k.y) ? a : b); const a = Math.random() * 6.28, r = Math.random() * (s.r - 20); cx = s.x + Math.cos(a) * r; cy = s.y + Math.sin(a) * r }
     else if (type === 'bucheron') { if (!nearTrees.length) return null; const t = nearTrees[Math.random() * nearTrees.length | 0]; cx = t.x + (Math.random() - .5) * 220; cy = t.y + (Math.random() - .5) * 220 }
     else { const a = Math.random() * 6.28, r = 170 + Math.random() * (TERR - 190); cx = k.x + Math.cos(a) * r; cy = k.y + Math.sin(a) * r }
     const tx = Math.round(cx / T - d.w / 2), ty = Math.round(cy / T - d.h / 2);

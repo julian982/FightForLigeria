@@ -14,7 +14,7 @@ export const DEF: Record<string, any> = {
   grenier: {name:'Grenier',w:2,h:2,cost:{},hp:250,store:'food'},
   armurerie:{name:'Armurerie',w:2,h:2,cost:{bois:5},hp:300,store:'arms'},
   bucheron:{name:'Bûcheron',w:2,h:2,cost:{bois:6},hp:180,key:1,work:3,out:['bois',3]},
-  carriere:{name:'Carrière',w:2,h:2,cost:{bois:12},hp:220,key:2,work:5,out:['pierre',2]},
+  carriere:{name:'Carrière',w:2,h:2,cost:{bois:12},hp:220,key:2,work:5,out:['pierre',3]},
   ferme:   {name:'Ferme à blé',w:3,h:3,cost:{bois:15},hp:160,key:3,work:9,out:['ble',5]},
   arcs:    {name:"Atelier d'arcs",w:2,h:2,cost:{bois:15,pierre:8},hp:220,key:4,work:18,out:['arc',1],input:{bois:3}},
   lances:  {name:'Atelier de lances',w:2,h:2,cost:{bois:15,pierre:8},hp:220,key:5,work:18,out:['lance',1],input:{bois:3}},
@@ -44,7 +44,7 @@ export const UT: Record<string, any> = {
 };
 export const RESN: Record<string, string> = {bois:'bois',pierre:'pierre',ble:'blé',fer:'fer',arc:'arc',lance:'lance',epee:'épée',fleche:'flèche'};
 export const NEED: Record<string, string> = {archer:'arc',lancier:'lance',spadassin:'epee'};
-export const AI_ORDER = ['reserve','grenier','bucheron','ferme','bucheron','fleches','carriere','bucheron','armurerie','arcs','lances','caserne','ferme','bucheron','mine','forge'];
+export const AI_ORDER = ['reserve','grenier','bucheron','ferme','bucheron','fleches','carriere','bucheron','armurerie','carriere','arcs','lances','caserne','ferme','bucheron','mine','forge'];
 // ---- disposition des joueurs et des gisements (1v1 : une rangée, 2v2 : deux rangées) ----
 // Joueurs : 0 et 2 à gauche (camp 0), 1 et 3 à droite (camp 1). En 2v2, 0 et 1 en haut, 2 et 3 en bas.
 export type Mode = '1v1' | '2v2';
@@ -53,7 +53,7 @@ export let MODE: Mode = '1v1';
 export let PLAYERS = 2;
 /** case du donjon de chaque joueur */
 export let KEEPS: { tx: number, ty: number }[] = [];
-/** gisements de pierre (un par joueur, près de son donjon) */
+/** gisements de pierre (un par joueur, dans sa moitié, à distance du donjon) */
 export let STONES: any[] = [];
 /** gisements de fer : un au centre de chaque rangée, à égale distance des deux camps */
 export let IRONS: any[] = [];
@@ -73,7 +73,8 @@ export function setLayout(mode: Mode) {
   for (let r = 0; r < rows; r++) {
     const off = r * H1;
     KEEPS.push({ tx: 6, ty: 18 + r * GH1 }, { tx: GW - 9, ty: 18 + r * GH1 });
-    STONES.push({ x: 580, y: 1010 + off, r: 80 }, { x: W - 580, y: 1010 + off, r: 80 });
+    // à bonne distance du donjon (≈ 570 px) : le village s'étire et la carrière est à défendre
+    STONES.push({ x: 780, y: 1080 + off, r: 80 }, { x: W - 780, y: 1080 + off, r: 80 });
     IRONS.push({ x: W / 2, y: 840 + off, r: 75, iron: true });
   }
   ROCKS = [...STONES, ...IRONS];

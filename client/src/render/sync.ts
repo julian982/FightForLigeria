@@ -56,6 +56,7 @@ export function syncScene(dt){
     a.obj.position.set(a.x*S,h+gh(a.x,a.y),a.y*S);a.obj.rotation.set(0,-Math.atan2(a.vy,a.vx),Math.atan(dh))}
   for(const f of G.fx){const p=f.t/f.life;if(!f.obj&&f.k!=='num')fxObj(f);if(!f.obj)continue;
     if(f.k==='puff'){f.obj.scale.setScalar(f.r*(.5+p));f.obj.position.y=f.h+p*.4;f.obj.material.opacity=.7*(1-p)}
+    else if(f.k==='loot'){const t=f.t;for(const m of f.obj.children){const u=m.userData;const y=u.vy*t-4.9*t*t;m.position.set(u.vx*t,Math.max(-.6,y),u.vz*t);m.rotation.set(u.sx*t,0,u.sz*t);if(y<-.45){const k=Math.max(0,1-(-.45-y)*3);m.scale.setScalar(k)}}}
     else if(f.k==='stuck'&&!f.set){f.set=1;const h=(f.h===undefined?.08:f.h)+gh(f.x,f.y);f.obj.position.set(f.x*S,h,f.y*S);f.obj.rotation.set(0,-f.a,f.h===undefined?-.5:-.1)}}
   for(const b of G.buildings){
     const g=b.obj;if(!g)continue;
@@ -117,6 +118,13 @@ export function fxObj(f){
     const m=new THREE.Mesh(I(.2),new THREE.MeshStandardMaterial({color:0xd8cfbf,flatShading:true,transparent:true,opacity:.7,roughness:1,depthWrite:false}));
     m.position.set(f.x*S,f.h,f.y*S);dyn.add(m);f.obj=m;
   }else if(f.k==='stump'){f.obj=mk(STUMPGEO,VC,f.x*S,gh(f.x,f.y),f.y*S);dyn.add(f.obj)}
+  else if(f.k==='loot'){
+    // la cargaison de la gabarre saute par-dessus bord : planches, rondins, blocs de tuffeau, qui plongent dans l'eau
+    const g=new THREE.Group();g.position.set(f.x*S,.45,f.y*S);g.scale.setScalar(1.7);dyn.add(g);f.obj=g;
+    const pieces:[any,number][]=[[B(.42,.04,.09),0x9a6a35],[B(.42,.04,.09),0x8a5a2b],[B(.38,.04,.09),0xa8783f],[C(.06,.06,.4,6).rotateZ(Math.PI/2),0x7a5230],[C(.06,.06,.36,6).rotateZ(Math.PI/2),0x8a5a2b],[B(.16,.12,.16),0xe9e0c8],[B(.14,.11,.14),0xdcd0b4],[B(.15,.12,.15),0xf0e8d2]];
+    pieces.forEach(([geo,c],i)=>{const m=mk(geo,M(c));const a=(i/pieces.length)*Math.PI*2+Math.random()*.5,sp=.5+Math.random()*.7;
+      m.userData={vx:Math.cos(a)*sp,vz:Math.sin(a)*sp*.8,vy:2.6+Math.random()*1.6,sx:(Math.random()-.5)*8,sz:(Math.random()-.5)*8};g.add(m)});
+  }
   else if(f.k==='stuck'){const m=mk(AGEO[f.team],VC);m.rotation.order='YXZ';m.receiveShadow=false;if(f.lord)m.scale.setScalar(1.35);dyn.add(m);f.obj=m}
 }
 /** une entité quitte la partie : on retire son maillage */

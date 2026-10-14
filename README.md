@@ -99,6 +99,8 @@ Clavier et souris requis.
 - **Flèches du seigneur** : 8 au départ, une par tir. Sur un autre seigneur, elles font 25 % de dégâts en moins. L'atelier de flèches en fabrique d'autres avec du bois. Les archers n'en consomment pas.
 - **Construction** : tu poses tes bâtiments où tu veux dans ta moitié de carte (la gauche ou la droite selon ton camp ; en 2v2, la moitié est partagée avec ton allié).
 - **Fer** : un seul gisement, au centre de la carte, à égale distance des deux joueurs. La mine est le seul bâtiment qui se pose hors de ta moitié de carte.
+- **Pierre** : un gisement de tuffeau par joueur, dans sa moitié de carte mais à bonne distance du donjon : la carrière étire le village et doit être défendue.
+- **La gabarre** : de temps en temps, un bateau descend la Loire. Le premier seigneur qui la touche d'une flèche fait tomber sa cargaison : +10 bois et +5 pierre, une seule fois par partie (sans réserve, le butin attend qu'elle soit posée).
 - **Ouvrier tué** : le bâtiment s'arrête (icône rouge) et un remplaçant sort du donjon 20 s plus tard.
 - **Collisions** : arbres, bâtiments et rochers bloquent les unités et les flèches. Les rivières bloquent les unités (sauf sur les ponts), pas les flèches.
 - **Couleur du royaume** : 8 couleurs au choix sur l'accueil, appliquées aux soldats, bâtiments, drapeaux et flèches.
@@ -110,7 +112,7 @@ Clavier et souris requis.
 | 1 | Réserve | Gratuit | Stocke bois, pierre et fer |
 | 2 | Grenier | Gratuit | Stocke le blé |
 | 3 | Bûcheron | 6 bois | 3 bois par voyage |
-| 4 | Carrière | 12 bois | 2 pierre par voyage |
+| 4 | Carrière | 12 bois | 3 pierre par voyage |
 | 5 | Ferme à blé | 15 bois | 5 blé par récolte |
 | 6 | Atelier de flèches | 12 bois | 4 flèches pour 2 bois |
 | 7 | Atelier d'arcs | 15 bois · 8 pierre | 1 arc pour 3 bois |

@@ -1,6 +1,7 @@
-// La vie de la carte, purement visuelle : vent dans les arbres et l'herbe, eau animée, oiseaux, gabarre sur la Loire.
+// La vie de la carte : vent dans les arbres et l'herbe, eau animée, oiseaux (purement visuels), et l'affichage
+// de la gabarre, dont la position vient de la simulation (G.boat : elle peut être pillée d'une flèche).
 import * as THREE from 'three';
-import { H, MAP, ROCKS, S, W, dist, gh, inBridge, onPath, trees, wDist, walkWater } from '@ffl/shared';
+import { G, H, MAP, ROCKS, S, W, dist, gh, inBridge, onPath, riverY, trees, wDist, walkWater } from '@ffl/shared';
 import { B, C, K, M, mk, scene, tr } from './engine';
 
 /** horloge partagée par les shaders (vent, vagues) */
@@ -123,8 +124,12 @@ export function makeGabarre() {
   g.add(mk(B(.025, .62, .66).translate(.14, .86, 0), sail));
   g.add(mk(B(.03, .025, .05).translate(.14, 1.18, .0), rope));
   g.add(mk(C(.012, .012, .74, 4).rotateX(Math.PI / 2).translate(.14, 1.18, 0), rope));
-  for (const [x, z] of [[-.25, .06], [-.42, -.06], [.42, .05]]) g.add(mk(C(.075, .075, .14, 8).translate(x, .21, z), M(0x7a5230)));
-  g.add(mk(B(.18, .12, .16).translate(-.05, .2, -.04), M(0xb59a76)));
+  // la cargaison (tonneaux, caisse, planches, blocs de tuffeau) : elle disparaît quand la gabarre est pillée
+  const cargo = new THREE.Group(); cargo.name = 'cargo'; g.add(cargo);
+  for (const [x, z] of [[-.25, .06], [-.42, -.06], [.42, .05]]) cargo.add(mk(C(.075, .075, .14, 8).translate(x, .21, z), M(0x7a5230)));
+  cargo.add(mk(B(.18, .12, .16).translate(-.05, .2, -.04), M(0xb59a76)));
+  for (let i = 0; i < 3; i++) cargo.add(mk(B(.42, .035, .08).translate(.05, .16 + i * .035, .1 - (i % 2) * .02), M(0x9a6a35)));
+  for (let i = 0; i < 2; i++) cargo.add(mk(B(.1, .08, .1).translate(.5 - i * .12, .18, -.07), M(0xe9e0c8)));
   // le marinier et sa gaffe
   g.add(mk(C(.05, .07, .2, 6).translate(-.6, .24, 0), M(0x6b5a3a)));
   g.add(mk(new THREE.IcosahedronGeometry(.05, 0).translate(-.6, .39, 0), M(0xe0b48a)));
@@ -132,21 +137,16 @@ export function makeGabarre() {
   g.add(mk(C(.008, .008, .9, 3).rotateZ(.5).translate(-.75, .35, .08), rope));
   return g;
 }
-export let boat: any = null, boatT = 25 + Math.random() * 20, boatDir = 1, boatX = 0;
-export const riverZ = (x: number) => { const s = MAP.south(x); return (s + H) / 2 };
+export let boat: any = null;
+/** affiche la gabarre là où la simulation la place (G.boat) */
 export function updBoat(dt: number) {
-  if (!boat) {
-    boatT -= dt; if (boatT > 0) return;
-    // la Loire doit être assez large sur toute la traversée
-    for (let x = 60; x < W; x += 120) if (!walkWater(x, riverZ(x)) || H - MAP.south(x) < 70) { boatT = 120; return }
-    boatDir = Math.random() < .5 ? 1 : -1; boatX = boatDir > 0 ? -60 : W + 60;
-    boat = makeGabarre(); boat.scale.setScalar(1.5); life.add(boat);
-  }
-  boatX += boatDir * 16 * dt;
-  const z = riverZ(boatX), z2 = riverZ(boatX + boatDir * 20);
-  boat.position.set(boatX * S, .02 + Math.sin(LIFE_T.value * 1.4) * .015, z * S);
-  boat.rotation.set(Math.sin(LIFE_T.value * 1.1) * .03, -Math.atan2((z2 - z), boatDir * 20), Math.sin(LIFE_T.value * .9) * .02);
-  if (boatX < -80 || boatX > W + 80) { life.remove(boat); boat = null; boatT = 90 + Math.random() * 90 }
+  const b = G && G.boat;
+  if (!b || !b.on) { if (boat) { life.remove(boat); boat = null } return }
+  if (!boat) { boat = makeGabarre(); boat.scale.setScalar(1.5); life.add(boat) }
+  const z2 = riverY(b.x + b.dir * 20);
+  boat.position.set(b.x * S, .02 + Math.sin(LIFE_T.value * 1.4) * .015, b.y * S);
+  boat.rotation.set(Math.sin(LIFE_T.value * 1.1) * .03, -Math.atan2(z2 - b.y, b.dir * 20), Math.sin(LIFE_T.value * .9) * .02);
+  const cargo = boat.getObjectByName('cargo'); if (cargo) cargo.visible = !b.looted;
 }
 
 // ---------------- boucle ----------------
@@ -166,7 +166,7 @@ export function updateLife(dt: number) {
 /** changement de carte : on retire oiseaux et bateau */
 export function resetLife() {
   for (const f of flocks) for (const b of f.birds) life.remove(b.g); flocks.length = 0;
-  if (boat) { life.remove(boat); boat = null } boatT = 25 + Math.random() * 20; flockT = 6 + Math.random() * 8;
+  if (boat) { life.remove(boat); boat = null } flockT = 6 + Math.random() * 8;
 }
 /** pour les tests : faire venir tout de suite un vol d'oiseaux et la gabarre */
-export function lifeDebug(force = true, bx?: number) { if (force) { spawnFlock(); boatT = 0 } if (bx !== undefined && boat) boatX = bx; return { boat: !!boat, x: Math.round(boatX), dir: boatDir, t: Math.round(boatT), flocks: flocks.length, birds: flocks.map(f => f.birds[0] && [+f.birds[0].g.position.x.toFixed(1), +f.birds[0].g.position.z.toFixed(1)]) } }
+export function lifeDebug(force = true, bx?: number) { const b = G && G.boat; if (force) { spawnFlock(); if (b && !b.on) b.t = 0 } if (bx !== undefined && b && b.on) b.x = bx; return { boat: !!boat, x: Math.round(b ? b.x : 0), dir: b ? b.dir : 0, t: Math.round(b ? b.t : 0), flocks: flocks.length, birds: flocks.map(f => f.birds[0] && [+f.birds[0].g.position.x.toFixed(1), +f.birds[0].g.position.z.toFixed(1)]) } }

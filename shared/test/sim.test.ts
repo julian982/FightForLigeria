@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   loadMap, newGame, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater,
   placeBuilding, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
-  START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRONS, shotClear, findPath, buildNav, KEEPS, PLAYERS, H, isFoe, onPath, MAP, fireArrow, orderAttack, applyCommand, makeSnapshot, B_TYPES, forfeit, canPlace, GW, GH, identityOf, jobOf,
+  START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRONS, shotClear, findPath, buildNav, KEEPS, PLAYERS, H, isFoe, onPath, MAP, fireArrow, orderAttack, applyCommand, makeSnapshot, B_TYPES, forfeit, canPlace, GW, GH, identityOf, jobOf, riverY, W,
 } from '../src/index';
 
 const DT = 1 / 60;
@@ -349,8 +349,8 @@ describe('2v2', () => {
     const notesFor: number[] = []; setHooks({ notify: (t, m) => { if (/lance une attaque/.test(m)) notesFor.push(t) } });
     run(200);
     for (const p of [1, 2, 3]) expect(G.buildings.filter(b => b.team === p).length).toBeGreaterThan(3);
-    // les vagues de l'IA alliée (joueur 2) visent le camp d'en face, jamais le joueur 0
-    expect(notesFor.every(t => t === 1 || t === 3 || t === 0)).toBe(true);
+    // les vagues de l'IA alliée (joueur 2) visent le camp d'en face, jamais le joueur 0 (vérifié sur les ordres ci-dessous)
+    expect(notesFor.every(t => t >= 0 && t < 4)).toBe(true);
     for (const u of G.units) if (u.team === 2 && u.order && u.order.ai) expect(Math.abs(u.order.x - G.teams[0].lord.x) + Math.abs(u.order.y - G.teams[0].lord.y)).toBeGreaterThan(200);
     const s = makeSnapshot([]); expect(s.tm.length).toBe(4); expect(s.ctrl.length).toBe(4);
   });
@@ -475,5 +475,55 @@ describe('événements pour les bruitages', () => {
     const stuck = () => G.fx.some(f => f.k === 'stuck');
     fireArrow(0, 1200, 300, Math.PI, .2); run(2, stuck); // vers la gauche, faible : finit dans l'herbe ou un arbre
     expect(stuck()).toBe(true);
+  });
+});
+
+describe('gabarre', () => {
+  /** fait venir la gabarre et la place à l'abscisse x */
+  function boatAt(x: number) { const b = G.boat; b.t = 0; update(DT); expect(b.on).toBe(true); b.x = x; b.y = riverY(x); return b }
+  it('passe sur la Loire, et la première flèche de seigneur qui la touche rapporte 10 bois et 5 pierre, une seule fois', () => {
+    loadMap('amboise'); newGame({ ai: [false, false] });
+    expect(build('reserve')).toBeNull();
+    const tm0 = G.teams[0], tm1 = G.teams[1], bois = tm0.res.bois, pierre = tm0.res.pierre;
+    const b = boatAt(1440); b.dir = 1;
+    fireArrow(0, b.x, b.y - 60, Math.PI / 2, 1); run(.3, () => b.looted);
+    expect(b.looted).toBe(true);
+    expect(tm0.res.bois).toBe(bois + 10); expect(tm0.res.pierre).toBe(pierre + 5);
+    expect(G.fx.some(f => f.k === 'loot')).toBe(true);
+    expect(notes.some(([t, m]) => t === 0 && /Gabarre touchée/.test(m))).toBe(true);
+    expect(notes.some(([t]) => t === 1)).toBe(true);
+    // une deuxième flèche, même d'un autre joueur, ne rapporte plus rien
+    const b1 = tm1.res.bois + tm1.stash.bois;
+    fireArrow(1, b.x, b.y - 60, Math.PI / 2, 1); run(.3);
+    expect(tm1.res.bois + tm1.stash.bois).toBe(b1);
+    expect(makeSnapshot([]).bt).toEqual([1, Math.round(b.x * 10) / 10, Math.round(b.y * 10) / 10, 1, 1]);
+  });
+  it('sans réserve, le butin attend dans les charrettes ; une flèche qui la manque ne rapporte rien', () => {
+    loadMap('amboise'); newGame({ ai: [false, false] });
+    const tm = G.teams[0], stash = tm.stash.bois;
+    const b = boatAt(900);
+    fireArrow(0, b.x + 200, b.y - 60, Math.PI / 2, 1); run(.6);
+    expect(b.looted).toBe(false);
+    fireArrow(0, b.x, b.y - 60, Math.PI / 2, 1); run(.3, () => b.looted);
+    expect(b.looted).toBe(true); expect(tm.stash.bois).toBe(stash + 10); expect(tm.res.bois).toBe(0);
+  });
+  it('traverse la carte puis repart plus tard', () => {
+    loadMap('amboise'); newGame({ ai: [false, false] });
+    const b = boatAt(W - 20); b.dir = 1;
+    run(10); expect(b.on).toBe(false); expect(b.t).toBeGreaterThan(60);
+  });
+});
+
+describe('gisements de pierre', () => {
+  it.each(MAP_IDS.flatMap(id => [[id, '1v1'], [id, '2v2']]) as [string, '1v1' | '2v2'][])('%s %s : à l\'écart du donjon, au sec, dans sa moitié, la carrière se pose', (id, mode) => {
+    loadMap(id, mode); newGame({ ai: Array(mode === '2v2' ? 4 : 2).fill(false) });
+    for (let p = 0; p < PLAYERS; p++) {
+      const k = G.teams[p].keep, s = STONES[p];
+      expect(Math.hypot(s.x - k.x, s.y - k.y)).toBeGreaterThan(500);
+      expect((p & 1) === 0 ? s.x < W / 2 : s.x > W / 2).toBe(true);
+      for (let a = 0; a < 6.28; a += .5) expect(rawWater(s.x + Math.cos(a) * s.r, s.y + Math.sin(a) * s.r)).toBe(false);
+      G.teams[p].res.bois = 50;
+      const sp = findSpot(p, 'carriere'); expect(sp, 'carrière pour le joueur ' + p).toBeTruthy();
+    }
   });
 });

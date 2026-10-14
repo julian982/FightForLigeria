@@ -9,3 +9,4 @@ export * from './ai';
 export * from './elo';
 export * from './net';
 export * from './names';
+export * from './boat';

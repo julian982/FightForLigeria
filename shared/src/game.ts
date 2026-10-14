@@ -6,6 +6,7 @@ import { dist, dE, rectDist, rectClamp, inRect } from './util';
 import { G, trees, setG, setTrees, hooks } from './state';
 import { navDirty, navVer, dirtyNav, blocksOf, solidAt, buildNav, freePoint, nav, pushOut, shotClear, treesNear } from './nav';
 import { aiTick, updAiLord } from './ai';
+import { newBoat, updBoat, boatHit, lootBoat } from './boat';
 
 export interface GameOptions {
   /** stock de départ généreux (partie privée) */
@@ -28,7 +29,7 @@ export function newGame(opts: GameOptions = {}) {
   const ai = ids.map(i => opts.ai ? !!opts.ai[i] : N === 2 && i === 1);
   setG({ t: 0, seed: Math.random() * 2 ** 31 | 0, teams: [], buildings: [], units: [], workers: [], arrows: [], fx: [], over: null, winner: null, foodT: 0, nid: 1, uid: 1, aid: 1,
     ai: ids.map(() => ({ i: 0, t: 0, wave: 5, next: 240 })), stats: { kills: 0, recruits: 0 }, st: ids.map(newStats), histT: 0,
-    ctrl: ids.map(i => newCtrl(ai[i])) });
+    ctrl: ids.map(i => newCtrl(ai[i])), boat: newBoat() });
   for (const id of ids) {
     // le stock de départ attend dans les charrettes : il n'apparaît qu'une fois la réserve (bois, pierre, fer) ou le grenier (blé) posé
     const tm = { id, side: sideOf(id), out: false, res: { ...START_RES, bois: 0, pierre: 0, fer: 0, ble: 0 }, stash: { bois: START_RES.bois, pierre: START_RES.pierre, fer: START_RES.fer, ble: START_RES.ble, arc: 0, lance: 0, epee: 0 }, keep: null, lord: null, starving: false };
@@ -406,6 +407,7 @@ export function update(dt) {
   for (const tm of G.teams) { if (tm.out) continue; if (G.ctrl[tm.id].ai) updAiLord(tm.id, dt); else updCtrlLord(tm.id, dt) }
   for (const u of G.units) if (!u.dead && u.type !== 'lord') updUnit(u, dt);
   for (const w of G.workers) if (!w.dead) updWorker(w, dt);
+  updBoat(dt);
   separate();
   for (const u of G.units) if (!u.dead) pushOut(u);
   for (const [e, x, y] of pos) { e.vx = (e.x - x) / dt; e.vy = (e.y - y) / dt }
@@ -417,6 +419,8 @@ export function update(dt) {
     if (!a.dead) for (const b of G.buildings) { if (b.dead) continue;
       if (isFoe(b.team, a.team) && b.type !== 'keep' && a.x > b.bx && a.x < b.bx + b.bw && a.y > b.by && a.y < b.by + b.bh) { const dm = Math.ceil(a.dmg * .4); if (a.lord) lordHit(a, dm); hit(b, dm, a.lord, a.team); impact(a, 'bois'); a.dead = true; break }
       if (b.blocks.some(q => inRect(a.x, a.y, q))) { a.dead = true; a.stick = .5; break } }
+    // la gabarre : seule une flèche de seigneur compte, et la récompense ne tombe qu'une fois par partie
+    if (!a.dead && a.lord && boatHit(a)) { a.dead = true; G.fx.push({ k: 'hit', x: a.x, y: a.y, m: 'bois', lord: true, t: 0, life: .2 }); lootBoat(a.team) }
     if (!a.dead && treesNear(a.x, a.y, t => Math.abs(t.x - a.x) < TREE_R && Math.abs(t.y - a.y) < TREE_R && dist(a.x, a.y, t.x, t.y) < TREE_R)) { a.dead = true; a.stick = .55 }
     // les gisements de pierre et de fer sont au ras du sol : les flèches passent au-dessus
     // une flèche arrêtée par un obstacle reste plantée quelques secondes
