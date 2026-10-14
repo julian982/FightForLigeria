@@ -395,3 +395,83 @@ export function buildBarracks(g: any, b: any) {
   k.build(g);
   flagPivot(g, b, -1.35, 1.58, -.85, .5, .3, team, k);
 }
+
+// =====================================================================
+// Réserve (2 × 2 cases) : cour pavée sous un auvent de bardeaux, le stock (b.pile) s'y empile
+// =====================================================================
+export function buildReserve(g: any, b: any) {
+  const k = new Kit(b.id * 2851 + 17), team = teamPal(b.team), C = P;
+  k.add(k.jitter(cbox(2.0, .22, 2.0), .04), C.dirt, 0, -.16, 0);
+  // dallage de pierres
+  for (let x = -.84; x < .85; x += .28) for (let z = -.84; z < .85; z += .28) k.add(k.stone(.26, .06, .26, .02), k.pick([C.stoneL2, C.stoneM, C.stoneL2, C.stoneD]), x + (k.rnd() - .5) * .02, 0, z + (k.rnd() - .5) * .02, 0, (k.rnd() - .5) * .1);
+  // auvent sur poteaux au fond (le bois et la pierre sont rangés dessous)
+  for (const x of [-.85, .85]) for (const z of [-.85, -.05]) { k.add(k.stone(.16, .08, .16, .01), C.stoneD, x, .05, z); k.add(cyl(.045, .05, 1.0, 6), C.woodD, x, .12, z) }
+  for (const z of [-.85, -.05]) k.add(cbox(1.86, .07, .08, .015), C.woodD, 0, 1.06, z);
+  k.at(0, 1.1, -.45, 0, () => {
+    k.add(cbox(2.1, .08, 1.15, .02), C.shingleD, 0, 0, 0);
+    for (let row = 0; row < 4; row++) k.add(cbox(2.12, .05, .32, .012), row % 2 ? C.shingle : C.shingleL, 0, .06 + row * .012, .42 - row * .26);
+  }, -.18);
+  for (const x of [-.85, .85]) k.add(cbox(.06, .06, .5, .01), C.woodD, x, .78, -.45, .9);   // contrefiches
+  // barrière basse sur les côtés et à l'avant
+  const fence = (x0: number, z0: number, x1: number, z1: number) => {
+    const n = Math.round(Math.hypot(x1 - x0, z1 - z0) / .3), ry = Math.atan2(x1 - x0, z1 - z0) - Math.PI / 2;
+    for (let i = 0; i <= n; i++) k.add(cbox(.06, .36, .06, .01), C.woodM, x0 + (x1 - x0) * i / n, .04, z0 + (z1 - z0) * i / n);
+    for (const y of [.16, .32]) k.add(cbox(Math.hypot(x1 - x0, z1 - z0), .04, .035, .008), C.woodL, (x0 + x1) / 2, y, (z0 + z1) / 2, 0, ry);
+  };
+  fence(-.93, .05, -.93, .93); fence(.93, .05, .93, .93); fence(-.93, .93, -.35, .93); fence(.35, .93, .93, .93);
+  // tonneaux et sacs dans un coin
+  for (const [x, z] of [[.72, .7], [.55, .74]]) k.at(x, .06, z, 0, () => { k.add(cyl(.09, .09, .22, 8), C.woodM); for (const y of [.03, .17]) k.add(cyl(.095, .095, .022, 8), C.iron, 0, y); k.add(cyl(.075, .075, .01, 8), C.woodEnd, 0, .22) });
+  k.add(k.jitter(new THREE.IcosahedronGeometry(.09, 0), .03), C.cloth, -.7, .12, .72);
+  k.add(cyl(.02, .02, 1.5, 5), C.woodDD, .85, 1.12, -.85);
+  k.build(g);
+  flagPivot(g, b, .85, 2.6, -.85, .34, .2, team, k);
+  b.pile = new THREE.Group(); b.pile.position.y = .02; g.add(b.pile);
+}
+
+// =====================================================================
+// Grenier (2 × 2 cases) : grange à colombages sur piliers de pierre, toit de chaume épais
+// =====================================================================
+export function buildGranary(g: any, b: any) {
+  const k = new Kit(b.id * 1931 + 23), team = teamPal(b.team), C = P;
+  k.add(k.jitter(cbox(2.0, .22, 2.0), .04), C.dirt, 0, -.16, 0);
+  const W = 1.35, D = 1.15, cx = -.18, cz = -.2, fl = .34, H = .82;
+  k.at(cx, 0, cz, 0, () => {
+    // piliers en champignon (protègent le grain des rongeurs)
+    for (const x of [-W / 2 + .1, 0, W / 2 - .1]) for (const z of [-D / 2 + .1, D / 2 - .1]) { k.add(k.jitter(cyl(.07, .1, .24, 6), .015), C.stoneM, x, 0, z); k.add(k.jitter(cyl(.15, .14, .07, 7), .015), C.stoneL2, x, .24, z) }
+    // plancher et murs de planches dans une ossature sombre
+    k.add(cbox(W + .1, .07, D + .1, .015), C.woodD, 0, fl - .04, 0);
+    k.add(cbox(W, H, D, .02), C.woodL, 0, fl, 0);
+    for (let x = -W / 2 + .12; x < W / 2 - .05; x += .16) for (const s of [-1, 1]) k.add(cbox(.012, H - .04, .012, .003), C.woodM, x, fl + .02, s * (D / 2 + .004));
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) k.add(cbox(.09, H + .02, .09, .015), C.woodDD, sx * W / 2, fl, sz * D / 2);
+    for (const s of [-1, 1]) { k.add(cbox(W + .06, .08, .09, .015), C.woodDD, 0, fl + H - .06, s * D / 2); k.add(cbox(.09, .08, D + .06, .015), C.woodDD, s * W / 2, fl + H - .06, 0) }
+    for (const s of [-1, 1]) k.add(cbox(.06, H * 1.1, .05, .01), C.woodDD, s * .3, fl + .02, D / 2 + .01, 0, 0, s * .7);
+    // porte haute, escalier de bois, poutre de levage avec un sac
+    k.add(cbox(.34, .5, .04, .01), C.woodM, 0, fl + .04, D / 2 + .03);
+    for (const x of [-.09, .09]) k.add(cbox(.012, .48, .012, .003), C.woodDD, x, fl + .05, D / 2 + .055);
+    for (let i = 0; i < 3; i++) k.add(cbox(.38, .05, .14, .01), C.woodM, 0, fl - .08 - i * .1, D / 2 + .1 + i * .12);
+    for (const s of [-1, 1]) k.add(cbox(.04, .04, .5, .01), C.woodDD, s * .2, .06, D / 2 + .3, -.62);
+    // pignons et toit de chaume épais en couches
+    const top = fl + H, rise = .62, over = .2;
+    for (const s of [-1, 1]) {
+      const tri = new THREE.Shape(); tri.moveTo(-D / 2 - .04, 0); tri.lineTo(D / 2 + .04, 0); tri.lineTo(0, rise); tri.lineTo(-D / 2 - .04, 0);
+      k.add(new THREE.ExtrudeGeometry(tri, { depth: .05, bevelEnabled: false }), C.woodL, s * (W / 2 + .02), top, 0, 0, Math.PI / 2);
+    }
+    k.add(cbox(.06, .5, .06, .01), C.woodDD, 0, top + .02, D / 2 + .5, Math.PI / 2 - .05);
+    k.add(cyl(.005, .005, .3, 3), 0xe6dcc2, 0, top - .28, D / 2 + .7);
+    k.add(k.jitter(new THREE.IcosahedronGeometry(.1, 0), .03), C.cloth, 0, top - .4, D / 2 + .7);
+    const slope = Math.atan2(rise, D / 2), len = (D / 2 + over) / Math.cos(slope);
+    for (const s of [-1, 1]) k.at(0, top + rise + .04, 0, 0, () => {
+      k.add(k.jitter(cbox(W + .5, .14, len + .06, .04), .02), 0xb8923f, 0, -.06, s * len / 2);
+      for (let row = 0; row < 3; row++) k.add(k.jitter(cbox(W + .54, .1, len / 3 + .08, .035), .025), row % 2 ? C.straw : 0xc9a24c, 0, .04 + row * .02, s * (len - (row + .5) * len / 3 + .04));
+    }, s * slope);
+    k.add(k.jitter(new THREE.CylinderGeometry(.11, .11, W + .6, 7), .02), 0xa8823a, 0, top + rise + .1, 0, 0, 0, Math.PI / 2);
+    // petite lucarne d'aération éclairée
+    k.add(cbox(.16, .12, .03, .005), C.window, .4, fl + .5, D / 2 + .02, 0, 0, 0, true);
+  });
+  // gerbes de blé contre le mur et mât du fanion
+  for (const [x, z] of [[-.85, .55], [-.72, .7]]) k.at(x, .06, z, 0, () => { k.add(cone(.09, .34, 6), C.straw, 0, 0, 0); k.add(cyl(.095, .095, .03, 6), 0xa8823a, 0, .12) });
+  k.add(cyl(.02, .02, 1.6, 5), C.woodDD, .85, .06, -.85);
+  k.build(g);
+  flagPivot(g, b, .85, 1.64, -.85, .34, .2, team, k);
+  b.pile = new THREE.Group(); b.pile.position.set(.62, .06, .62); g.add(b.pile);
+}

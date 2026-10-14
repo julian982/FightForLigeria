@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { S, gh, isFoe } from '@ffl/shared';
 import { B, C, I, K, M, TEAMC, TM, VC, boxM, cylM, companion, dyn, gableGeo, merge, mk, teamColor } from './engine';
 import { terrRing } from './world';
-import { buildKeep, buildHut, buildQuarry, buildBarracks } from './stylized';
+import { buildKeep, buildHut, buildQuarry, buildBarracks, buildReserve, buildGranary } from './stylized';
 import { ME } from '../state';
 export const TREEGEO=[
   merge([[C(.06,.09,.45,5).translate(0,.22,0),0x6b4526],[K(.46,.72,6).translate(0,.75,0),0x2f5e2c],[K(.36,.6,6).translate(0,1.08,0),0x3a6e33],[K(.22,.45,6).translate(0,1.38,0),0x467d3a]]),
@@ -92,14 +92,7 @@ export const BUILD:Record<string,(g:any,b:any)=>void>={
     for(let i=0;i<4;i++)g.add(mk(I(.07),M(i%2?0x5a4a44:0xc8642c),.47+(i%2)*.15,.3+(i>>1)*.04,.45+(i>>1)*.07));
     flag(g,b,.95,-.8,-.8);
   },
-  reserve(g,b){
-    g.add(boxM(1.8,.06,1.8,TM('planks',3,3,0xb59a76)));
-    const wd=M(0x6b4a28);
-    for(const [x,z] of [[-.85,-.85],[.85,-.85],[-.85,.85],[.85,.85]])g.add(boxM(.08,.4,.08,wd,x,0,z));
-    for(const sd of [-1,1]){g.add(boxM(1.78,.05,.05,wd,0,.3,sd*.85));g.add(boxM(.05,.05,1.78,wd,sd*.85,.3,0))}
-    flag(g,b,1,-.85,-.85);
-    b.pile=new THREE.Group();g.add(b.pile);
-  },
+  reserve:buildReserve,
   armurerie(g,b){
     // petite maison de pierre au toit de tuiles, écu aux couleurs du royaume, râtelier d'armes devant
     hut(g,b,{x:-.25,z:-.35,w:1.15,d:.85,h:.75,wall:'stone',roof:'tile'});
@@ -111,17 +104,7 @@ export const BUILD:Record<string,(g:any,b:any)=>void>={
     b.pile=new THREE.Group();b.pile.position.set(-.45,0,.55);g.add(b.pile);
     flag(g,b,1,.85,-.8);
   },
-  grenier(g,b){
-    g.add(boxM(1.5,.28,1.3,TM('stone',2,1),-.1,0,-.15));
-    for(const [x,z] of [[-.75,-.72],[.55,-.72],[-.75,.42],[.55,.42]])g.add(cylM(.06,.07,.28,6,M(0x6b4a28),x,0,z));
-    g.add(boxM(1.4,.62,1.2,TM('timber',2,1),-.1,.28,-.15));
-    g.add(mk(gableGeo(1.38,1.6,.7).rotateY(Math.PI/2),TM('tile',2,2),-.1,.9,-.15));
-    g.add(boxM(.3,.36,.04,TM('planks',1,1,0x8a7a6a),-.1,.36,.46));
-    g.add(mk(B(.04,.6,.04).rotateX(.35),M(0x6b4a28),-.22,.18,.62));g.add(mk(B(.04,.6,.04).rotateX(.35),M(0x6b4a28),.02,.18,.62));
-    g.add(boxM(.1,.3,.02,M(TEAMC[b.team].hex),.42,.42,.46));
-    flag(g,b,1,.8,-.75);
-    b.pile=new THREE.Group();b.pile.position.set(.62,0,.62);g.add(b.pile);
-  },
+  grenier:buildGranary,
   fleches(g,b){
     // atelier de flèches : hutte ronde au toit de chaume conique, tonneaux de flèches, plumes qui sèchent
     const cx=-.3,cz=-.3;
