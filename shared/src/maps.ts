@@ -117,7 +117,8 @@ export function genTrees() {
     for (const t of half) if (Math.abs(t.x - x) < 27 && Math.abs(t.y - y) < 27 && dist(t.x, t.y, x, y) < 27) return false;
     return true;
   };
-  const add = (x, y) => half.push({ x, y, r: 13 + r() * 4, wood: 5, sh: r(), v: r() < .5 ? 0 : r() < .7 ? 1 : 2 });
+  // variante d'arbre (purement visuelle) : 3 = peuplier, surtout au bord de l'eau, rare ailleurs
+  const add = (x, y) => { const v = r() < .5 ? 0 : r() < .7 ? 1 : 2, near = wDist(x, y) < 240; half.push({ x, y, r: 13 + r() * 4, wood: 5, sh: r(), v: near ? (r() < .6 ? 3 : v) : (r() < .07 ? 3 : v) }) };
   for (const [cx, cy, rad, n] of Mp.clusters) for (let i = 0; i < n * 2; i++) { const a = r() * Math.PI * 2, d = Math.sqrt(r()) * rad, x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d; if (ok(x, y)) add(x, y) }
   for (let i = 0; i < Mp.scatter; i++) { const x = r() * W / 2, y = r() * H; if (ok(x, y)) add(x, y) }
   const out = []; for (const t of half) { out.push(t); out.push({ ...t, x: W - t.x, sh: (t.sh + .37) % 1 }) }

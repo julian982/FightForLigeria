@@ -1,16 +1,26 @@
 // Les modèles low poly : arbres, bâtiments, unités, flèches, objets portés.
 // ---- Arbres ----
 import * as THREE from 'three';
-import { S, gh, isFoe } from '@ffl/shared';
-import { B, C, I, K, M, TEAMC, TM, VC, boxM, cylM, companion, dyn, gableGeo, merge, mk, teamColor } from './engine';
+import { G, S, gh, identityOf, isFoe } from '@ffl/shared';
+import { B, C, I, K, M, TEAMC, TM, VC, boxM, cylM, companion, dyn, gableGeo, merge, mk, teamColor, tr } from './engine';
 import { terrRing } from './world';
-import { personGeo } from './people';
+import { personGeo, workerGeo, workerKey } from './people';
 import { buildKeep, buildHut, buildQuarry, buildBarracks, buildReserve, buildGranary, buildFarm, buildArmory, buildBowyer, buildSpearmaker, buildFletcher, buildMine, buildForge } from './stylized';
 import { ME } from '../state';
+/** peuplier : une colonne de feuillage faite de boules déformées, sur un tronc fin */
+function poplar(){
+  const P=[],jit=(g,a)=>{const p=g.attributes.position,seen=new Map();for(let i=0;i<p.count;i++){const k=Math.round(p.getX(i)*500)+','+Math.round(p.getY(i)*500)+','+Math.round(p.getZ(i)*500);let o=seen.get(k);if(!o){o=[(tr()-.5)*a,(tr()-.5)*a,(tr()-.5)*a];seen.set(k,o)}p.setXYZ(i,p.getX(i)+o[0],p.getY(i)+o[1],p.getZ(i)+o[2])}p.needsUpdate=true;g.computeVertexNormals();return g};
+  P.push([C(.035,.06,.7,5).translate(0,.35,0),0xb8ab92],[C(.015,.025,.26,4).rotateZ(.7).translate(.07,.55,0),0xb8ab92]);
+  // colonne étroite et haute, vert tendre et lumineux (bien différente des chênes et des sapins)
+  [[.2,.62,0x8db34c],[.23,.86,0x9ec25a],[.24,1.1,0xb0d36a],[.23,1.34,0x9ec25a],[.21,1.58,0xb0d36a],[.18,1.8,0x9ec25a],[.14,2.0,0xbada74],[.09,2.17,0xb0d36a]].forEach(([r,y,c],i)=>{const g=jit(new THREE.IcosahedronGeometry(r,0),r*.3);g.scale(1,1.3,1);g.translate((i%2?.025:-.025),y,(i%3?.02:-.02));P.push([g,c])});
+  return merge(P);
+}
 export const TREEGEO=[
   merge([[C(.06,.09,.45,5).translate(0,.22,0),0x6b4526],[K(.46,.72,6).translate(0,.75,0),0x2f5e2c],[K(.36,.6,6).translate(0,1.08,0),0x3a6e33],[K(.22,.45,6).translate(0,1.38,0),0x467d3a]]),
   merge([[C(.07,.1,.55,5).translate(0,.27,0),0x6b4526],[I(.46).translate(0,.9,0),0x4a8238],[I(.3).translate(.2,1.15,.1),0x5c9644],[I(.26).translate(-.22,.75,-.12),0x3f7231]]),
   merge([[C(.05,.07,.6,5).translate(0,.3,0),0xd8d2c4],[I(.34).translate(0,.95,0),0x7aa846],[I(.25).translate(.12,1.2,-.05),0x8bb852]]),
+  // peuplier de Loire : tronc clair et élancé, feuillage en colonne de boules irrégulières, vert tendre
+  poplar(),
 ];
 export function treeObj(t){const m=mk(TREEGEO[t.v],VC,t.x*S,gh(t.x,t.y)-.03,t.y*S);m.receiveShadow=false;const s=t.r/15;m.scale.set(s,s*(1.3+t.sh*.35),s);m.rotation.y=t.sh*6;dyn.add(m);t.obj=m}
 
@@ -73,7 +83,9 @@ export const CARRY:Record<string,any>={
 };
 export const RINGGEO=new THREE.RingGeometry(.34,.42,24).rotateX(-Math.PI/2);
 export const RINGMAT=new THREE.MeshBasicMaterial({color:0xffe9a8,transparent:true,opacity:.85,depthWrite:false});
-export function unitObj(u){const m=mk(unitGeo(u.kind==='worker'?'worker':u.type,u.team),VC);m.rotation.order='YXZ';m.receiveShadow=false;dyn.add(m);u.obj=m;
+/** chaque ouvrier a son apparence (la même que sur sa fiche) ; les géométries identiques sont partagées */
+export function workerGeoOf(u){const idn=identityOf(u.id,(G&&G.seed)||0),k='w'+u.team+workerKey(idn.female,idn.face,u.id);return UGEO[k]||(UGEO[k]=workerGeo(idn.female,idn.face,u.id,u.team))}
+export function unitObj(u){const m=mk(u.kind==='worker'?workerGeoOf(u):unitGeo(u.type,u.team),VC);m.rotation.order='YXZ';m.receiveShadow=false;dyn.add(m);u.obj=m;
   if(u.kind==='worker'){const cm=new THREE.Mesh(CARRY.bois,VC);cm.position.set(0,.98,0);cm.visible=false;cm.castShadow=true;m.add(cm);u.cobj=cm}}
 export let AGEO=[0,1,2,3].map(t=>merge([[C(.012,.012,.5,4).rotateZ(-Math.PI/2),0xd8c49a],[K(.03,.08,4).rotateZ(-Math.PI/2).translate(.29,0,0),0x9aa1a8],[B(.1,.01,.07).translate(-.21,0,0),TEAMC[t].light],[B(.1,.07,.01).translate(-.21,0,0),TEAMC[t].light]]));
 // applique la couleur choisie à tout le royaume (unités, bâtiments, flèches, territoire)

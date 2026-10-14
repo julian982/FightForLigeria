@@ -10,23 +10,25 @@ const C = {
   boot: 0x3e2a1c, steel: 0xb9c0c8, steelD: 0x8a929b, gold: 0xf0c050, straw: 0xd9b765,
   wood: 0x8f5d35, woodL: 0xb7814f, gambeson: 0xe0d2ae, gambesonD: 0xc4b28a, dark: 0x1c1410, white: 0xf2ece0, red: 0xc9402e, lip: 0x8a4a3a,
 };
-type Look = { boot: number, legs: number, torso: number, belt: number, arms: number, brow?: number, face?: boolean };
+type Look = { boot: number, legs: number, torso: number, belt: number, arms: number, brow?: number, face?: boolean, skin?: number, skinD?: number, skirt?: number };
 
 /** le corps commun : jambes, torse, bras, tête (et visage, sauf sous un heaume) */
 function body(k: Kit, t: Look) {
-  for (const z of [-.065, .065]) { k.add(cbox(.12, .1, .1, .025), t.boot, .015, 0, z); k.add(cbox(.09, .17, .09, .02), t.legs, 0, .08, z) }
+  const skin = t.skin ?? C.skin, skinD = t.skinD ?? C.skinD;
+  if (t.skirt !== undefined) { for (const z of [-.06, .06]) k.add(cbox(.1, .06, .08, .02), t.boot, .03, 0, z); k.add(cyl(.15, .2, .27, 8), t.skirt, 0, .03) }
+  else for (const z of [-.065, .065]) { k.add(cbox(.12, .1, .1, .025), t.boot, .015, 0, z); k.add(cbox(.09, .17, .09, .02), t.legs, 0, .08, z) }
   k.add(cbox(.2, .25, .3, .05), t.torso, 0, .23);
   k.add(cbox(.215, .045, .315, .012), t.belt, 0, .28);
   k.add(cbox(.02, .035, .045, .006), C.gold, .11, .285, 0);
-  for (const s of [-1, 1]) { k.add(cbox(.09, .2, .085, .025), t.arms, 0, .3, s * .19); k.add(cbox(.075, .075, .075, .02), C.skin, .005, .245, s * .19) }
-  k.add(cbox(.25, .26, .25, .075), C.skin, 0, .47);
+  for (const s of [-1, 1]) { k.add(cbox(.09, .2, .085, .025), t.arms, 0, .3, s * .19); k.add(cbox(.075, .075, .075, .02), skin, .005, .245, s * .19) }
+  k.add(cbox(.25, .26, .25, .075), skin, 0, .47);
   if (t.face === false) return;
   for (const s of [-1, 1]) {
     k.add(cbox(.03, .055, .04, .008), C.dark, .12, .575, s * .055); k.add(cbox(.012, .016, .014, .003), C.white, .136, .595, s * .055 + .008);
     k.add(cbox(.02, .016, .055, .005), t.brow || C.hairBr, .125, .64, s * .06);
-    k.add(cbox(.04, .06, .03, .01), C.skinD, 0, .55, s * .13);
+    k.add(cbox(.04, .06, .03, .01), skinD, 0, .55, s * .13);
   }
-  k.add(cbox(.05, .055, .05, .016), C.skinD, .125, .53, 0);
+  k.add(cbox(.05, .055, .05, .016), skinD, .125, .53, 0);
   k.add(cbox(.012, .014, .06, .004), C.lip, .122, .5, 0);
 }
 function hair(k: Kit, color: number, style: 'short' | 'long') {
@@ -115,4 +117,40 @@ export function personGeo(type: string, team: number) {
   (BUILD[type] || BUILD.archer)(k, T);
   const g = new THREE.Group(); k.build(g);
   const geo = (g.children[0] as any).geometry; geo.scale(s, s, s); return geo;
+}
+
+// ---------------------------------------------------------------------
+// Ouvriers tous différents : mêmes traits que leur portrait (peau, cheveux, barbe, coiffe, homme ou femme)
+// ---------------------------------------------------------------------
+const SKINS = [0xf1cfa8, 0xe0b48a, 0xc08a5e, 0x8d5f3c];
+const HAIRS = [0x3a2516, 0x5b3a1e, 0x1f1712, 0x8a4a1e, 0xc9a25a, 0xb9b3a8];
+const TUNICS = [0xd9c49a, 0xb59a6a, 0x9a8a6a, 0xc7b38a];
+const DRESSES = [0xa9523b, 0x6e7d4a, 0x5b6f8a, 0xb88a4a];
+const HOODS = [0x6b4a2c, 0x4f5b34, 0x7a3a2a];
+type Face = { skin: number, hair: number, hairStyle: number, hat: number, beard: number };
+/** clé de cache : deux ouvriers aux mêmes traits partagent la même géométrie */
+export const workerKey = (female: boolean, f: Face, id: number) => [female ? 'f' : 'm', f.skin, f.hair, f.hairStyle, f.hat, f.beard, id % 4].join('');
+export function workerGeo(female: boolean, f: Face, id: number, team: number) {
+  const k = new Kit(id + 1), T = teamPal(team), skin = SKINS[f.skin], skinD = new THREE.Color(skin).multiplyScalar(.84).getHex(), hc = HAIRS[f.hair];
+  if (female) body(k, { boot: C.boot, legs: C.trousers, torso: DRESSES[id % 4], belt: 0xa98b5e, arms: DRESSES[id % 4], brow: hc, skin, skinD, skirt: DRESSES[id % 4] });
+  else body(k, { boot: C.boot, legs: C.trousers, torso: TUNICS[id % 4], belt: 0xa98b5e, arms: new THREE.Color(TUNICS[id % 4]).multiplyScalar(.88).getHex(), brow: hc, skin, skinD });
+  if (female) { k.add(cbox(.03, .24, .17, .008), 0xf2ece0, .105, .06, 0); k.add(cbox(.025, .03, .18, .006), 0xf2ece0, .11, .28, 0) }   // tablier
+  // cheveux
+  if (f.hat !== 4) {
+    if (female || f.hairStyle === 2) hair(k, hc, 'long'); else hair(k, hc, 'short');
+    if (female) k.add(new THREE.IcosahedronGeometry(.06, 0), hc, -.15, .66, 0);   // chignon
+  }
+  if (!female && f.beard === 1) beard(k, hc, .7);
+  if (!female && f.beard === 2) beard(k, hc, 1.15);
+  if (!female && f.beard === 3) k.add(cbox(.025, .03, .12, .008), hc, .13, .52, 0);
+  // couvre-chefs
+  if (f.hat === 1) { k.add(cyl(.24, .24, .03, 10), C.straw, 0, .7); k.add(cyl(.12, .14, .1, 8), C.straw, 0, .72); k.add(cyl(.145, .145, .025, 8), T.main, 0, .73) }
+  if (f.hat === 2) { const h = HOODS[id % 3]; k.add(cbox(.28, .2, .29, .05), h, -.02, .62); k.add(cbox(.1, .22, .29, .03), h, -.11, .45); k.add(cbox(.15, .05, .3, .015), h, -.01, .4) }
+  if (f.hat === 3) { k.add(cyl(.15, .15, .06, 8), 0x6b4a2c, 0, .69); k.add(cyl(.1, .14, .07, 8), 0x7a5634, 0, .75) }
+  if (f.hat === 4) { k.add(cbox(.28, .14, .28, .05), 0xf2ece0, -.01, .63); k.add(cbox(.12, .2, .28, .03), 0xf2ece0, -.1, .48); k.add(cbox(.02, .04, .27, .006), 0xd8ccb4, .13, .66, 0) }
+  // foulard aux couleurs du royaume (tous les ouvriers le portent : c'est ce qui les distingue d'un camp à l'autre)
+  k.add(cbox(.03, .07, .2, .01), T.main, .1, .41, 0);
+  if (!female) k.add(cbox(.04, .06, .05, .01), C.leather, -.02, .27, .13);
+  const g = new THREE.Group(); k.build(g);
+  const geo = (g.children[0] as any).geometry; const s = PEOPLE_SCALE.worker * (female ? .95 : 1); geo.scale(s, s, s); return geo;
 }
