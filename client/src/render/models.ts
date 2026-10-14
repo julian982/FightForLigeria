@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { S, gh, isFoe } from '@ffl/shared';
 import { B, C, I, K, M, TEAMC, TM, VC, boxM, cylM, companion, dyn, gableGeo, merge, mk, teamColor } from './engine';
 import { terrRing } from './world';
+import { personGeo } from './people';
 import { buildKeep, buildHut, buildQuarry, buildBarracks, buildReserve, buildGranary } from './stylized';
 import { ME } from '../state';
 export const TREEGEO=[
@@ -141,40 +142,7 @@ export const SKIN=0xe0b48a,DARK=0x3b2a1c,LEATHER=0x7a5230,STEEL=0xaab1b9,GOLD=0x
 export const UGEO:Record<string,any>={};
 export function unitGeo(type,team):any{
   const k=type+team;if(UGEO[k])return UGEO[k];
-  const c=TEAMC[team],P=[],worker=type==='worker',lord=type==='lord';
-  if(type==='spadassin'){
-    const ST=0x9aa2ab,DS=0x5d646c;
-    P.push([B(.09,.26,.09).translate(0,.13,.07),DS],[B(.09,.26,.09).translate(0,.13,-.07),DS]);
-    P.push([C(.14,.18,.34,6).translate(0,.42,0),ST],[B(.06,.3,.2).translate(.13,.42,0),c.hex],[B(.065,.06,.21).translate(.13,.5,0),GOLD]);
-    P.push([I(.1).translate(0,.62,.19),ST],[I(.1).translate(0,.62,-.19),ST]);
-    P.push([B(.08,.22,.08).translate(.04,.44,.2),DS],[B(.08,.22,.08).translate(.04,.44,-.2),DS]);
-    P.push([C(.12,.12,.2,8).translate(0,.75,0),ST],[C(.125,.125,.02,8).translate(0,.86,0),DS],[B(.02,.03,.14).translate(.12,.77,0),0x1a1a1a],[B(.02,.08,.02).translate(.12,.72,0),0x1a1a1a]);
-    P.push([B(.14,.03,.03).translate(0,.9,0),c.hex]);
-    P.push([B(.7,.05,.018).translate(.5,.5,.22),0xd8dde2],[B(.05,.04,.16).translate(.15,.5,.22),GOLD],[B(.12,.035,.035).translate(.07,.5,.22),0x4a3522]);
-    P.push([B(.04,.36,.24).translate(.15,.42,-.24),c.hex],[B(.045,.08,.25).translate(.15,.5,-.24),GOLD],[K(.12,.14,4).rotateZ(Math.PI).translate(.15,.17,-.24),c.hex]);
-    const g=merge(P);g.scale(1.12,1.12,1.12);return UGEO[k]=g;
-  }
-  const tunic=worker?0xb79a6a:c.hex,sleeve=worker?0xa58a5c:c.dark;
-  P.push([B(.08,.25,.08).translate(0,.125,.065),DARK],[B(.08,.25,.08).translate(0,.125,-.065),DARK]);
-  P.push([C(.12,.17,.32,6).translate(0,.4,0),tunic],[C(.128,.128,.04,6).translate(0,.33,0),lord?GOLD:LEATHER]);
-  P.push([B(.07,.22,.07).translate(.02,.42,.17),sleeve],[B(.07,.22,.07).translate(.02,.42,-.17),sleeve]);
-  P.push([I(.1).translate(0,.66,0),SKIN]);
-  if(type==='archer'||lord){
-    const R=lord?.3:.24,a=Math.PI*.8;
-    P.push([new THREE.TorusGeometry(R,.018,3,8,a).rotateZ(-a/2).translate(.14-R*Math.cos(a/2),.45,-.2),LEATHER]);
-    P.push([B(.01,2*R*Math.sin(a/2),.01).translate(.14,.45,-.2),0xeeeeee]);
-    P.push([C(.05,.05,.3,5).rotateZ(.35).translate(-.15,.52,.06),LEATHER]);
-  }
-  if(type==='archer'){P.push([K(.13,.2,6).translate(0,.8,0),c.dark],[C(.13,.13,.05,6).translate(0,.57,0),c.dark])}
-  if(type==='lancier'){
-    P.push([C(.11,.13,.1,6).translate(0,.74,0),STEEL],[K(.12,.12,6).translate(0,.85,0),STEEL]);
-    P.push([C(.016,.016,1.2,4).rotateZ(-Math.PI/2+.2).translate(.15,.5,.19),0x8a6a40],[K(.04,.15,4).rotateZ(-Math.PI/2+.2).translate(.81,.63,.19),STEEL]);
-    P.push([C(.18,.18,.04,8).rotateZ(Math.PI/2).translate(.16,.42,-.2),c.hex],[C(.06,.06,.05,6).rotateZ(Math.PI/2).translate(.19,.42,-.2),STEEL]);
-  }
-  if(lord){P.push([C(.105,.105,.09,5,true).translate(0,.78,0),GOLD],[B(.04,.44,.32).translate(-.15,.43,0),c.dark],[C(.14,.14,.04,6).translate(0,.57,0),GOLD])}
-  if(worker){P.push([C(.22,.22,.03,8).translate(0,.74,0),0xd9b765],[K(.11,.12,6).translate(0,.81,0),0xd9b765],[C(.13,.13,.05,6).translate(0,.56,0),c.hex])}
-  const g=merge(P);const s=lord?1.3:worker?.85:1;g.scale(s,s,s);
-  return UGEO[k]=g;
+  return UGEO[k]=personGeo(type,team);
 }
 export const CARRY:Record<string,any>={
   fleche:merge([[C(.01,.01,.5,3).rotateZ(Math.PI/2),0xd8c49a],[C(.01,.01,.5,3).rotateZ(Math.PI/2).translate(0,.03,.02),0xd8c49a],[C(.01,.01,.5,3).rotateZ(Math.PI/2).translate(0,.015,-.02),0xd8c49a],[B(.05,.05,.07).translate(-.26,.015,0),0xeeeeee]]),
