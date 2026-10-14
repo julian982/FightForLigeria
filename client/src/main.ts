@@ -20,7 +20,8 @@ import { toast, refreshHud, renderSelBar, renderBldPanel, renderWkPanel } from '
 import { fpsCam, updateFps, exitFps } from './render/fps';
 import { endGame } from './ui/end';
 import { steerLord, updateCursor } from './ui/input';
-import { audio, startAmbiance, stopAmbiance, setAmbianceVolume, setMuted, audioState } from './audio';
+import { audio, startAmbiance, stopAmbiance, setAmbianceVolume, setMuted, audioState, loadSfx, setSfxVolume } from './audio';
+import { updateSfx } from './sfx';
 
 initHome();
 initGameChat();
@@ -49,7 +50,7 @@ let gameOpts:any={},timeScale=1;
 /** oriente la caméra pour que son camp soit toujours en bas à gauche de l'écran */
 function faceTeam(){view.camYaw=view.yawTarget=Math.PI/4+(ME===1?Math.PI:0)}
 function start(opts){leaveGame();setMe(0);faceTeam();gameOpts=opts||{};timeScale=gameOpts.speed||1;showHome(false);applyColors();setMap(selMap);startGame(gameOpts);
-  ui.running=true;$('end').hidden=true;endButtons(false);resize();refreshHud();startAmbiance();refreshGameChat();
+  ui.running=true;$('end').hidden=true;endButtons(false);resize();refreshHud();startAmbiance();loadSfx();refreshGameChat();
   if(timeScale>1||gameOpts.rich)toast([timeScale>1?'Vitesse rapide':'',gameOpts.rich?'stock généreux':''].filter(Boolean).join(' · '));toast('Ton stock attend dans les charrettes : pose ta réserve (1) et ton grenier (2), ils sont gratuits')}
 function goHome(){if(online())leaveGame();exitFps();stopAmbiance();ui.running=false;if(G)G.ctrl[ME].charging=false;ui.placing=null;ui.box=null;$('end').hidden=true;showHome(true);$('start').focus();refreshGameChat()}
 // en ligne : « Retour au salon » (la revanche se prépare là), sinon on rejoue contre l'IA
@@ -104,7 +105,7 @@ function frame(now){
   if($('play').hidden||(gameOpts.online&&!G.teams[ME].lord)){requestAnimationFrame(frame);return}
   updateCam(dt);syncScene(dt);updateLife(dt);
   if(ui.fps){updateFps();renderer.render(scene,fpsCam)}else renderer.render(scene,camera);
-  drawOverlay();renderSelBar();renderBldPanel();renderWkPanel();updateCursor();
+  drawOverlay();renderSelBar();renderBldPanel();renderWkPanel();updateCursor();updateSfx();
   hudT+=dt;if(hudT>.15&&ui.running){hudT=0;refreshHud()}
   miniT+=dt;if(miniT>.2){miniT=0;renderMini()}
   requestAnimationFrame(frame);
@@ -114,11 +115,12 @@ requestAnimationFrame(frame);
 window.__fief={get G(){return G},get trees(){return trees},setMap,pickMap,pushOut,update,start,findSpot,addBuilding,pay,afford,spawnUnit,syncScene,sel,toScreen,lifeDebug,audioState,act,get ME(){return ME},frame:()=>frame(performance.now())};
 
 // ---- réglages du son ----
-const sndBtn=$('sndBtn'),sndPanel=$('sndPanel'),volAmb=$('volAmb'),muteBox=$('mute');
-function syncSound(){volAmb.value=String(Math.round(audio.ambiance*100));muteBox.checked=audio.muted;sndBtn.classList.toggle('off',audio.muted)}
+const sndBtn=$('sndBtn'),sndPanel=$('sndPanel'),volAmb=$('volAmb'),volSfx=$('volSfx'),muteBox=$('mute');
+function syncSound(){volAmb.value=String(Math.round(audio.ambiance*100));volSfx.value=String(Math.round(audio.sfx*100));muteBox.checked=audio.muted;sndBtn.classList.toggle('off',audio.muted)}
 syncSound();
 sndBtn.addEventListener('click',()=>{sndPanel.hidden=!sndPanel.hidden;sndBtn.setAttribute('aria-expanded',String(!sndPanel.hidden));sndBtn.blur()});
 volAmb.addEventListener('input',()=>{setAmbianceVolume(+volAmb.value/100);if(audio.muted&&+volAmb.value>0){setMuted(false)}syncSound()});
+volSfx.addEventListener('input',()=>{setSfxVolume(+volSfx.value/100);if(audio.muted&&+volSfx.value>0){setMuted(false)}syncSound()});
 muteBox.addEventListener('change',()=>{setMuted(muteBox.checked);syncSound()});
 addEventListener('keydown',(e:any)=>{if(!ui.running||e.repeat||(e.target&&e.target.tagName==='INPUT'))return;if(e.key==='m'||e.key==='M'){setMuted(!audio.muted);syncSound()}});
 addEventListener('mousedown',(e:any)=>{if(!sndPanel.hidden&&!e.target.closest('.snd'))sndPanel.hidden=true});
@@ -128,7 +130,7 @@ setNetHandlers({
   // le serveur lance la partie : on prépare la carte et un miroir vide, l'affichage démarre au premier instantané
   start(m){setMe(m.team);faceTeam();gameOpts={online:true,code:m.code,mode:m.mode,names:m.names||[]};timeScale=1;sel.clear();ui.placing=null;ui.box=null;ui.selB=null;ui.selW=null;ui.running=false;
     setMap(m.map,m.mode==='2v2'?'2v2':'1v1');applyColors();initMirror(m.mode==='2v2'?4:2);showHome(false);$('end').hidden=true;endButtons(true);resize();refreshGameChat();toast('La partie commence !')},
-  first(){const L=G.teams[ME].lord;camT.set(L.x*S,0,L.y*S);ui.running=true;refreshHud();startAmbiance();
+  first(){const L=G.teams[ME].lord;camT.set(L.x*S,0,L.y*S);ui.running=true;refreshHud();startAmbiance();loadSfx();
     const duo=G.teams.length>2,where=duo?['en haut à gauche','en haut à droite','en bas à gauche','en bas à droite'][ME]:(ME===0?'à gauche':'à droite');
     toast('Tu joues '+where+(duo&&gameOpts.names[ME^2]?' · ton allié : '+gameOpts.names[ME^2]:''));
     toast('Ton stock attend dans les charrettes : pose ta réserve (1) et ton grenier (2)')},

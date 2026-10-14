@@ -464,3 +464,16 @@ describe('duel de seigneurs', () => {
     expect(s.maxhp - s.hp).toBe(60);
   });
 });
+
+describe('événements pour les bruitages', () => {
+  it('une flèche qui touche signale l\'impact (chair, bois) ; dans le vide elle se plante au sol', () => {
+    loadMap('amboise'); newGame({ ai: [false, false] });
+    const u = spawnUnit(1, 'lancier', { x: 1300, y: 700 }); u.x = 1300; u.y = 700; u.speed = 0;
+    const body = () => G.fx.some(f => f.k === 'hit' && f.m === 'chair' && f.lord);
+    fireArrow(0, 1200, 700, 0, 1); run(.5, body);
+    expect(body()).toBe(true);
+    const stuck = () => G.fx.some(f => f.k === 'stuck');
+    fireArrow(0, 1200, 300, Math.PI, .2); run(2, stuck); // vers la gauche, faible : finit dans l'herbe ou un arbre
+    expect(stuck()).toBe(true);
+  });
+});

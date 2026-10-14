@@ -110,6 +110,8 @@ export function fireArrow(team, x, y, ang, charge) {
   const a = { team, x: x + Math.cos(ang) * 15, y: y + Math.sin(ang) * 15, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, d: 0, md, dmg, lord: true, z: charge };
   (a as any).id = G.aid++; G.arrows.push(a); G.st[team].shot++;
 }
+/** une flèche touche une cible (pour le bruitage : « chair » ou « bois ») ; les flèches plantées ou tombées au sol ont l'effet « stuck » */
+function impact(a, m: string) { G.fx.push({ k: 'hit', x: a.x, y: a.y, m, lord: a.lord, t: 0, life: .2 }) }
 function lordHit(a, dmg) { const s = G.st[a.team]; s.hit++; s.dmg += dmg; s.longest = Math.max(s.longest, a.d) }
 /** portée et rayon de détection d'une unité (les archers de l'IA voient et tirent plus loin) */
 export function rangeOf(u) { const s = UT[u.type], k = u.type === 'archer' && G.ctrl[u.team].ai ? AI_ARCHER_RANGE : 1; return { range: s.range * k, aggro: Math.max(s.aggro, s.range * k + 50) } }
@@ -410,10 +412,10 @@ export function update(dt) {
   for (const a of G.arrows) {
     a.x += a.vx * dt; a.y += a.vy * dt; a.d += Math.hypot(a.vx, a.vy) * dt;
     // les flèches traversent les alliés sans les blesser
-    for (const e of G.units) { if (!isFoe(e.team, a.team) || e.dead) continue; if (dE(a, e) < e.r + 3) { const dm = e.type === 'spadassin' ? Math.ceil(a.dmg * .5) : a.lord && e.type === 'lord' ? Math.round(a.dmg * LORD_VS_LORD) : a.dmg; if (a.lord) lordHit(a, dm); hit(e, dm, a.lord, a.team); a.dead = true; break } }
-    if (!a.dead) for (const w of G.workers) { if (!isFoe(w.team, a.team) || w.dead) continue; if (dE(a, w) < w.r + 3) { if (a.lord) lordHit(a, a.dmg); hit(w, a.dmg, a.lord, a.team); a.dead = true; break } }
+    for (const e of G.units) { if (!isFoe(e.team, a.team) || e.dead) continue; if (dE(a, e) < e.r + 3) { const dm = e.type === 'spadassin' ? Math.ceil(a.dmg * .5) : a.lord && e.type === 'lord' ? Math.round(a.dmg * LORD_VS_LORD) : a.dmg; if (a.lord) lordHit(a, dm); hit(e, dm, a.lord, a.team); impact(a, 'chair'); a.dead = true; break } }
+    if (!a.dead) for (const w of G.workers) { if (!isFoe(w.team, a.team) || w.dead) continue; if (dE(a, w) < w.r + 3) { if (a.lord) lordHit(a, a.dmg); hit(w, a.dmg, a.lord, a.team); impact(a, 'chair'); a.dead = true; break } }
     if (!a.dead) for (const b of G.buildings) { if (b.dead) continue;
-      if (isFoe(b.team, a.team) && b.type !== 'keep' && a.x > b.bx && a.x < b.bx + b.bw && a.y > b.by && a.y < b.by + b.bh) { const dm = Math.ceil(a.dmg * .4); if (a.lord) lordHit(a, dm); hit(b, dm, a.lord, a.team); a.dead = true; break }
+      if (isFoe(b.team, a.team) && b.type !== 'keep' && a.x > b.bx && a.x < b.bx + b.bw && a.y > b.by && a.y < b.by + b.bh) { const dm = Math.ceil(a.dmg * .4); if (a.lord) lordHit(a, dm); hit(b, dm, a.lord, a.team); impact(a, 'bois'); a.dead = true; break }
       if (b.blocks.some(q => inRect(a.x, a.y, q))) { a.dead = true; a.stick = .5; break } }
     if (!a.dead && treesNear(a.x, a.y, t => Math.abs(t.x - a.x) < TREE_R && Math.abs(t.y - a.y) < TREE_R && dist(a.x, a.y, t.x, t.y) < TREE_R)) { a.dead = true; a.stick = .55 }
     // les gisements de pierre et de fer sont au ras du sol : les flèches passent au-dessus

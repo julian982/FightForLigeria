@@ -1,24 +1,31 @@
-// Le son : pour l'instant l'ambiance nature (boucle), avec volume réglable et coupure. Réglages gardés dans le navigateur.
+// Le son : l'ambiance nature (boucle) et les bruitages (arc), avec volumes réglables et coupure. Réglages gardés dans le navigateur.
 import natureUrl from './assets/sounds/ambiance-nature.mp3?url';
+import bandUrl from './assets/sounds/arc-bander.mp3?url';
+import tirUrl from './assets/sounds/arc-tir.mp3?url';
+import chairUrl from './assets/sounds/impact-chair.mp3?url';
+import boisUrl from './assets/sounds/impact-bois.mp3?url';
+import solUrl from './assets/sounds/impact-sol.mp3?url';
 
 const KEY = 'ffl.audio';
-export const audio = { ambiance: .5, muted: false };
+export const audio = { ambiance: .5, sfx: .7, muted: false };
 try { Object.assign(audio, JSON.parse(localStorage.getItem(KEY) || '{}')) } catch (e) {}
 function save() { try { localStorage.setItem(KEY, JSON.stringify(audio)) } catch (e) {} }
 
-let ctx: AudioContext | null = null, master: GainNode, ambGain: GainNode, ambSrc: AudioBufferSourceNode | null = null, ambBuf: AudioBuffer | null = null, loading: Promise<void> | null = null;
+let ctx: AudioContext | null = null, master: GainNode, sfxGain: GainNode, ambGain: GainNode, ambSrc: AudioBufferSourceNode | null = null, ambBuf: AudioBuffer | null = null, loading: Promise<void> | null = null;
 let wanted = false;
 function ensure() {
   if (!ctx) {
     const AC: any = (window as any).AudioContext || (window as any).webkitAudioContext; if (!AC) return false;
     ctx = new AC(); master = ctx.createGain(); master.connect(ctx.destination);
     ambGain = ctx.createGain(); ambGain.gain.value = 0; ambGain.connect(master);
+    sfxGain = ctx.createGain(); sfxGain.gain.value = sfxTarget(); sfxGain.connect(master);
   }
   if (ctx.state === 'suspended' && !document.hidden) ctx.resume();
   return true;
 }
 function ramp(g: GainNode, v: number, sec: number) { const t = ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(v, t + sec) }
 const ambTarget = () => audio.muted ? 0 : audio.ambiance * .8;
+const sfxTarget = () => audio.muted ? 0 : audio.sfx;
 function loadAmb() {
   if (ambBuf) return Promise.resolve();
   if (!loading) loading = fetch(natureUrl).then(r => r.arrayBuffer()).then(b => new Promise<void>((ok, ko) => ctx.decodeAudioData(b, buf => { ambBuf = buf; ok() }, ko)));
@@ -39,8 +46,34 @@ export function stopAmbiance() {
   ramp(ambGain, 0, 1.2); const s = ambSrc; ambSrc = null; setTimeout(() => { try { s.stop() } catch (e) {} }, 1300);
 }
 export function setAmbianceVolume(v: number) { audio.ambiance = Math.max(0, Math.min(1, v)); save(); if (ctx && ambSrc) ramp(ambGain, ambTarget(), .15) }
-export function setMuted(m: boolean) { audio.muted = m; save(); if (ctx && ambSrc) ramp(ambGain, ambTarget(), .3) }
+export function setMuted(m: boolean) { audio.muted = m; save(); if (ctx && ambSrc) ramp(ambGain, ambTarget(), .3); if (ctx) ramp(sfxGain, sfxTarget(), .1) }
+export function setSfxVolume(v: number) { audio.sfx = Math.max(0, Math.min(1, v)); save(); if (ctx) ramp(sfxGain, sfxTarget(), .1) }
 // onglet caché : on met le son en pause
 document.addEventListener('visibilitychange', () => { if (!ctx) return; if (document.hidden) ctx.suspend(); else if (wanted) ctx.resume() });
 /** pour les tests */
-export function audioState() { return { ctx: ctx ? ctx.state : null, playing: !!ambSrc, loaded: !!ambBuf, gain: ambGain ? +ambGain.gain.value.toFixed(2) : 0, dur: ambBuf ? Math.round(ambBuf.duration) : 0 } }
+export function audioState() { return { sfx: { ...sfxCount }, sfxLoaded: Object.keys(sfxBuf).length, ctx: ctx ? ctx.state : null, playing: !!ambSrc, loaded: !!ambBuf, gain: ambGain ? +ambGain.gain.value.toFixed(2) : 0, dur: ambBuf ? Math.round(ambBuf.duration) : 0 } }
+
+// ---- bruitages ----
+const SFX_URL: Record<string, string> = { bander: bandUrl, tir: tirUrl, chair: chairUrl, bois: boisUrl, sol: solUrl };
+const sfxBuf: Record<string, AudioBuffer> = {};
+/** nombre de bruitages joués, par nom (pour les tests) */
+const sfxCount: Record<string, number> = {};
+let sfxLoading: Promise<void> | null = null;
+/** charge les bruitages (petits fichiers, une seule fois) */
+export function loadSfx() {
+  if (!ensure()) return Promise.resolve();
+  if (!sfxLoading) sfxLoading = Promise.all(Object.entries(SFX_URL).map(([k, u]) => fetch(u).then(r => r.arrayBuffer())
+    .then(b => new Promise<void>(ok => ctx.decodeAudioData(b, buf => { sfxBuf[k] = buf; ok() }, () => ok()))).catch(() => {}))).then(() => {});
+  return sfxLoading;
+}
+export interface Voice { stop(fadeSec?: number): void }
+/** joue un bruitage. vol : 0 à 1, pan : -1 (gauche) à 1 (droite), rate : vitesse (et hauteur) de lecture */
+export function playSfx(name: string, vol = 1, pan = 0, rate = 1): Voice | null {
+  if (!ctx || audio.muted || audio.sfx <= 0 || vol <= .01 || ctx.state !== 'running') return null;
+  const buf = sfxBuf[name]; if (!buf) return null;
+  const src = ctx.createBufferSource(); src.buffer = buf; src.playbackRate.value = rate;
+  const g = ctx.createGain(); g.gain.value = vol; let out: AudioNode = g;
+  if (pan && (ctx as any).createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pan)); g.connect(p); out = p }
+  src.connect(g); out.connect(sfxGain); src.start(); sfxCount[name] = (sfxCount[name] || 0) + 1;
+  return { stop(fadeSec = .06) { try { const t = ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + fadeSec); src.stop(t + fadeSec + .02) } catch (e) {} } };
+}
