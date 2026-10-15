@@ -171,7 +171,8 @@ On peut toujours jouer en invité avec un simple pseudo. Un compte réserve son 
   - On donne un pseudo, un email et un mot de passe (8 caractères au moins), et on accepte les conditions d'utilisation.
   - On choisit aussi son **blason** : forme de l'écu (écu, écu français, rondache, losange, bannière), couleur du champ, partition (parti, coupé, tranché, écartelé, fasce, pal, chevron) et sa couleur, meuble (fleur de lys, tour, étoile, croix, épée, couronne, grappe, clé) et sa couleur. Il se change ensuite dans « Mon compte ».
   - **Pas de confirmation par email pour l'instant** : on est connecté dès l'inscription. Pour la remettre quand l'envoi d'emails sera en place, mettre `EMAIL_VERIFY=1` dans le `.env` du serveur (le lien est alors valable 48 h, et un compte jamais confirmé est effacé au bout de 7 jours).
-- **Mon compte.** Blason, rangs 1v1 et 2v2 (Elo, victoires, défaites, placement), et **historique des parties** : classées, en ligne et contre l'IA (date, carte, durée, résultat, adversaires et alliés, évolution de l'Elo), filtrable par type. Les parties contre l'IA sont déclarées par le navigateur : elles ne comptent jamais pour l'Elo.
+- **Mon compte** : pseudo, email, blason (modifiable), déconnexion et suppression du compte.
+- **Mes parties** (menu du haut, une fois connecté) : rangs 1v1 et 2v2 (Elo, victoires, défaites, placement) et **historique des parties** : classées, en ligne et contre l'IA (date, carte, durée, résultat, adversaires et alliés, évolution de l'Elo), filtrable par type. Les parties contre l'IA sont déclarées par le navigateur : elles ne comptent jamais pour l'Elo.
 - **Pseudo réservé, email caché.**
   - Le pseudo d'un compte est unique, sans tenir compte des majuscules ni des accents (`Julian` = `julian` = `Juliàn`).
   - En ligne, il porte un écusson. Un invité qui prend le même pseudo devient « Julian invité ».

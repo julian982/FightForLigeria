@@ -461,7 +461,7 @@ svg.blason{display:block;width:100%;height:auto;overflow:visible}
 /* ---------- profil ---------- */
 .pf{display:flex;flex-direction:column;gap:16px}
 .pf[hidden]{display:none}
-.pf-head{display:grid;grid-template-columns:110px minmax(0,1fr) minmax(0,auto);gap:20px;align-items:center}
+.pf-head{display:grid;grid-template-columns:110px minmax(0,1fr);gap:20px;align-items:center}
 .pf-bl svg{width:110px;filter:drop-shadow(0 6px 12px rgba(0,0,0,.45))}
 .pf-id{display:flex;flex-direction:column;gap:6px;min-width:0}
 .pf-name{margin:0;font-family:var(--f-display);font-weight:400;font-size:34px;line-height:1.05;color:var(--text);overflow-wrap:anywhere}
@@ -525,3 +525,7 @@ svg.blason{display:block;width:100%;height:auto;overflow:visible}
 .q-badge{width:20px;height:24px;flex:none}
 .q-count{font-size:13px;color:var(--muted);min-height:1.2em}
 #qRules tr.on th,#qRules tr.on td{color:var(--gold)}
+/* page « Mes parties » */
+.pf-ranks-row{flex-direction:row;flex-wrap:wrap}
+.pf-ranks-row .pf-rank{flex:1;min-width:240px}
+#v-parties .rank-head .go{min-height:40px;display:inline-flex;align-items:center}

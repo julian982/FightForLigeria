@@ -65,6 +65,12 @@ export function initAccount() {
     $('pfPseudo').textContent = u.pseudo; $('pfEmail').textContent = u.email;
     $('pfSince').textContent = new Date(u.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
     $('pfBlason').innerHTML = blasonSvg(u.blason, { title: 'Blason de ' + u.pseudo });
+  }
+  /** la page « Mes parties » : rangs 1v1 et 2v2, historique des parties */
+  function renderParties() {
+    const u = A.currentUser();
+    $('mpLogin').hidden = !!u; $('mpBody').hidden = !u;
+    if (!u) return;
     $('pfRanks').innerHTML = rankCard('Classé 1v1', u.r1) + rankCard('Classé 2v2', u.r2);
     if (histFor !== u.id) { histFor = u.id; hist = null; loadHistory() } else renderHistory();
   }
@@ -104,9 +110,10 @@ export function initAccount() {
   // ---- en haut de page : compte connecté, ou lien de connexion ----
   function renderTop() {
     const u = A.currentUser();
-    $('acctChip').hidden = !u; $('loginLink').hidden = !!u;
+    $('acctChip').hidden = !u; $('loginLink').hidden = !!u; $('navParties').hidden = !u;
     if (u) { $('acctName').textContent = u.pseudo; $('acctBl').innerHTML = blasonSvg(u.blason) }
     if ((window as any).__homeView === 'compte') panel(u ? 'profile' : 'forms');
+    if ((window as any).__homeView === 'parties') renderParties();
   }
   addEventListener('ffl:account', renderTop);
 
@@ -194,9 +201,9 @@ export function initAccount() {
 
   // ---- arrivée sur une page ----
   function onView(v: string) {
+    if (v === 'parties') { histFor = 0; A.refreshMe(); renderParties() } // relu à chaque visite : une partie vient peut-être de finir
     if (v === 'compte') {
       const p = hashParams();
-      histFor = 0; // l'historique est relu à chaque visite (une partie vient peut-être de finir)
       say('acMsg', '');
       if (p.get('ok') === 'verifie') say('acMsg', 'Ton adresse email est confirmée : tu peux te connecter.');
       else if (p.get('erreur') === 'lien') say('acMsg', 'Ce lien de confirmation n\'est plus valable (déjà utilisé, expiré ou remplacé par un plus récent). Connecte-toi : si ton compte n\'est pas confirmé, tu pourras recevoir un nouveau lien.', true);

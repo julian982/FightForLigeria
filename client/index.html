@@ -17,6 +17,7 @@
       <div class="navlinks">
         <a href="#jouer" data-view="jouer">Jouer</a>
         <a href="#classement" data-view="classement">Classement</a>
+        <a href="#parties" data-view="parties" id="navParties" hidden>Mes parties</a>
         <a href="#guide" data-view="guide">Comment jouer</a>
       </div>
       <div class="who-box">
@@ -441,9 +442,8 @@
           <div class="pf-id">
             <h3 class="pf-name" id="pfPseudo"></h3>
             <p class="help small">Membre depuis le <span id="pfSince"></span> · <span id="pfEmail"></span> (jamais montré aux autres joueurs)</p>
-            <div class="end-btns"><button class="go ghost" type="button" id="pfEditBl">Modifier mon blason</button><a class="go" href="#file">Partie classée</a><button class="go ghost" type="button" id="pfLogout">Se déconnecter</button></div>
+            <div class="end-btns"><button class="go ghost" type="button" id="pfEditBl">Modifier mon blason</button><a class="go ghost" href="#parties">Mes parties et mes rangs</a><button class="go ghost" type="button" id="pfLogout">Se déconnecter</button></div>
           </div>
-          <div class="pf-ranks" id="pfRanks"></div>
         </div>
         <div class="panel" id="pfBlEdit" hidden>
           <h3 class="step">Mon blason</h3>
@@ -451,11 +451,6 @@
           <p class="net-msg" id="blMsg" role="status"></p>
           <div class="end-btns"><button class="go" type="button" id="pfBlSave">Enregistrer le blason</button><button class="go ghost" type="button" id="pfBlCancel">Annuler</button></div>
         </div>
-        <section class="panel pf-hist" aria-labelledby="histT">
-          <div class="pf-hist-head"><h3 class="step" id="histT">Historique des parties</h3>
-            <div class="seg" id="histFilter"><button type="button" data-k="all" aria-pressed="true">Toutes</button><button type="button" data-k="ranked" aria-pressed="false">Classées</button><button type="button" data-k="online" aria-pressed="false">En ligne</button><button type="button" data-k="solo" aria-pressed="false">Contre l'IA</button></div></div>
-          <div id="pfHist" class="hist"></div>
-        </section>
         <form class="panel" id="delForm" novalidate>
           <h3 class="step">Supprimer mon compte</h3>
           <p class="help">La suppression est immédiate et définitive : ton compte, ton email et ton pseudo réservé sont effacés.</p>
@@ -463,6 +458,26 @@
           <p class="net-msg warn" id="delMsg" role="alert"></p>
           <button class="go danger" type="submit">Supprimer définitivement mon compte</button>
         </form>
+      </div>
+    </section>
+    </div>
+
+    <div class="view" id="v-parties" hidden>
+    <section class="sub-sec" aria-labelledby="mpT">
+      <a class="back" href="#jouer">← Jouer</a>
+      <div class="rank-head"><h2 id="mpT">Mes parties</h2><a class="go" href="#file">Partie classée</a></div>
+      <div class="panel ac-box" id="mpLogin" hidden>
+        <h3 class="step">Compte requis</h3>
+        <p>Tes rangs et l'historique de tes parties sont liés à ton compte. Connecte-toi ou crée un compte en une minute, sans email à confirmer.</p>
+        <div class="end-btns"><a class="go" href="#compte">Se connecter ou créer un compte</a></div>
+      </div>
+      <div class="pf" id="mpBody" hidden>
+        <div class="pf-ranks pf-ranks-row" id="pfRanks"></div>
+        <section class="panel pf-hist" aria-labelledby="histT">
+          <div class="pf-hist-head"><h3 class="step" id="histT">Historique des parties</h3>
+            <div class="seg" id="histFilter"><button type="button" data-k="all" aria-pressed="true">Toutes</button><button type="button" data-k="ranked" aria-pressed="false">Classées</button><button type="button" data-k="online" aria-pressed="false">En ligne</button><button type="button" data-k="solo" aria-pressed="false">Contre l'IA</button></div></div>
+          <div id="pfHist" class="hist"></div>
+        </section>
       </div>
     </section>
     </div>
