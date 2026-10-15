@@ -1,6 +1,10 @@
-// Les pages du compte : connexion, inscription (confirmation par email obligatoire), mot de passe oublié,
-// profil et suppression. Le compte est facultatif : sans lui, on joue en invité avec un simple pseudo.
+// Les pages du compte : connexion, inscription (avec le blason ; connecté tout de suite tant que la confirmation par
+// email n'est pas en place), mot de passe oublié, profil (blason, rangs, historique des parties) et suppression.
+// Le compte est facultatif : sans lui, on joue en invité avec un simple pseudo.
+import { MAPS } from '@ffl/shared';
 import * as A from '../net/account';
+import { blasonSvg, blasonEditor } from './blason';
+import { badgeSvg } from './rankbadge';
 
 const $ = (id: string): any => document.getElementById(id);
 const go = (v: string) => { if (location.hash.slice(1) !== v) location.hash = v; else (window as any).__showView?.(v) };
@@ -16,6 +20,36 @@ async function busy<T>(form: HTMLElement, f: () => Promise<T>): Promise<T> {
 
 type Panel = 'forms' | 'pending' | 'forgot' | 'profile';
 let resetToken = '';
+const ESC: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ESC[c]);
+const KIND: Record<string, string> = { ranked: 'Classée', online: 'En ligne', solo: 'Contre l\'IA' };
+const mmss = (s: number) => `${Math.floor(s / 60)} min ${String(Math.round(s % 60)).padStart(2, '0')}`;
+function ago(d: string) {
+  const s = (Date.now() - new Date(d).getTime()) / 1000, rtf = new Intl.RelativeTimeFormat('fr', { numeric: 'auto' });
+  if (s < 60) return 'à l\'instant';
+  if (s < 3600) return rtf.format(-Math.round(s / 60), 'minute');
+  if (s < 86400) return rtf.format(-Math.round(s / 3600), 'hour');
+  if (s < 86400 * 7) return rtf.format(-Math.round(s / 86400), 'day');
+  return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+/** carte d'un rang (1v1 ou 2v2) : insigne, rang, Elo, victoires et défaites, placement */
+export function rankCard(label: string, l: A.Ladder) {
+  const dots = Array.from({ length: 5 }, (_, i) => `<i class="${i < l.games ? 'on' : ''}"></i>`).join('');
+  return `<div class="pf-rank">${badgeSvg(l.elo, l.placed, 'pf-badge')}<div class="pf-rk"><span class="lbl">${label}</span><b>${l.placed ? l.rank : 'Non classé'}</b>
+    <span class="small">${l.elo} Elo${l.placed ? '' : ` · provisoire : ${l.rank}`} · ${l.wins} V – ${l.games - l.wins} D</span>
+    ${l.placed ? '' : `<span class="pf-place" aria-label="Parties de placement : ${l.games} sur 5">${dots}<em>${l.games} / 5 placement</em></span>`}</div></div>`;
+}
+function histItem(m: any) {
+  const res = m.left ? 'Abandon' : m.won ? 'Victoire' : 'Défaite';
+  const who = (l: any[]) => l.map(p => `<span class="hi-who">${p.blason ? blasonSvg(p.blason) : p.ai ? '<span class="hi-ai">IA</span>' : ''}${esc(p.ai ? 'IA' : p.pseudo)}</span>`).join('');
+  const d = m.eloAfter != null && m.eloBefore != null ? m.eloAfter - m.eloBefore : null;
+  return `<article class="hi ${m.won ? 'win' : 'loss'}">
+    <div class="hi-res">${res}</div>
+    <div class="hi-main"><b>${KIND[m.kind] || ''} ${m.mode} · ${esc(MAPS[m.map]?.name || m.map)}</b>
+      <span class="hi-vs">contre ${who(m.foes)}${m.allies.length ? ` · avec ${who(m.allies)}` : ''}</span></div>
+    <div class="hi-elo">${d == null ? '' : `<b class="${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '+' : '−'}${Math.abs(d)}</b><small>${m.eloAfter} Elo</small>`}</div>
+    <div class="hi-meta">${mmss(m.duration)}<br>${ago(m.at)}</div></article>`;
+}
 
 export function initAccount() {
   function panel(p: Panel) {
@@ -23,18 +57,55 @@ export function initAccount() {
     if (u) p = 'profile'; else if (p === 'profile') p = 'forms';
     $('acForms').hidden = p !== 'forms'; $('acWhy').hidden = p === 'profile';
     $('acPending').hidden = p !== 'pending'; $('forgotForm').hidden = p !== 'forgot'; $('acProfile').hidden = p !== 'profile';
-    if (u) {
-      $('pfPseudo').textContent = u.pseudo; $('pfEmail').textContent = u.email;
-      $('pfSince').textContent = new Date(u.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-    }
+    if (u) renderProfile(u);
   }
+  // ---- profil : blason, rangs, historique ----
+  let hist: any[] | null = null, histKind = 'all', histFor = 0;
+  function renderProfile(u: A.User) {
+    $('pfPseudo').textContent = u.pseudo; $('pfEmail').textContent = u.email;
+    $('pfSince').textContent = new Date(u.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    $('pfBlason').innerHTML = blasonSvg(u.blason, { title: 'Blason de ' + u.pseudo });
+    $('pfRanks').innerHTML = rankCard('Classé 1v1', u.r1) + rankCard('Classé 2v2', u.r2);
+    if (histFor !== u.id) { histFor = u.id; hist = null; loadHistory() } else renderHistory();
+  }
+  async function loadHistory() {
+    $('pfHist').innerHTML = '<p class="help">Chargement de tes parties…</p>';
+    const r = await A.history();
+    hist = r.ok ? r.data.matches : null;
+    if (!r.ok) { $('pfHist').innerHTML = `<p class="net-msg warn">${esc(r.data.error || 'Historique indisponible.')}</p>`; return }
+    renderHistory();
+  }
+  function renderHistory() {
+    if (!hist) return;
+    const l = hist.filter(m => histKind === 'all' || m.kind === histKind);
+    $('pfHist').innerHTML = l.length ? l.map(histItem).join('') : `<p class="help">${hist.length ? 'Aucune partie de ce type pour l\'instant.' : 'Pas encore de partie. Celles que tu joues connecté (contre l\'IA, en ligne ou en classé) s\'afficheront ici.'}</p>`;
+  }
+  $('histFilter').addEventListener('click', (e: Event) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    histKind = b.dataset.k!; for (const o of $('histFilter').children) o.setAttribute('aria-pressed', String(o === b)); renderHistory();
+  });
+  // ---- modifier son blason ----
+  let editor: ReturnType<typeof blasonEditor> | null = null;
+  $('pfEditBl').addEventListener('click', () => {
+    const u = A.currentUser(); if (!u) return;
+    if (!editor) editor = blasonEditor($('pfEditor'), u.blason); else editor.set(u.blason);
+    say('blMsg', ''); $('pfBlEdit').hidden = false; $('pfBlEdit').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+  $('pfBlCancel').addEventListener('click', () => { $('pfBlEdit').hidden = true });
+  $('pfBlSave').addEventListener('click', async () => {
+    if (!editor) return;
+    $('pfBlSave').disabled = true;
+    const r = await A.saveBlason(editor.get());
+    $('pfBlSave').disabled = false;
+    if (r.ok) { $('pfBlEdit').hidden = true; say('acMsg', 'Blason enregistré.') } else say('blMsg', r.data.error || 'Enregistrement impossible.', true);
+  });
   function pending(email: string) { $('pdEmail').textContent = email; say('pdMsg', ''); panel('pending') }
 
   // ---- en haut de page : compte connecté, ou lien de connexion ----
   function renderTop() {
     const u = A.currentUser();
     $('acctChip').hidden = !u; $('loginLink').hidden = !!u;
-    if (u) $('acctName').textContent = u.pseudo;
+    if (u) { $('acctName').textContent = u.pseudo; $('acctBl').innerHTML = blasonSvg(u.blason) }
     if ((window as any).__homeView === 'compte') panel(u ? 'profile' : 'forms');
   }
   addEventListener('ffl:account', renderTop);
@@ -55,6 +126,7 @@ export function initAccount() {
   $('toForgot').addEventListener('click', () => { const id = $('liId').value.trim(); if (id.includes('@')) $('fgEmail').value = id; say('fgMsg', ''); panel('forgot'); $('fgEmail').focus() });
 
   // ---- inscription ----
+  const regBlason = blasonEditor($('rgBlason'));
   $('regForm').addEventListener('submit', (e: Event) => {
     e.preventDefault();
     const pseudo = $('rgPseudo').value.trim(), email = $('rgEmail').value.trim(), pw = $('rgPw').value;
@@ -65,10 +137,11 @@ export function initAccount() {
     if (!$('rgTerms').checked) { say('rgMsg', 'Tu dois accepter les conditions d\'utilisation et la politique de confidentialité.', true); return }
     busy($('regForm'), async () => {
       say('rgMsg', '');
-      const r = await A.register(pseudo, email, pw, true);
+      const r = await A.register(pseudo, email, pw, true, regBlason.get());
       if (!r.ok) { say('rgMsg', r.data.error || 'Inscription impossible.', true); return }
       $('rgPw').value = $('rgPw2').value = '';
       $('liId').value = pseudo;
+      if (r.data.token) { say('acMsg', `Bienvenue, ${r.data.user.pseudo} ! Ton compte est prêt : tu peux jouer en classé.`); panel('profile'); return }
       pending(email);
     });
   });
@@ -123,6 +196,7 @@ export function initAccount() {
   function onView(v: string) {
     if (v === 'compte') {
       const p = hashParams();
+      histFor = 0; // l'historique est relu à chaque visite (une partie vient peut-être de finir)
       say('acMsg', '');
       if (p.get('ok') === 'verifie') say('acMsg', 'Ton adresse email est confirmée : tu peux te connecter.');
       else if (p.get('erreur') === 'lien') say('acMsg', 'Ce lien de confirmation n\'est plus valable (déjà utilisé, expiré ou remplacé par un plus récent). Connecte-toi : si ton compte n\'est pas confirmé, tu pourras recevoir un nouveau lien.', true);

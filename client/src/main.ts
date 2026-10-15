@@ -23,6 +23,9 @@ import { steerLord, updateCursor } from './ui/input';
 import { audio, startAmbiance, stopAmbiance, setAmbianceVolume, setMuted, audioState, loadSfx, setSfxVolume } from './audio';
 import { updateSfx } from './sfx';
 import { startTutorial, stopTutorial } from './ui/tutorial';
+import { showEloResult, hideEloResult } from './ui/ranked';
+import { reportSolo, applyElo, refreshMe } from './net/account';
+import { sideOf } from '@ffl/shared';
 
 initHome();
 initGameChat();
@@ -33,7 +36,7 @@ setHooks({
   removed:onRemoved,
   reset:onReset,
   notify:(team,msg,kind)=>{if(team===ME)toast(msg,kind)},
-  end:winner=>endGame(winner),
+  end:winner=>{endGame(winner);if(!gameOpts.online&&!gameOpts.tuto)reportSolo(selMap,winner===sideOf(ME),G.t)},
 });
 
 /** carte dont le décor 3D est construit */
@@ -53,9 +56,10 @@ function faceTeam(){view.camYaw=view.yawTarget=Math.PI/4+(ME===1?Math.PI:0)}
 function start(opts){leaveGame();setMe(0);faceTeam();gameOpts=opts||{};timeScale=gameOpts.speed||1;showHome(false);applyColors();setMap(gameOpts.tuto?'jardin':selMap);startGame(gameOpts);
   ui.running=true;$('end').hidden=true;endButtons(false);resize();refreshHud();startAmbiance();loadSfx();refreshGameChat();
   if(timeScale>1||gameOpts.rich)toast([timeScale>1?'Vitesse rapide':'',gameOpts.rich?'stock généreux':''].filter(Boolean).join(' · '));if(gameOpts.tuto)startTutorial();else{stopTutorial();toast('Ton stock attend dans les charrettes : pose ta réserve (1) et ton grenier (2), ils sont gratuits')}}
-function goHome(){stopTutorial();if(online())leaveGame();exitFps();stopAmbiance();ui.running=false;if(G)G.ctrl[ME].charging=false;ui.placing=null;ui.box=null;$('end').hidden=true;showHome(true);$('start').focus();refreshGameChat()}
+function goHome(){stopTutorial();hideEloResult();if(online())leaveGame();exitFps();stopAmbiance();ui.running=false;if(G)G.ctrl[ME].charging=false;ui.placing=null;ui.box=null;$('end').hidden=true;showHome(true);$('start').focus();refreshGameChat()}
 // en ligne : « Retour au salon » (la revanche se prépare là), sinon on rejoue contre l'IA
-$('again').addEventListener('click',()=>{if(gameOpts.online){toSalon();return}start(gameOpts)});
+$('again').addEventListener('click',()=>{if(gameOpts.ranked){goHome();window.__requeue?.();return}if(gameOpts.online){toSalon();return}start(gameOpts)});
+$('eloOk').addEventListener('click',()=>{hideEloResult();$('again').focus()});
 /** depuis l'écran de fin d'une partie en ligne : retour dans le salon, qui a été gardé par le serveur */
 function toSalon(){
   if(!backToSalon()){goHome();location.hash='en-ligne';return}
@@ -64,7 +68,7 @@ function toSalon(){
 }
 // le salon a disparu pendant qu'on regardait le bilan : on ne peut plus y revenir
 window.__salonLost=(reason)=>{$('endNote').textContent=reason+' Retourne au menu pour en créer ou en rejoindre un autre.';$('again').disabled=true;refreshGameChat()};
-function endButtons(online){$('again').textContent=online?'Retour au salon':'Rejouer';$('toMenu').textContent=online?'Quitter le salon':'Menu principal';$('again').disabled=false;$('endNote').textContent=''}
+function endButtons(online,ranked=false){$('again').textContent=ranked?'Rejouer en classé':online?'Retour au salon':'Rejouer';$('toMenu').textContent=online&&!ranked?'Quitter le salon':'Menu principal';$('again').disabled=false;$('endNote').textContent=''}
 window.__startGame=start;window.__getMap=()=>selMap;window.__pickMap=id=>pickMap(id);
 $('toMenu').addEventListener('click',goHome);
 $('quit').addEventListener('click',goHome);
@@ -129,13 +133,15 @@ addEventListener('mousedown',(e:any)=>{if(!sndPanel.hidden&&!e.target.closest('.
 // ---- partie en ligne : le salon (ui/online.ts) passe la main ici quand l'hôte lance ----
 setNetHandlers({
   // le serveur lance la partie : on prépare la carte et un miroir vide, l'affichage démarre au premier instantané
-  start(m){setMe(m.team);faceTeam();gameOpts={online:true,code:m.code,mode:m.mode,names:m.names||[]};timeScale=1;sel.clear();ui.placing=null;ui.box=null;ui.selB=null;ui.selW=null;ui.running=false;
-    setMap(m.map,m.mode==='2v2'?'2v2':'1v1');applyColors();initMirror(m.mode==='2v2'?4:2);showHome(false);$('end').hidden=true;endButtons(true);resize();refreshGameChat();toast('La partie commence !')},
+  start(m){setMe(m.team);faceTeam();gameOpts={online:true,ranked:!!m.ranked,code:m.code,mode:m.mode,names:m.names||[]};hideEloResult();if(m.ranked)window.dispatchEvent(new Event('ffl:rankedStart'));timeScale=1;sel.clear();ui.placing=null;ui.box=null;ui.selB=null;ui.selW=null;ui.running=false;
+    setMap(m.map,m.mode==='2v2'?'2v2':'1v1');applyColors();initMirror(m.mode==='2v2'?4:2);showHome(false);$('end').hidden=true;endButtons(true,!!m.ranked);resize();refreshGameChat();toast(m.ranked?'Partie classée : la partie commence !':'La partie commence !')},
   first(){const L=G.teams[ME].lord;camT.set(L.x*S,0,L.y*S);ui.running=true;refreshHud();startAmbiance();loadSfx();
     const duo=G.teams.length>2,where=duo?['en haut à gauche','en haut à droite','en bas à gauche','en bas à droite'][ME]:(ME===0?'à gauche':'à droite');
     toast('Tu joues '+where+(duo&&gameOpts.names[ME^2]?' · ton allié : '+gameOpts.names[ME^2]:''));
     toast('Ton stock attend dans les charrettes : pose ta réserve (1) et ton grenier (2)')},
   end(m){G.over=true;G.winner=m.winner;G.st=m.st;G.t=m.t;endGame(m.winner);refreshGameChat()},
   note(msg,kind){toast(msg,kind)},
+  // fin d'une partie classée : le nouvel Elo arrive juste après le bilan
+  elo(m){applyElo(m.mode,m);showEloResult(m);setTimeout(refreshMe,1500)},
   lost(){toast('Connexion au serveur perdue','warn');setTimeout(goHome,1500)},
 });

@@ -2,6 +2,7 @@
 import { Server, LobbyRoom } from '@colyseus/core';
 import { WebSocketTransport } from '@colyseus/ws-transport';
 import { GameRoom } from './room';
+import { QueueRoom } from './ranked';
 import { apiRouter } from './api';
 import { initDb } from './db';
 import { housekeeping } from './accounts';
@@ -13,6 +14,8 @@ server.router = apiRouter();
 // « lobby » : la liste des parties publiques, tenue à jour en direct pour les navigateurs qui la regardent
 server.define('lobby', LobbyRoom);
 server.define('ffl', GameRoom).enableRealtimeListing();
+// la file classée : une seule salle pour tout le monde, qui forme les parties
+server.define('ranked', QueueRoom);
 await server.listen(port);
 // la base des comptes peut démarrer après le jeu : on s'y connecte en arrière-plan, les parties en invité marchent déjà
 initDb().then(housekeeping);

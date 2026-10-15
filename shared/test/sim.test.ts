@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  loadMap, newGame, MAPS, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater,
+  loadMap, newGame, MAPS, cleanBlason, randomBlason, BLASON_DEFAULT, queueWindow, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater,
   placeBuilding, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
   START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRONS, shotClear, findPath, buildNav, KEEPS, PLAYERS, H, isFoe, onPath, MAP, fireArrow, orderAttack, applyCommand, makeSnapshot, B_TYPES, forfeit, canPlace, GW, GH, identityOf, jobOf, riverY, W,
 } from '../src/index';
@@ -546,5 +546,19 @@ describe('tutoriel', () => {
     const b = findSpot(0, 'bucheron'); expect(b).toBeTruthy();
     for (let i = 0; i < 60 * 30; i++) update(1 / 60);
     expect(G.over).toBeFalsy();
+  });
+});
+
+describe('blason et Elo', () => {
+  it('un blason invalide est nettoyé, un blason valide gardé', () => {
+    expect(cleanBlason({ s: 'losange', f: 'gueules', t: 'or', d: 'parti', c: 'tour', k: 'argent' })).toEqual({ s: 'losange', f: 'gueules', t: 'or', d: 'parti', c: 'tour', k: 'argent' });
+    expect(cleanBlason('{"s":"<script>","f":"gueules"}')).toEqual({ ...BLASON_DEFAULT, f: 'gueules' });
+    expect(cleanBlason(null)).toEqual(BLASON_DEFAULT);
+    for (let i = 0; i < 50; i++) { const b = randomBlason(); expect(cleanBlason(b)).toEqual(b) }
+  });
+  it('paliers d\'Elo et fenêtre de la file', () => {
+    expect(ELO.rank(1000)).toBe('Bois I'); expect(ELO.rank(1199)).toBe('Pierre III'); expect(ELO.rank(1200)).toBe('Pierre II');
+    expect(ELO.tierLo(ELO.tier(1250))).toBe(1200); expect(ELO.tierHi(ELO.tier(1250))).toBe(1300);
+    expect(queueWindow(5)).toBe(100); expect(queueWindow(45)).toBe(500); expect(queueWindow(90)).toBe(Infinity);
   });
 });

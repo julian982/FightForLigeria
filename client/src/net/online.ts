@@ -25,7 +25,12 @@ export function getPseudo() { const u = currentUser(); if (u) return u.pseudo; l
 export function setPseudo(v: string) { const p = cleanPseudo(v); try { localStorage.setItem(PSEUDO_KEY, p) } catch (e) {} return p }
 
 /** ce que la partie (main.ts) doit savoir */
-type GameHandlers = { start(m: any): void, first(): void, end(m: any): void, note(msg: string, kind: string): void, lost(): void };
+type GameHandlers = { start(m: any): void, first(): void, end(m: any): void, note(msg: string, kind: string): void, lost(): void, elo(m: any): void };
+/** partie classée : pas de salon d'attente, la partie démarre quand tout le monde est arrivé (ou elle est annulée) */
+type RankedHandlers = { cancel(msg: string): void };
+let rankedH: RankedHandlers | null = null, ranked = false, cancelMsg = '';
+export function setRankedHandlers(h: RankedHandlers) { rankedH = h }
+export const inRanked = () => ranked;
 /** ce que les écrans « Parties en ligne » et « Salon » doivent savoir */
 export type LobbyHandlers = {
   rooms(list: any[] | null, error?: string): void,
@@ -76,8 +81,17 @@ function bind(room: any) {
   room.onMessage('snap', (s: any) => { if (nstate !== 'playing') return; if (applySnapshot(s)) game.first() });
   room.onMessage('note', (n: any) => game.note(n.msg, n.kind || ''));
   room.onMessage('end', (m: any) => { gameOver = true; nstate = 'ended'; game.end(m) });
+  room.onMessage('elo', (m: any) => game.elo(m));
+  room.onMessage('cancel', (m: any) => { cancelMsg = m.msg });
   room.onLeave((code: number) => {
     const was = nstate; net.room = null; nstate = 'idle';
+    if (ranked) {
+      ranked = false;
+      if (was === 'playing' && !gameOver) game.lost();
+      else if (was === 'salon' || was === 'connecting') rankedH?.cancel(cancelMsg || 'La partie classée a été annulée. Relance la recherche.');
+      cancelMsg = '';
+      return;
+    }
     if (was === 'playing' && !gameOver) game.lost();
     else if (was === 'salon' || was === 'ended') lobbyH.left(code === KICKED ? 'L\'hôte t\'a exclu du salon.' : 'Le salon a été fermé.');
   });
@@ -102,9 +116,16 @@ export function joinRoom(code: string) {
   const id = code.trim().toUpperCase();
   return connect(c => c.joinById(id, { pseudo: getPseudo(), token: sessionToken() || undefined }), id);
 }
+/** rejoint la partie classée formée par la file (réservée à ce compte) */
+export async function joinRanked(roomId: string) {
+  if (nstate !== 'idle') leaveGame();
+  nstate = 'connecting'; ranked = true; cancelMsg = '';
+  try { bind(await new Client(serverUrl()).joinById(roomId, { token: sessionToken() || undefined })); return true }
+  catch (e) { console.warn('partie classée :', e); nstate = 'idle'; ranked = false; net.room = null; return false }
+}
 /** depuis l'écran de fin : revenir dans le salon (le serveur y est déjà revenu) */
 export function backToSalon() { if (nstate !== 'ended' || !net.room) return false; nstate = 'salon'; return true }
-export function leaveGame() { const r = net.room; nstate = 'idle'; net.room = null; try { r && r.leave() } catch (e) {} }
+export function leaveGame() { const r = net.room; nstate = 'idle'; net.room = null; ranked = false; try { r && r.leave() } catch (e) {} }
 const send = (type: string, v?: any) => { try { net.room && net.room.send(type, v) } catch (e) {} };
 export const setReady = (v: boolean) => send('ready', v);
 export const setSettings = (o: { map?: string, mode?: string, rich?: boolean, speed?: number }) => send('settings', o);

@@ -2,6 +2,10 @@
 // mais les parties en invité continuent de marcher. Le schéma est créé et mis à jour au démarrage (migrations numérotées).
 import * as mariadb from 'mariadb';
 
+// toutes les dates de la base sont en UTC : le serveur lit et écrit en UTC quel que soit le fuseau de la machine
+// (le pilote convertit les DATETIME avec le fuseau du processus Node)
+process.env.TZ = 'UTC';
+
 export const DB_ENABLED = !!process.env.DB_HOST;
 let pool: mariadb.Pool | null = null;
 let ready = false;
@@ -41,6 +45,41 @@ const MIGRATIONS: string[][] = [
       KEY ix_tokens_user (user_id),
       CONSTRAINT fk_tokens_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=ascii`,
+  ],
+  // 2 : blason, Elo 1v1 et 2v2, historique des parties
+  [
+    `ALTER TABLE users
+      ADD COLUMN blason VARCHAR(200) NULL,
+      ADD COLUMN elo1 SMALLINT NOT NULL DEFAULT 1000, ADD COLUMN games1 INT UNSIGNED NOT NULL DEFAULT 0, ADD COLUMN wins1 INT UNSIGNED NOT NULL DEFAULT 0,
+      ADD COLUMN elo2 SMALLINT NOT NULL DEFAULT 1000, ADD COLUMN games2 INT UNSIGNED NOT NULL DEFAULT 0, ADD COLUMN wins2 INT UNSIGNED NOT NULL DEFAULT 0`,
+    // une partie : classée, en ligne (non classée) ou contre l'IA (déclarée par le navigateur, ne compte jamais pour l'Elo)
+    `CREATE TABLE IF NOT EXISTS matches (
+      id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+      kind ENUM('ranked','online','solo') NOT NULL,
+      mode ENUM('1v1','2v2') NOT NULL,
+      map VARCHAR(32) NOT NULL,
+      duration_s INT UNSIGNED NOT NULL DEFAULT 0,
+      winner_side TINYINT NULL,
+      played_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      KEY ix_matches_played (played_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    // chaque place de la partie : un compte, un invité ou l'IA
+    `CREATE TABLE IF NOT EXISTS match_players (
+      match_id INT UNSIGNED NOT NULL,
+      slot TINYINT NOT NULL,
+      user_id INT UNSIGNED NULL,
+      pseudo VARCHAR(24) NOT NULL,
+      ai TINYINT(1) NOT NULL DEFAULT 0,
+      side TINYINT NOT NULL,
+      won TINYINT(1) NOT NULL,
+      left_game TINYINT(1) NOT NULL DEFAULT 0,
+      elo_before SMALLINT NULL,
+      elo_after SMALLINT NULL,
+      PRIMARY KEY (match_id, slot),
+      KEY ix_mp_user (user_id, match_id),
+      CONSTRAINT fk_mp_match FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE,
+      CONSTRAINT fk_mp_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   ],
 ];
 

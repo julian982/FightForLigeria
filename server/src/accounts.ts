@@ -1,5 +1,6 @@
-// Les comptes joueurs (facultatifs) : inscription avec confirmation de l'adresse email, connexion par jeton de session,
-// mot de passe oublié, suppression du compte. Chaque fonction renvoie { status, body } : api.ts en fait des réponses HTTP.
+// Les comptes joueurs (facultatifs) : inscription (connexion immédiate ; la confirmation de l'adresse email reviendra
+// quand l'envoi d'emails sera en place, avec EMAIL_VERIFY=1), connexion par jeton de session, blason, Elo, historique
+// des parties, classement, mot de passe oublié, suppression du compte. Chaque fonction renvoie { status, body } : api.ts en fait des réponses HTTP.
 //
 // Sécurité :
 // - mots de passe hachés avec scrypt (sel aléatoire, comparaison à temps constant) ;
@@ -10,8 +11,11 @@ import { randomBytes, scrypt, timingSafeEqual, createHash } from 'node:crypto';
 import { q, dbReady } from './db';
 import { sendMail, layout } from './mail';
 import { cleanPseudo } from './clean';
+import { cleanBlason, randomBlason, ELO, MAPS } from '@ffl/shared';
 
 export const TERMS_VERSION = '2026-10';
+/** confirmation de l'adresse email obligatoire avant de se connecter (désactivée tant que l'envoi d'emails n'est pas en place) */
+export const EMAIL_VERIFY = process.env.EMAIL_VERIFY === '1';
 const SESSION_DAYS = 30, VERIFY_HOURS = 48, RESET_MINUTES = 60, UNVERIFIED_DAYS = 7;
 /** adresse publique du serveur (liens des emails) et de la page du jeu (où l'on revient après avoir cliqué) */
 const API_URL = (process.env.API_PUBLIC_URL || 'http://localhost:2567').replace(/\/$/, '');
@@ -59,7 +63,7 @@ setInterval(() => { const now = Date.now(); for (const [k, l] of hits) if (!l.so
 export async function housekeeping() {
   if (!dbReady()) return;
   try {
-    await q(`DELETE FROM users WHERE verified_at IS NULL AND created_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? DAY)`, [UNVERIFIED_DAYS]);
+    if (EMAIL_VERIFY) await q(`DELETE FROM users WHERE verified_at IS NULL AND created_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? DAY)`, [UNVERIFIED_DAYS]);
     await q(`DELETE FROM sessions WHERE expires_at < UTC_TIMESTAMP()`);
     await q(`DELETE FROM email_tokens WHERE expires_at < UTC_TIMESTAMP()`);
   } catch (e: any) { console.error('comptes : ménage raté :', e.code || e.message) }
@@ -81,10 +85,22 @@ async function sendVerify(user: { id: number, pseudo: string, email: string }) {
   ], { label: 'Confirmer mon adresse', url: `${API_URL}/api/verify?t=${t}` });
   await sendMail({ to: user.email, subject: 'Confirme ton adresse email · FightForLigeria', ...m });
 }
-const publicUser = (u: any) => ({ id: u.id, pseudo: u.pseudo, email: u.email, createdAt: u.created_at });
+/** Elo et rang d'un mode (1v1 ou 2v2) */
+export const ladderOf = (elo: number, games: number, wins: number) => ({ elo, games, wins, placed: games >= ELO.PLACEMENT, rank: ELO.rank(elo), tier: ELO.tier(elo) });
+const publicUser = (u: any) => ({
+  id: u.id, pseudo: u.pseudo, email: u.email, createdAt: u.created_at, blason: cleanBlason(u.blason),
+  r1: ladderOf(u.elo1 ?? ELO.START, u.games1 ?? 0, u.wins1 ?? 0), r2: ladderOf(u.elo2 ?? ELO.START, u.games2 ?? 0, u.wins2 ?? 0),
+});
+async function openSession(userId: number) {
+  const t = newToken();
+  await q(`INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? DAY))`, [sha(t), userId, SESSION_DAYS]);
+  await q(`UPDATE users SET last_login_at = UTC_TIMESTAMP() WHERE id = ?`, [userId]);
+  return t;
+}
 
 // ---------------- les actions ----------------
-/** inscription : le compte n'est utilisable qu'une fois l'email confirmé */
+/** inscription. Sans EMAIL_VERIFY : le compte est actif tout de suite et on est connecté (jeton renvoyé).
+ *  Avec EMAIL_VERIFY : le compte n'est utilisable qu'une fois l'email confirmé. */
 export async function register(b: any, ip: string): Promise<Res> {
   if (!dbReady()) return unavailable();
   const pseudo = cleanPseudo(b?.pseudo), email = cleanEmail(b?.email);
@@ -95,11 +111,13 @@ export async function register(b: any, ip: string): Promise<Res> {
   if (b?.terms !== true) return err(400, 'Tu dois accepter les conditions d\'utilisation et la politique de confidentialité.', 'terms');
   // on ne compte que les demandes valides : une faute de frappe ne bloque personne
   if (limited('reg:' + ip, 10, 3600_000)) return tooMany();
+  const blason = JSON.stringify(b?.blason ? cleanBlason(b.blason) : randomBlason());
   // les comptes jamais confirmés libèrent leur pseudo et leur email au bout de quelques jours
-  await q(`DELETE FROM users WHERE verified_at IS NULL AND created_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? DAY)`, [UNVERIFIED_DAYS]);
+  if (EMAIL_VERIFY) await q(`DELETE FROM users WHERE verified_at IS NULL AND created_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? DAY)`, [UNVERIFIED_DAYS]);
   // la base compare les pseudos sans tenir compte des majuscules ni des accents (« Julien » = « julién »)
   const same = await q(`SELECT id, pseudo, email, verified_at FROM users WHERE pseudo = ? OR email = ?`, [pseudo, email]);
   const byEmail = same.find((u: any) => u.email === email), byPseudo = same.find((u: any) => u !== byEmail);
+  if (byEmail && byEmail.verified_at && !EMAIL_VERIFY) return err(409, 'Un compte existe déjà avec cet email. Connecte-toi, ou utilise « Mot de passe oublié ».', 'email');
   if (byEmail && byEmail.verified_at) {
     // email déjà utilisé par un compte actif : on ne le dit pas ici (pour ne pas révéler qui a un compte), on prévient le propriétaire par email
     const m = layout('Tu as déjà un compte', [
@@ -114,10 +132,12 @@ export async function register(b: any, ip: string): Promise<Res> {
   if (byEmail) await q(`DELETE FROM users WHERE id = ? AND verified_at IS NULL`, [byEmail.id]);
   const hash = await hashPassword(b.password);
   let id: number;
-  try { id = (await q(`INSERT INTO users (pseudo, email, pass_hash, terms_version) VALUES (?, ?, ?, ?)`, [pseudo, email, hash, TERMS_VERSION])).insertId }
-  catch (e: any) { if (e.code === 'ER_DUP_ENTRY') return err(409, 'Ce pseudo est déjà pris.', 'pseudo'); throw e }
-  await sendVerify({ id, pseudo, email });
-  return ok({ ok: true, pending: true }, 201);
+  try { id = (await q(`INSERT INTO users (pseudo, email, pass_hash, terms_version, blason, verified_at) VALUES (?, ?, ?, ?, ?, ${EMAIL_VERIFY ? 'NULL' : 'UTC_TIMESTAMP()'})`, [pseudo, email, hash, TERMS_VERSION, blason])).insertId }
+  catch (e: any) { if (e.code === 'ER_DUP_ENTRY') return err(409, /email/i.test(e.message) ? 'Un compte existe déjà avec cet email.' : 'Ce pseudo est déjà pris.', /email/i.test(e.message) ? 'email' : 'pseudo'); throw e }
+  if (EMAIL_VERIFY) { await sendVerify({ id, pseudo, email }); return ok({ ok: true, pending: true }, 201) }
+  const token = await openSession(id);
+  const u = (await q(`SELECT * FROM users WHERE id = ?`, [id]))[0];
+  return ok({ ok: true, token, user: publicUser(u) }, 201);
 }
 
 /** lien cliqué dans l'email : confirme l'adresse puis renvoie vers la page du jeu */
@@ -148,10 +168,12 @@ export async function login(b: any, ip: string): Promise<Res> {
   const u = (await q(`SELECT * FROM users WHERE email = ? OR pseudo = ? LIMIT 1`, [cleanEmail(id), id]))[0];
   const good = await checkPassword(pw, u ? u.pass_hash : DUMMY);
   if (!u || !good) return err(401, 'Pseudo, email ou mot de passe incorrect.', 'credentials');
-  if (!u.verified_at) return err(403, 'Confirme d\'abord ton adresse email : clique sur le lien reçu par email.', 'unverified');
-  const t = newToken();
-  await q(`INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? DAY))`, [sha(t), u.id, SESSION_DAYS]);
-  await q(`UPDATE users SET last_login_at = UTC_TIMESTAMP() WHERE id = ?`, [u.id]);
+  if (!u.verified_at) {
+    if (EMAIL_VERIFY) return err(403, 'Confirme d\'abord ton adresse email : clique sur le lien reçu par email.', 'unverified');
+    // inscrit pendant que la confirmation était obligatoire : le compte devient actif
+    await q(`UPDATE users SET verified_at = UTC_TIMESTAMP() WHERE id = ?`, [u.id]);
+  }
+  const t = await openSession(u.id);
   return ok({ token: t, user: publicUser(u) });
 }
 
@@ -159,7 +181,7 @@ export async function login(b: any, ip: string): Promise<Res> {
 export async function sessionUser(token: string | null | undefined) {
   if (!token || !dbReady()) return null;
   const h = sha(String(token));
-  const u = (await q(`SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > UTC_TIMESTAMP() AND u.verified_at IS NOT NULL`, [h]))[0];
+  const u = (await q(`SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > UTC_TIMESTAMP()${EMAIL_VERIFY ? ' AND u.verified_at IS NOT NULL' : ''}`, [h]))[0];
   if (!u) return null;
   await q(`UPDATE sessions SET last_seen_at = UTC_TIMESTAMP(), expires_at = DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? DAY) WHERE token_hash = ?`, [SESSION_DAYS, h]);
   return u;
@@ -212,6 +234,8 @@ export async function deleteAccount(token: string | null, b: any, ip: string): P
   const u = await sessionUser(token); if (!u) return err(401, 'Session expirée : reconnecte-toi.', 'session');
   if (limited('delete:' + u.id, 5, 900_000)) return tooMany();
   if (!(await checkPassword(String(b?.password ?? ''), u.pass_hash))) return err(401, 'Mot de passe incorrect.', 'credentials');
+  // dans l'historique des autres joueurs, le pseudo d'un compte supprimé n'apparaît plus
+  await q(`UPDATE match_players SET pseudo = 'Compte supprimé' WHERE user_id = ?`, [u.id]);
   await q(`DELETE FROM users WHERE id = ?`, [u.id]);
   return ok();
 }
@@ -219,5 +243,76 @@ export async function deleteAccount(token: string | null, b: any, ip: string): P
 /** un invité ne peut pas prendre le pseudo d'un compte (même à une majuscule ou un accent près) */
 export async function pseudoTaken(pseudo: string) {
   if (!dbReady()) return false;
-  return (await q(`SELECT 1 FROM users WHERE pseudo = ? AND verified_at IS NOT NULL LIMIT 1`, [pseudo])).length > 0;
+  return (await q(`SELECT 1 FROM users WHERE pseudo = ?${EMAIL_VERIFY ? ' AND verified_at IS NOT NULL' : ''} LIMIT 1`, [pseudo])).length > 0;
+}
+
+// ---------------- blason, historique, classement ----------------
+export async function setBlason(token: string | null, b: any): Promise<Res> {
+  if (!dbReady()) return unavailable();
+  const u = await sessionUser(token); if (!u) return err(401, 'Session expirée : reconnecte-toi.', 'session');
+  if (limited('blason:' + u.id, 30, 600_000)) return tooMany();
+  const bl = cleanBlason(b?.blason);
+  await q(`UPDATE users SET blason = ? WHERE id = ?`, [JSON.stringify(bl), u.id]);
+  return ok({ blason: bl });
+}
+
+/** une partie terminée, enregistrée dans l'historique. players : une entrée par place. Renvoie l'id de la partie. */
+export type MatchPlayer = { slot: number, userId?: number | null, pseudo: string, ai?: boolean, side: number, won: boolean, left?: boolean, eloBefore?: number | null, eloAfter?: number | null };
+export async function saveMatch(m: { kind: 'ranked' | 'online' | 'solo', mode: string, map: string, duration: number, winner: number | null, players: MatchPlayer[] }) {
+  const id = (await q(`INSERT INTO matches (kind, mode, map, duration_s, winner_side) VALUES (?, ?, ?, ?, ?)`, [m.kind, m.mode, m.map, Math.max(0, Math.round(m.duration)), m.winner])).insertId;
+  for (const p of m.players)
+    await q(`INSERT INTO match_players (match_id, slot, user_id, pseudo, ai, side, won, left_game, elo_before, elo_after) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, p.slot, p.userId ?? null, String(p.pseudo).slice(0, 24), p.ai ? 1 : 0, p.side, p.won ? 1 : 0, p.left ? 1 : 0, p.eloBefore ?? null, p.eloAfter ?? null]);
+  return id as number;
+}
+
+/** partie contre l'IA jouée dans le navigateur : seulement pour l'historique (jamais pour l'Elo) */
+export async function soloResult(token: string | null, b: any): Promise<Res> {
+  if (!dbReady()) return unavailable();
+  const u = await sessionUser(token); if (!u) return err(401, 'Session expirée : reconnecte-toi.', 'session');
+  if (limited('solo:' + u.id, 30, 3600_000)) return tooMany();
+  const map = String(b?.map || ''), dur = +b?.duration;
+  if (!MAPS[map] || MAPS[map].tuto || !(dur > 0 && dur < 6 * 3600)) return err(400, 'Partie invalide.', 'invalid');
+  const won = !!b?.won;
+  await saveMatch({ kind: 'solo', mode: '1v1', map, duration: dur, winner: won ? 0 : 1, players: [
+    { slot: 0, userId: u.id, pseudo: u.pseudo, side: 0, won }, { slot: 1, pseudo: 'IA', ai: true, side: 1, won: !won },
+  ] });
+  return ok();
+}
+
+/** les dernières parties du compte, avec les autres joueurs de chaque partie */
+export async function history(token: string | null): Promise<Res> {
+  if (!dbReady()) return unavailable();
+  const u = await sessionUser(token); if (!u) return err(401, 'Session expirée : reconnecte-toi.', 'session');
+  const ms = await q(`SELECT m.id, m.kind, m.mode, m.map, m.duration_s, m.played_at, p.slot, p.won, p.left_game, p.elo_before, p.elo_after
+    FROM match_players p JOIN matches m ON m.id = p.match_id WHERE p.user_id = ? ORDER BY m.id DESC LIMIT 40`, [u.id]);
+  const others = ms.length ? await q(`SELECT p.match_id, p.slot, p.pseudo, p.ai, p.side, p.user_id, u.blason FROM match_players p LEFT JOIN users u ON u.id = p.user_id
+    WHERE p.match_id IN (${ms.map(() => '?').join(',')})`, ms.map((m: any) => m.id)) : [];
+  const list = ms.map((m: any) => {
+    const mine = others.filter((o: any) => o.match_id === m.id), me = mine.find((o: any) => o.slot === m.slot);
+    const fmt = (o: any) => ({ pseudo: o.pseudo, ai: !!o.ai, blason: o.user_id ? cleanBlason(o.blason) : null });
+    return {
+      id: m.id, kind: m.kind, mode: m.mode, map: m.map, duration: m.duration_s, at: m.played_at, won: !!m.won, left: !!m.left_game,
+      eloBefore: m.elo_before, eloAfter: m.elo_after,
+      allies: mine.filter((o: any) => o.side === me?.side && o.slot !== m.slot).map(fmt), foes: mine.filter((o: any) => o.side !== me?.side).map(fmt),
+    };
+  });
+  return ok({ matches: list });
+}
+
+/** les 50 meilleurs joueurs placés d'un mode, et la place du joueur connecté */
+export async function leaderboard(token: string | null, mode: string): Promise<Res> {
+  if (!dbReady()) return unavailable();
+  const n = mode === '2v2' ? 2 : 1;
+  const top = await q(`SELECT id, pseudo, blason, elo${n} AS elo, games${n} AS games, wins${n} AS wins FROM users
+    WHERE games${n} >= ? ORDER BY elo${n} DESC, games${n} DESC, id ASC LIMIT 50`, [ELO.PLACEMENT]);
+  let me: any = null;
+  const u = token ? await sessionUser(token) : null;
+  if (u) {
+    const elo = u['elo' + n], games = u['games' + n];
+    const place = games >= ELO.PLACEMENT ? (await q(`SELECT COUNT(*) AS c FROM users WHERE games${n} >= ? AND (elo${n} > ? OR (elo${n} = ? AND (games${n} > ? OR (games${n} = ? AND id < ?))))`,
+      [ELO.PLACEMENT, elo, elo, games, games, u.id]))[0].c + 1 : null;
+    me = { place, ...ladderOf(elo, games, u['wins' + n]) };
+  }
+  return ok({ mode: n === 2 ? '2v2' : '1v1', players: top.map((p: any, i: number) => ({ place: i + 1, pseudo: p.pseudo, blason: cleanBlason(p.blason), ...ladderOf(p.elo, p.games, p.wins), you: !!u && u.id === p.id })), me });
 }

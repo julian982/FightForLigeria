@@ -154,7 +154,7 @@ Une quatrième carte, **Le Jardin de la France**, est réservée au tutoriel : u
 
 - **Tutoriel** : sur Le Jardin de la France, sans adversaire et sans fin de partie. Un panneau présente chaque bâtiment, un par un (ce qu'il fait, sa touche, son coût) et passe au suivant dès qu'il est posé ; le bouton du bâtiment attendu clignote. « Passer le tutoriel » ferme le panneau et laisse bâtir son village librement.
 - **Contre l'IA** : partie libre sur la carte choisie.
-- **Partie classée** (en préparation) : file d'attente 1v1 ou 2v2, carte tirée au sort, fait bouger l'Elo.
+- **Partie classée** (compte requis) : file d'attente 1v1 ou 2v2, adversaires de ton niveau, carte tirée au sort, fait bouger l'Elo (voir plus bas).
 - **Contre l'IA** : choix de la carte, stock de départ (normal ou généreux), vitesse (normale ou rapide) et couleur du royaume.
 - **Parties en ligne** (jamais classées) : pseudo (ou compte), liste des parties publiques en direct, parties privées par code, salon d'attente avec discussion, réglages de l'hôte, « prêt » et exclusion.
   - **1v1** ou **2v2**. En 2v2, chaque carte existe en version deux fois plus haute : quatre châteaux, deux par camp l'un au-dessus de l'autre, un gisement de pierre par château et un gisement de fer par rangée.
@@ -165,12 +165,13 @@ Une quatrième carte, **Le Jardin de la France**, est réservée au tutoriel : u
 
 ## Comptes (facultatifs)
 
-On peut toujours jouer en invité avec un simple pseudo. Un compte sert à réserver son pseudo ; il servira ensuite à la partie classée et à l'historique des parties.
+On peut toujours jouer en invité avec un simple pseudo. Un compte réserve son pseudo, porte un blason, ouvre la partie classée et garde l'historique des parties.
 
 - **Inscription.**
   - On donne un pseudo, un email et un mot de passe (8 caractères au moins), et on accepte les conditions d'utilisation.
-  - **La confirmation par email est obligatoire** avant la première connexion. Le lien est valable 48 h, et seul le dernier lien envoyé fonctionne.
-  - Un compte jamais confirmé est effacé au bout de 7 jours.
+  - On choisit aussi son **blason** : forme de l'écu (écu, écu français, rondache, losange, bannière), couleur du champ, partition (parti, coupé, tranché, écartelé, fasce, pal, chevron) et sa couleur, meuble (fleur de lys, tour, étoile, croix, épée, couronne, grappe, clé) et sa couleur. Il se change ensuite dans « Mon compte ».
+  - **Pas de confirmation par email pour l'instant** : on est connecté dès l'inscription. Pour la remettre quand l'envoi d'emails sera en place, mettre `EMAIL_VERIFY=1` dans le `.env` du serveur (le lien est alors valable 48 h, et un compte jamais confirmé est effacé au bout de 7 jours).
+- **Mon compte.** Blason, rangs 1v1 et 2v2 (Elo, victoires, défaites, placement), et **historique des parties** : classées, en ligne et contre l'IA (date, carte, durée, résultat, adversaires et alliés, évolution de l'Elo), filtrable par type. Les parties contre l'IA sont déclarées par le navigateur : elles ne comptent jamais pour l'Elo.
 - **Pseudo réservé, email caché.**
   - Le pseudo d'un compte est unique, sans tenir compte des majuscules ni des accents (`Julian` = `julian` = `Juliàn`).
   - En ligne, il porte un écusson. Un invité qui prend le même pseudo devient « Julian invité ».
@@ -181,12 +182,12 @@ On peut toujours jouer en invité avec un simple pseudo. Un compte sert à rése
   - Les mots de passe sont hachés avec scrypt.
   - Les jetons de session et les liens envoyés par email sont stockés uniquement sous forme d'empreinte (SHA-256).
   - Le nombre de tentatives de connexion et d'inscription est limité.
-  - Les réponses ne révèlent pas si un email a déjà un compte.
+  - Avec `EMAIL_VERIFY=1`, les réponses ne révèlent pas si un email a déjà un compte (sans confirmation par email, l'inscription signale un email déjà utilisé).
 - **Pages légales.** Mentions légales, confidentialité et conditions d'utilisation, en pied de page. Les informations sur l'éditeur et l'hébergeur restent à compléter.
 
 L'API des comptes est servie par le serveur de jeu, sur la même adresse (`/api/...`). La base MariaDB est propre au jeu ; le schéma est créé et mis à jour au démarrage. Si la base est en panne, les parties en invité continuent de marcher.
 
-## Classement et Elo (en préparation)
+## Partie classée, classement et Elo
 
 Deux classements indépendants, 1v1 et 2v2, avec 6 rangs de 3 divisions chacun : Bois, Pierre, Fer, Argent, Or, Rubis (100 Elo par division).
 
@@ -197,7 +198,11 @@ Deux classements indépendants, 1v1 et 2v2, avec 6 rangs de 3 divisions chacun :
 - En 2v2, l'équipe vaut la moyenne de ses deux joueurs ; les deux coéquipiers gagnent ou perdent autant.
 - Quitter une partie classée = défaite. À partir de la 4e partie classée contre le même adversaire dans la journée, gains et pertes divisés par deux. Pas de perte pour inactivité.
 
-La page Classement explique ces règles et propose un simulateur de gains. Le calcul (`shared/src/elo.ts`) sera repris tel quel par le serveur.
+- **File classée** : on entre connecté, en 1v1 ou en 2v2. Le serveur apparie le joueur qui attend le plus avec les plus proches de son Elo dans sa fenêtre. En 2v2, le plus fort joue avec le plus faible. La partie est privée, réservée aux comptes appariés, et démarre dès que tous sont arrivés ; si quelqu'un ne vient pas dans les 30 s ou repart avant le début, elle est annulée sans effet sur l'Elo.
+- **Fin de partie classée** : une animation montre la victoire ou la défaite, le gain ou la perte d'Elo (le compteur défile jusqu'au nouvel Elo), l'insigne et le rang actuels, la progression dans la division, et annonce une promotion ou une rétrogradation. Pendant le placement, le rang affiché est provisoire. « Rejouer en classé » relance la recherche.
+- **Classement** : les 50 meilleurs joueurs placés de chaque mode (blason, rang, Elo), et ta place si tu es plus loin.
+
+Le calcul (`shared/src/elo.ts`) est partagé par le simulateur de la page Classement et le serveur.
 
 ## Où en est le projet
 
@@ -205,5 +210,5 @@ Prototype jouable en solo contre une IA. La simulation (`shared/`) est isolée d
 
 Pistes pour la suite :
 - multijoueur 1v1 et 2v2, avec un serveur qui fait autorité (fait) ;
-- lobbies en ligne (fait), comptes (fait) et classement réel ;
+- lobbies en ligne (fait), comptes (fait) et classement réel (fait) ;
 - plusieurs cartes.

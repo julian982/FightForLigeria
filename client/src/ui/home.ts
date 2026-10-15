@@ -1,8 +1,11 @@
-// L'accueil : navigation entre les pages, préparation contre l'IA, couleur du royaume, classement, file classée.
+// L'accueil : navigation entre les pages, préparation contre l'IA, couleur du royaume, règles du classement.
+// Le classement en direct, la file classée et l'animation d'Elo sont dans ui/ranked.ts.
 // Les parties en ligne (liste, création, salon) sont dans ui/online.ts.
-import { ELO, QUEUE_WINDOWS } from '@ffl/shared';
+import { ELO } from '@ffl/shared';
 import { initOnline } from './online';
 import { initAccount } from './account';
+import { initRanked } from './ranked';
+import { RANKS, DIV, range, shield } from './rankbadge';
 
 const byId=(id:string):any=>document.getElementById(id);
 const all=(q:string):any[]=>Array.from(document.querySelectorAll(q));
@@ -49,33 +52,7 @@ export function initHome(){
   })();
   // ---- Classement (aperçu, pas encore actif) ----
   (()=>{
-    const RANKS=[
-      {n:'Bois',  a:'#9a6a3c',b:'#5e3d20',e:'#3b2614',k:'grain'},
-      {n:'Pierre',a:'#b3aea3',b:'#7a766d',e:'#4c4943',k:'blocks'},
-      {n:'Fer',   a:'#6e747c',b:'#3c4047',e:'#24272b',k:'rivets'},
-      {n:'Argent',a:'#eef1f4',b:'#a9b0b8',e:'#6f7780',k:'filigree'},
-      {n:'Or',    a:'#ffe08a',b:'#d39b2a',e:'#8a5d12',k:'filigree'},
-      {n:'Rubis', a:'#ffe08a',b:'#d39b2a',e:'#8a5d12',k:'gem'},
-    ];
-    const DIV=['III','II','I'];
     const START=1000;
-    const lo=i=>i===0?null:800+100*i, hi=i=>i===17?null:899+100*i;
-    const range=i=>lo(i)==null?'< 900':hi(i)==null?lo(i)+' +':lo(i)+'–'+hi(i);
-    let uid=0;
-    function shield(rank,div,unknown=false){
-      const id='g'+(uid++),r=RANKS[rank]||RANKS[0];
-      const path='M50 4 L92 16 L92 56 C92 86 72 104 50 116 C28 104 8 86 8 56 L8 16 Z';
-      if(unknown)return `<path d="${path}" fill="none" stroke="#6b5b45" stroke-width="4" stroke-dasharray="7 6"/><text x="50" y="72" text-anchor="middle" font-family="IM Fell English SC, Georgia, serif" font-size="44" fill="#8a7a62">?</text>`;
-      let deco='';
-      if(r.k==='grain')deco=`<g stroke="${r.e}" stroke-width="2" fill="none" opacity=".55"><path d="M26 24 C30 50 24 76 34 100"/><path d="M50 14 C46 46 54 74 50 108"/><path d="M74 24 C70 50 76 76 66 100"/></g><path d="M8 40 L92 40" stroke="#c9a46a" stroke-width="5" opacity=".7"/>`;
-      if(r.k==='blocks')deco=`<g stroke="${r.e}" stroke-width="2" opacity=".55"><path d="M10 38 H90 M10 62 H90 M12 86 H88"/><path d="M36 16 V38 M64 16 V38 M50 38 V62 M28 62 V86 M72 62 V86 M50 86 V108"/></g>`;
-      if(r.k==='rivets')deco=`<g fill="${r.a}" stroke="${r.e}" stroke-width="1.5">${[[22,22],[78,22],[18,58],[82,58],[32,94],[68,94]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="4"/>`).join('')}</g><path d="M50 10 V110 M10 52 H90" stroke="${r.e}" stroke-width="3" opacity=".6"/>`;
-      if(r.k==='filigree')deco=`<g fill="none" stroke="${r.e}" stroke-width="2" opacity=".6"><path d="M50 30 C36 40 36 60 50 70 C64 60 64 40 50 30Z"/><path d="M50 70 C40 80 40 92 50 100 C60 92 60 80 50 70Z"/><path d="M22 40 C30 46 30 56 22 62 M78 40 C70 46 70 56 78 62"/></g>`;
-      if(r.k==='gem')deco=`<g fill="none" stroke="${r.e}" stroke-width="2" opacity=".55"><path d="M22 40 C30 46 30 56 22 62 M78 40 C70 46 70 56 78 62"/></g><polygon points="50,34 68,50 62,74 38,74 32,50" fill="#c0182f" stroke="#5c0612" stroke-width="2.5"/><polygon points="50,34 58,50 50,58 42,50" fill="#ff6b7d" opacity=".75"/><polygon points="38,74 50,58 62,74" fill="#8a0d20" opacity=".7"/>`;
-      const studs=Array.from({length:3},(_,k)=>{const on=k<=div;const x=50+(k-1)*16;return `<path d="M${x} 9 l5 8 l-5 8 l-5 -8 Z" fill="${on?'#fff3cf':'rgba(0,0,0,.35)'}" stroke="${r.e}" stroke-width="1.2"/>`}).join('');
-      return `<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${r.a}"/><stop offset="1" stop-color="${r.b}"/></linearGradient></defs>
-        <path d="${path}" fill="url(#${id})" stroke="${r.e}" stroke-width="4"/>${deco}<path d="M8 28 L92 28 L92 16 L50 4 L8 16 Z" fill="rgba(0,0,0,.18)"/>${studs}`;
-    }
     const ladder=byId('ladder');
     const startIdx=(START-800)/100; // 2 = Bois I
     ladder.innerHTML=RANKS.map((r,ri)=>{
@@ -96,6 +73,7 @@ export function initHome(){
       byId('meText').innerHTML=COPY[m].text;
       byId('boardEmpty').textContent=COPY[m].board;
       try{localStorage.setItem('ffl.rankMode',m)}catch(e){}
+      window.dispatchEvent(new CustomEvent('ffl:rankmode',{detail:m}));
     }
     tabs.forEach((t,i)=>{t.addEventListener('click',()=>setMode(t.dataset.mode));
       t.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){const n=tabs[(i+(e.key==='ArrowRight'?1:tabs.length-1))%tabs.length];n.focus();setMode(n.dataset.mode)}})});
@@ -118,27 +96,6 @@ export function initHome(){
     for(const id of ['simMe','simFoe','simG'])$(id).addEventListener('input',sim);
     sim();
 
-    // ---- file classée (démonstration de l'élargissement) ----
-    let qMode='1v1',qT=0,qTimer=null;
-    const WIN=QUEUE_WINDOWS;
-    const fmt=t=>Math.floor(t/60)+':'+String(t%60).padStart(2,'0');
-    function qRender(){
-      const wi=WIN.findIndex(([lim])=>qT<lim);
-      $('qTimer').textContent=fmt(qT);$('qWindow').textContent=WIN[wi][1]==='Tous'?"N'importe qui":WIN[wi][1]+' Elo';
-      $('qBar').style.width=Math.min(100,qT/60*100)+'%';
-      for(const tr of $('qRules').children)tr.classList.toggle('on',!!qTimer&&+tr.dataset.w===wi);
-      if(qTimer)$('qStatus').textContent=qT<60?`Recherche d'un adversaire ${qMode}…`:"Aucun seigneur en ligne pour l'instant. Le classé ouvrira avec le jeu en ligne.";
-      $('qAi').hidden=!qTimer||qT<8;
-    }
-    function qStop(){clearInterval(qTimer);qTimer=null;qT=0;$('qStart').hidden=false;$('qCancel').hidden=true;$('qStatus').textContent='Prêt à chercher un adversaire.';qRender()}
-    $('qStart').addEventListener('click',()=>{qT=0;qTimer=setInterval(()=>{qT++;qRender()},1000);$('qStart').hidden=true;$('qCancel').hidden=false;qRender()});
-    $('qCancel').addEventListener('click',qStop);
-    $('qAi').addEventListener('click',()=>{qStop();window.__startGame&&window.__startGame({})});
-    for(const b of all('.qtab'))b.addEventListener('click',()=>{qMode=b.dataset.q;
-      for(const o of all('.qtab'))o.setAttribute('aria-selected',o===b);
-      $('qModeLbl').textContent=`File ${qMode} · ton Elo ${ELO.START} (${ELO.rank(ELO.START)})`;if(qTimer)qRender()});
-    addEventListener('ffl:view',(e:any)=>{if(e.detail!=='file'&&qTimer)qStop()});
-
   })();
   // ---- contre l'IA : stock et vitesse, la carte est choisie par main.ts (#maps) ----
   (()=>{
@@ -150,4 +107,5 @@ export function initHome(){
   })();
   initOnline();
   initAccount();
+  initRanked();
 }

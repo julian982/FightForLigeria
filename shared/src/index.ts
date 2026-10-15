@@ -10,3 +10,4 @@ export * from './elo';
 export * from './net';
 export * from './names';
 export * from './boat';
+export * from './blason';

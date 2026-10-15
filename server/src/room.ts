@@ -13,7 +13,8 @@ export const makeCode = () => pick(WORDS) + '-' + Array.from({ length: 4 }, () =
 export const KICKED = 4001;
 
 import { CTRL, cleanPseudo, cleanName, cleanChat } from './clean';
-import { sessionUser, pseudoTaken } from './accounts';
+import { sessionUser, pseudoTaken, saveMatch } from './accounts';
+import { settleRanked, RANKED_KEY } from './ranked';
 export { cleanPseudo, cleanName, cleanChat };
 
 const SPEEDS = [1, 1.5];
@@ -48,9 +49,24 @@ export class GameRoom extends Room {
   sent = new Map<string, number[]>();
   worker: Worker | null = null;
   over = false;
+  /** partie classée : les comptes attendus, place par place (la salle est créée par la file, jamais par un joueur) */
+  ranked: { seats: { userId: number, pseudo: string }[] } | null = null;
+  /** au lancement : qui joue à chaque place (pour l'historique, même si le joueur part ensuite) */
+  lineup: { userId?: number, pseudo: string, ai: boolean }[] = [];
+  /** places dont le joueur a quitté la partie en cours (compte comme une défaite) */
+  quit = new Set<number>();
+  cancelTimer: any = null;
 
   async onCreate(o: any = {}) {
     this.roomId = makeCode();
+    // seule la file classée connaît la clé : un joueur ne peut pas fabriquer lui-même une partie classée
+    if (o.ranked && o.rankedKey === RANKED_KEY && Array.isArray(o.seats)) {
+      const mode: Mode = o.mode === '2v2' ? '2v2' : '1v1';
+      this.ranked = { seats: o.seats.slice(0, seatsOf(mode)).map((x: any) => ({ userId: +x.userId, pseudo: String(x.pseudo) })) };
+      o = { map: o.map, mode, priv: true, name: 'Partie classée' };
+      // si quelqu'un ne se présente pas, la partie est annulée (sans effet sur l'Elo)
+      this.cancelTimer = setTimeout(() => this.cancelRanked('Un joueur ne s\'est pas présenté : partie annulée. Relance la recherche.'), 30_000);
+    }
     this.opts = cleanSettings(o);
     this.slots = Array.from({ length: seatsOf(this.opts.mode) }, () => ({ kind: 'open' as const }));
     this.priv = !!o.priv;
@@ -67,11 +83,11 @@ export class GameRoom extends Room {
     });
     this.onMessage('ready', (client, v) => {
       const p = this.players.get(client.sessionId);
-      if (!p || this.worker) return;
+      if (!p || this.worker || this.ranked) return;
       p.ready = !!v; this.pushState();
     });
     this.onMessage('settings', (client, v) => {
-      if (client.sessionId !== this.host || this.worker) return;
+      if (client.sessionId !== this.host || this.worker || this.ranked) return;
       const next = cleanSettings(v, this.opts);
       if (next.map === this.opts.map && next.mode === this.opts.mode && next.rich === this.opts.rich && next.speed === this.opts.speed) return;
       if (next.mode !== this.opts.mode && !this.resize(next.mode)) return client.send('chatRefused', { msg: 'Trop de joueurs dans le salon pour passer en 1v1.' });
@@ -84,13 +100,13 @@ export class GameRoom extends Room {
     // un joueur change de place (vers une place libre)
     this.onMessage('slot', (client, to) => {
       const p = this.players.get(client.sessionId), i = +to;
-      if (!p || this.worker || !this.slots[i] || this.slots[i].kind !== 'open') return;
+      if (!p || this.worker || this.ranked || !this.slots[i] || this.slots[i].kind !== 'open') return;
       this.slots[p.slot] = { kind: 'open' }; this.slots[i] = { kind: 'human', id: p.id }; p.slot = i; p.ready = false;
       this.pushState();
     });
     // l'hôte met une IA sur une place libre, ou la retire
     this.onMessage('slotAi', (client, v) => {
-      if (client.sessionId !== this.host || this.worker || !v) return;
+      if (client.sessionId !== this.host || this.worker || this.ranked || !v) return;
       const s = this.slots[+v.slot]; if (!s || s.kind === 'human') return;
       const ai = !!v.ai; if ((s.kind === 'ai') === ai) return;
       this.slots[+v.slot] = { kind: ai ? 'ai' : 'open' };
@@ -99,7 +115,7 @@ export class GameRoom extends Room {
       this.syncMeta(); this.pushState();
     });
     this.onMessage('kick', (client, id) => {
-      if (client.sessionId !== this.host || this.worker || id === this.host) return;
+      if (client.sessionId !== this.host || this.worker || this.ranked || id === this.host) return;
       const target = this.clients.find(c => c.sessionId === id);
       if (target) { this.system(`${this.players.get(id)?.pseudo} a été exclu du salon.`); target.leave(KICKED) }
     });
@@ -112,7 +128,7 @@ export class GameRoom extends Room {
       this.say({ who: p.pseudo, team: p.slot, text });
     });
     this.onMessage('launch', client => {
-      if (client.sessionId !== this.host || this.worker) return;
+      if (client.sessionId !== this.host || this.worker || this.ranked) return;
       if (this.slots.some(s => s.kind === 'open')) return client.send('chatRefused', { msg: 'Toutes les places doivent être prises (par un joueur ou une IA) pour lancer.' });
       if ([...this.players.values()].some(p => !p.ready)) return client.send('chatRefused', { msg: 'Tout le monde doit être prêt.' });
       this.startGame();
@@ -138,6 +154,7 @@ export class GameRoom extends Room {
     // connecté : on prend le pseudo du compte. Invité : il ne peut pas se faire passer pour un compte existant.
     let acct: any = null;
     if (o.token) try { acct = await sessionUser(String(o.token)) } catch (e) { console.error('session :', e) }
+    if (this.ranked) return this.joinRanked(client, acct);
     let pseudo = acct ? acct.pseudo : cleanPseudo(o.pseudo) || 'Seigneur', n = 2;
     if (!acct) try { if (await pseudoTaken(pseudo)) pseudo = pseudo.slice(0, 9).trim() + ' invité' } catch (e) {}
     const used = new Set([...this.players.values()].map(p => p.pseudo.toLowerCase()));
@@ -154,13 +171,37 @@ export class GameRoom extends Room {
     this.syncMeta(); this.pushState();
   }
 
+  /** partie classée : seul un compte attendu peut entrer, à sa place ; la partie démarre quand tout le monde est là */
+  joinRanked(client: Client, acct: any) {
+    const slot = acct ? this.ranked!.seats.findIndex(s => s.userId === acct.id) : -1;
+    if (slot < 0 || this.slots[slot].kind !== 'open' || this.worker) { client.leave(4003); return }
+    this.slots[slot] = { kind: 'human', id: client.sessionId };
+    this.players.set(client.sessionId, { id: client.sessionId, pseudo: acct.pseudo, slot, ready: true, at: Date.now(), acct: true, userId: acct.id });
+    if (!this.host) this.host = client.sessionId;
+    client.send('chatLog', this.chat);
+    this.system(`${acct.pseudo} est arrivé.`);
+    if (this.slots.every(s => s.kind === 'human')) { clearTimeout(this.cancelTimer); this.clock.setTimeout(() => { if (!this.worker && this.slots.every(s => s.kind === 'human')) this.startGame() }, 800) }
+  }
+  /** partie classée annulée avant de commencer (quelqu'un n'est pas venu ou est reparti) */
+  cancelRanked(msg: string) {
+    if (this.worker || !this.ranked) return;
+    clearTimeout(this.cancelTimer);
+    this.broadcast('cancel', { msg });
+    this.clock.setTimeout(() => this.disconnect(), 200);
+  }
+
   onLeave(client: Client) {
     const p = this.players.get(client.sessionId);
     this.players.delete(client.sessionId); this.sent.delete(client.sessionId);
     if (!p) return;
+    if (this.ranked && !this.worker) {
+      if (!this.over) { this.slots[p.slot] = { kind: 'open' }; this.cancelRanked(`${p.pseudo} est reparti : partie annulée, sans effet sur l'Elo. Relance la recherche.`) }
+      return;
+    }
     // quitter une partie en cours = abandon : en 1v1 l'adversaire gagne, en 2v2 l'allié continue seul
     if (this.worker) {
       if (!this.over) {
+        this.quit.add(p.slot);
         if (this.slots.length === 2) this.clientOf(1 - p.slot)?.send('note', { msg: 'Ton adversaire a quitté la partie', kind: 'warn' });
         this.worker.postMessage({ type: 'forfeit', team: p.slot });
         this.system(`${p.pseudo} a quitté la partie.`);
@@ -186,7 +227,7 @@ export class GameRoom extends Room {
   }
   /** état complet du salon, envoyé à chaque changement (quatre joueurs au plus : pas besoin de plus fin) */
   pushState() {
-    if (this.worker) return;
+    if (this.worker || this.ranked) return;
     const players = [...this.players.values()].sort((a, b) => a.slot - b.slot).map(p => ({ id: p.id, pseudo: p.pseudo, team: p.slot, slot: p.slot, ready: p.ready, host: p.id === this.host, acct: p.acct }));
     const slots = this.slots.map(s => ({ kind: s.kind, id: s.id || null }));
     for (const c of this.clients) c.send('salon', { code: this.roomId, name: this.title, priv: this.priv, host: this.host, you: c.sessionId, max: this.slots.length, slots, ...this.opts, players });
@@ -197,17 +238,23 @@ export class GameRoom extends Room {
   startGame() {
     this.lock();
     const ai = this.slots.map(s => s.kind === 'ai');
+    this.quit.clear();
+    this.lineup = this.slots.map(s => { if (s.kind === 'ai') return { pseudo: 'IA', ai: true }; const p = this.players.get(s.id!); return { userId: p?.userId, pseudo: p?.pseudo || '?', ai: false } });
     const w = this.worker = new Worker(new URL('./worker.mjs', import.meta.url), { workerData: { ...this.opts, ai } });
     w.on('message', m => {
       if (m.type === 'snap') this.broadcast('snap', m.snap);
       else if (m.type === 'note') this.clientOf(m.team)?.send('note', { msg: m.msg, kind: m.kind });
       // fin de partie : le salon n'est pas fermé, tout le monde peut y revenir pour une revanche
-      else if (m.type === 'end') { this.over = true; this.broadcast('end', { winner: m.winner, st: m.st, t: m.t }); this.backToSalon() }
+      else if (m.type === 'end') {
+        this.over = true; this.broadcast('end', { winner: m.winner, st: m.st, t: m.t });
+        if (this.ranked) this.endRanked(m.winner, m.t);
+        else { this.recordOnline(m.winner, m.t); this.backToSalon() }
+      }
     });
     w.on('error', e => { console.error('partie', this.roomId, e); this.disconnect() });
     this.syncMeta();
     const names = this.slots.map(s => s.kind === 'ai' ? 'IA' : this.players.get(s.id!)?.pseudo || '?');
-    for (const c of this.clients) { const p = this.players.get(c.sessionId)!; c.send('start', { team: p.slot, code: this.roomId, names, ...this.opts }) }
+    for (const c of this.clients) { const p = this.players.get(c.sessionId)!; c.send('start', { team: p.slot, code: this.roomId, names, ranked: !!this.ranked, ...this.opts }) }
     console.log(`partie ${this.roomId} lancée (${this.opts.mode}, ${this.opts.map})`);
   }
   /** après la partie : on arrête la simulation et on revient au salon d'attente, avec les mêmes places et réglages */
@@ -220,6 +267,25 @@ export class GameRoom extends Room {
     this.system('Partie terminée : retour au salon. Prêts pour une revanche ?');
     this.syncMeta(); this.pushState();
   }
+  /** partie classée terminée : Elo de chacun (envoyé à chaque joueur), puis la salle se ferme (pas de revanche en classé) */
+  async endRanked(winner: number, t: number) {
+    this.worker?.terminate(); this.worker = null;
+    try {
+      const seats = this.ranked!.seats.map((s, slot) => ({ slot, userId: s.userId, pseudo: this.lineup[slot]?.pseudo || s.pseudo, left: this.quit.has(slot) }));
+      const res = await settleRanked({ mode: this.opts.mode, map: this.opts.map, duration: t, winner, seats });
+      for (const c of this.clients) { const p = this.players.get(c.sessionId); if (p && res[p.slot]) c.send('elo', { mode: this.opts.mode, ...res[p.slot] }) }
+    } catch (e) {
+      console.error('classé : Elo non enregistré', this.roomId, e);
+      this.broadcast('note', { msg: 'Le résultat n\'a pas pu être enregistré. Désolé !', kind: 'warn' });
+    }
+    this.clock.setTimeout(() => this.disconnect(), 120_000);
+  }
+  /** partie en ligne non classée : dans l'historique des joueurs connectés à leur compte */
+  recordOnline(winner: number, t: number) {
+    if (!this.lineup.some(l => l.userId)) return;
+    const players = this.lineup.map((l, slot) => ({ slot, userId: l.userId ?? null, pseudo: l.pseudo, ai: l.ai, side: slot & 1, won: (slot & 1) === winner && !this.quit.has(slot), left: this.quit.has(slot) }));
+    saveMatch({ kind: 'online', mode: this.opts.mode, map: this.opts.map, duration: t, winner, players }).catch(e => console.error('historique : partie non enregistrée', e.code || e.message));
+  }
   clientOf(team: number) { return this.clients.find(c => this.players.get(c.sessionId)?.slot === team) }
-  onDispose() { this.worker?.terminate(); this.worker = null }
+  onDispose() { clearTimeout(this.cancelTimer); this.worker?.terminate(); this.worker = null }
 }

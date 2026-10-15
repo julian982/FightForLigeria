@@ -1,4 +1,4 @@
-// Test de bout en bout des comptes, contre une vraie base MariaDB (variables DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME).
+// Test de bout en bout des comptes avec confirmation de l'email (EMAIL_VERIFY=1), contre une vraie base MariaDB (variables DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME).
 // Sans base configurée, le test est ignoré. Les emails sont lus dans les journaux du serveur (pas de SMTP en test).
 import { spawn } from 'node:child_process';
 import { Client } from '@colyseus/sdk';
@@ -8,9 +8,9 @@ if (!process.env.DB_HOST) { console.log('comptes : pas de base de données (DB_H
 const PORT = 2900 + (Math.random() * 300 | 0), BASE = `http://localhost:${PORT}`;
 // base vide à chaque test
 const admin = await mariadb.createConnection({ host: process.env.DB_HOST, port: +(process.env.DB_PORT || 3306), user: process.env.DB_USER, password: process.env.DB_PASSWORD, database: process.env.DB_NAME });
-for (const t of ['email_tokens', 'sessions', 'users', 'schema_version']) await admin.query(`DROP TABLE IF EXISTS ${t}`);
+for (const t of ['match_players', 'matches', 'email_tokens', 'sessions', 'users', 'schema_version']) await admin.query(`DROP TABLE IF EXISTS ${t}`);
 const mails = [];
-const srv = spawn(process.execPath, ['dist/index.mjs'], { env: { ...process.env, PORT: String(PORT), API_PUBLIC_URL: BASE, GAME_URL: 'https://jeu.example/', SMTP_HOST: '' }, stdio: ['ignore', 'pipe', 'inherit'] });
+const srv = spawn(process.execPath, ['dist/index.mjs'], { env: { ...process.env, PORT: String(PORT), API_PUBLIC_URL: BASE, GAME_URL: 'https://jeu.example/', SMTP_HOST: '', EMAIL_VERIFY: '1' }, stdio: ['ignore', 'pipe', 'inherit'] });
 let out = '';
 await new Promise((ok, ko) => {
   srv.stdout.on('data', d => { out += d; for (const l of String(d).split('\n')) if (l.startsWith('MAIL ')) mails.push(JSON.parse(l.slice(5))); if (out.includes('base de données prête')) ok() });

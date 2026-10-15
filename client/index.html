@@ -21,7 +21,7 @@
       </div>
       <div class="who-box">
         <button class="pseudo-chip" id="pseudoChip" type="button" hidden>Tu joues en tant que <b id="pseudoName"></b> <span>modifier</span></button>
-        <a class="pseudo-chip acct-chip" id="acctChip" href="#compte" hidden><svg class="acct-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg><b id="acctName"></b> <span>Mon compte</span></a>
+        <a class="pseudo-chip acct-chip" id="acctChip" href="#compte" hidden><span class="acct-bl" id="acctBl"></span><b id="acctName"></b> <span>Mon compte</span></a>
         <a class="login-link" id="loginLink" href="#compte">Se connecter</a>
       </div>
     </nav>
@@ -55,12 +55,12 @@
           <p class="mode-meta">Contre tes amis · salon et discussion</p>
           <a class="go mode-go" href="#en-ligne">Voir les parties</a>
         </article>
-        <article class="mode off">
+        <article class="mode">
           <svg class="mode-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5Z"/><path d="M5 22h14"/></svg>
-          <div class="mode-title"><h2>Partie classée</h2><span class="tag">Bientôt</span></div>
-          <p class="mode-txt">File d'attente, adversaire de ton niveau, carte tirée au sort. Chaque partie fait bouger ton Elo.</p>
-          <p class="mode-meta">1v1 et 2v2 · nécessitera un compte</p>
-          <a class="go ghost-go mode-go" href="#file">En préparation · aperçu</a>
+          <h2>Partie classée</h2>
+          <p class="mode-txt">File d'attente, adversaire de ton niveau, carte tirée au sort. Chaque partie fait monter ou descendre ton Elo.</p>
+          <p class="mode-meta">1v1 et 2v2 · compte requis</p>
+          <a class="go mode-go" href="#file">Chercher une partie</a>
         </article>
       </div>
       <a class="hint-link" href="#guide">Première partie ? Lis comment jouer</a>
@@ -193,22 +193,28 @@
     <section class="sub-sec" aria-labelledby="fileT">
       <a class="back" href="#jouer">← Retour</a>
       <div class="rank-head">
-        <div class="row-title"><h2 id="fileT">Partie classée</h2><span class="soon">En préparation</span></div>
+        <div class="row-title"><h2 id="fileT">Partie classée</h2></div>
         <div class="tabs" role="tablist" aria-label="Mode classé">
           <button class="tab qtab" role="tab" aria-selected="true" data-q="1v1" type="button">1v1</button>
           <button class="tab qtab" role="tab" aria-selected="false" data-q="2v2" type="button">2v2</button>
         </div>
       </div>
       <div class="q-grid">
-        <div class="me q-card">
-          <div class="lbl" id="qModeLbl">File 1v1 · ton Elo 1000 (Bois I)</div>
+        <div class="me q-card" id="qLogin" hidden>
+          <div class="lbl">Compte requis</div>
+          <div class="q-status">Connecte-toi pour jouer en classé.</div>
+          <p>Ton Elo et ton rang sont liés à ton compte. L'inscription prend une minute, sans email à confirmer.</p>
+          <div class="end-btns"><a class="go" href="#compte">Se connecter ou créer un compte</a></div>
+        </div>
+        <div class="me q-card" id="qCard">
+          <div class="q-me"><span class="q-bl" id="qBl"></span><div><div class="lbl" id="qModeLbl">File 1v1</div><div class="q-rk" id="qRank"></div></div></div>
           <div class="q-status" id="qStatus" role="status">Prêt à chercher un adversaire.</div>
           <div class="q-timer" id="qTimer">0:00</div>
           <div class="q-window"><span>Écart d'Elo accepté</span><b id="qWindow">±100</b></div>
           <div class="q-bar"><i id="qBar"></i></div>
+          <div class="q-count" id="qCount"></div>
           <div class="end-btns"><button class="go" id="qStart" type="button">Chercher une partie</button><button class="go ghost" id="qCancel" type="button" hidden>Annuler</button></div>
-          <button class="go ghost" id="qAi" type="button" hidden>Jouer contre l'IA en attendant</button>
-          <p class="g-note">Le classé ouvrira avec le jeu en ligne. Cette file montre déjà comment la recherche s'élargit avec le temps.</p>
+          <p class="net-msg" id="qMsg" role="status"></p>
         </div>
         <div class="es">
           <h3>Comment ton adversaire est choisi</h3>
@@ -224,7 +230,8 @@
           <ul>
             <li>Un gros écart d'Elo est compensé : battre bien plus faible rapporte peu, perdre contre bien plus fort coûte peu.</li>
             <li>La carte est tirée au sort parmi les trois.</li>
-            <li>Quitter une partie classée compte comme une défaite.</li>
+            <li>En 2v2, les équipes sont équilibrées : le plus fort joue avec le plus faible.</li>
+            <li>Quitter une partie classée compte comme une défaite. Si quelqu'un ne se présente pas, la partie est annulée sans effet sur l'Elo.</li>
           </ul>
           <a class="hint-link" href="#classement">Voir toutes les règles de l'Elo</a>
         </div>
@@ -235,7 +242,7 @@
     <div class="view" id="v-classement" hidden>
     <section class="rank-sec" aria-labelledby="ranked">
       <div class="rank-head">
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><h2 id="ranked">Classement</h2><span class="soon">En préparation</span></div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><h2 id="ranked">Classement</h2></div>
         <div class="tabs" role="tablist" aria-label="Mode de classement">
           <button class="tab" role="tab" id="tab1v1" aria-selected="true" aria-controls="rankPanel" data-mode="1v1" type="button">1v1</button>
           <button class="tab" role="tab" id="tab2v2" aria-selected="false" aria-controls="rankPanel" data-mode="2v2" type="button">2v2</button>
@@ -245,11 +252,12 @@
         <div class="me">
           <div class="me-top">
             <svg id="meBadge" viewBox="0 0 100 120" aria-hidden="true"></svg>
-            <div><div class="lbl" id="meMode">Ton rang 1v1</div><div class="rk">Non classé</div><div class="sub">0 / 5 parties de placement</div></div>
+            <div><div class="lbl" id="meMode">Ton rang 1v1</div><div class="rk" id="meRk">Non classé</div><div class="sub" id="meSub">0 / 5 parties de placement</div></div>
           </div>
-          <div class="placements" aria-label="Parties de placement jouées : 0 sur 5"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="placements" id="mePlace" aria-label="Parties de placement jouées : 0 sur 5"><i></i><i></i><i></i><i></i><i></i></div>
           <p id="meText">Joue 5 parties classées en 1v1 pour être placé. Tu démarres à <b>1000 Elo</b>, soit <b>Bois I</b>, puis ton rang monte ou descend selon tes résultats.</p>
-          <p class="g-note">Les parties classées ouvriront avec le jeu en ligne. Tes rangs 1v1 et 2v2 sont indépendants. En classé, la carte est tirée au sort parmi les trois.</p>
+          <div class="end-btns" id="meBtns"></div>
+          <p class="g-note">Tes rangs 1v1 et 2v2 sont indépendants. En classé, la carte est tirée au sort parmi les trois.</p>
         </div>
         <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
           <div class="ladder" id="ladder"></div>
@@ -314,7 +322,6 @@
           </ul>
         </div>
       </div>
-      <p class="g-note">Ces règles s'appliqueront à l'ouverture du classement en ligne.</p>
     </section>
     </div>
 
@@ -393,7 +400,7 @@
       <a class="back" href="#jouer">← Jouer</a>
       <h2 id="acT">Mon compte</h2>
       <p class="net-msg" id="acMsg" role="status"></p>
-      <p class="help ac-why" id="acWhy">Un compte est <b>facultatif</b> : tu peux toujours jouer en invité. Il réserve ton pseudo et servira à la partie classée et à ton historique de parties.</p>
+      <p class="help ac-why" id="acWhy">Un compte est <b>facultatif</b> : tu peux toujours jouer en invité. Il réserve ton pseudo, porte ton blason, ouvre la partie classée et garde l'historique de tes parties.</p>
       <div class="ac-grid" id="acForms">
         <form class="panel ac-form" id="loginForm" novalidate>
           <h3 class="step">Se connecter</h3>
@@ -406,9 +413,10 @@
         <form class="panel ac-form" id="regForm" novalidate>
           <h3 class="step">Créer un compte</h3>
           <div class="field"><label class="lbl" for="rgPseudo">Pseudo</label><input class="txt" id="rgPseudo" maxlength="16" autocomplete="nickname" required><span class="help small">3 à 16 caractères : lettres, chiffres, espaces, tirets. Il sera réservé à ton compte.</span></div>
-          <div class="field"><label class="lbl" for="rgEmail">Email</label><input class="txt" id="rgEmail" type="email" maxlength="254" autocomplete="email" required><span class="help small">Jamais affiché en jeu. Il sert à confirmer ton compte et à retrouver ton mot de passe.</span></div>
+          <div class="field"><label class="lbl" for="rgEmail">Email</label><input class="txt" id="rgEmail" type="email" maxlength="254" autocomplete="email" required><span class="help small">Jamais affiché en jeu. Il sert à retrouver ton mot de passe.</span></div>
           <div class="field"><label class="lbl" for="rgPw">Mot de passe</label><input class="txt" id="rgPw" type="password" minlength="8" autocomplete="new-password" required><span class="help small">8 caractères au moins.</span></div>
           <div class="field"><label class="lbl" for="rgPw2">Confirme le mot de passe</label><input class="txt" id="rgPw2" type="password" autocomplete="new-password" required></div>
+          <div class="field"><span class="lbl">Ton blason</span><span class="help small">Il t'accompagne dans le classement, l'historique et les parties classées. Tu pourras le changer plus tard.</span><div id="rgBlason"></div></div>
           <label class="chk terms"><input type="checkbox" id="rgTerms"> <span>J'accepte les <a href="#cgu" target="_blank">conditions d'utilisation</a> et la <a href="#confidentialite" target="_blank">politique de confidentialité</a>.</span></label>
           <p class="net-msg warn" id="rgMsg" role="alert"></p>
           <button class="go big" type="submit">Créer mon compte</button>
@@ -427,14 +435,27 @@
         <p class="net-msg" id="fgMsg" role="status"></p>
         <div class="end-btns"><button class="go" type="submit">Envoyer le lien</button><button class="go ghost" type="button" id="fgBack">Retour</button></div>
       </form>
-      <div class="ac-grid" id="acProfile" hidden>
-        <div class="panel">
-          <h3 class="step">Profil</h3>
-          <div class="kv"><div><span>Pseudo</span><b id="pfPseudo"></b></div><div><span>Email</span><b id="pfEmail"></b></div><div><span>Membre depuis</span><b id="pfSince"></b></div></div>
-          <p class="help small">Ton email n'est jamais montré aux autres joueurs.</p>
-          <div class="grow"></div>
-          <button class="go ghost" type="button" id="pfLogout">Se déconnecter</button>
+      <div class="pf" id="acProfile" hidden>
+        <div class="panel pf-head">
+          <div class="pf-bl" id="pfBlason"></div>
+          <div class="pf-id">
+            <h3 class="pf-name" id="pfPseudo"></h3>
+            <p class="help small">Membre depuis le <span id="pfSince"></span> · <span id="pfEmail"></span> (jamais montré aux autres joueurs)</p>
+            <div class="end-btns"><button class="go ghost" type="button" id="pfEditBl">Modifier mon blason</button><a class="go" href="#file">Partie classée</a><button class="go ghost" type="button" id="pfLogout">Se déconnecter</button></div>
+          </div>
+          <div class="pf-ranks" id="pfRanks"></div>
         </div>
+        <div class="panel" id="pfBlEdit" hidden>
+          <h3 class="step">Mon blason</h3>
+          <div id="pfEditor"></div>
+          <p class="net-msg" id="blMsg" role="status"></p>
+          <div class="end-btns"><button class="go" type="button" id="pfBlSave">Enregistrer le blason</button><button class="go ghost" type="button" id="pfBlCancel">Annuler</button></div>
+        </div>
+        <section class="panel pf-hist" aria-labelledby="histT">
+          <div class="pf-hist-head"><h3 class="step" id="histT">Historique des parties</h3>
+            <div class="seg" id="histFilter"><button type="button" data-k="all" aria-pressed="true">Toutes</button><button type="button" data-k="ranked" aria-pressed="false">Classées</button><button type="button" data-k="online" aria-pressed="false">En ligne</button><button type="button" data-k="solo" aria-pressed="false">Contre l'IA</button></div></div>
+          <div id="pfHist" class="hist"></div>
+        </section>
         <form class="panel" id="delForm" novalidate>
           <h3 class="step">Supprimer mon compte</h3>
           <p class="help">La suppression est immédiate et définitive : ton compte, ton email et ton pseudo réservé sont effacés.</p>
@@ -490,17 +511,19 @@
       <ul>
         <li>ton pseudo, ton adresse email et ton mot de passe, enregistré uniquement sous forme chiffrée irréversible (on ne peut pas le lire) ;</li>
         <li>la date de création du compte, la date de ta dernière connexion et la version des conditions que tu as acceptées ;</li>
-        <li>tes sessions de connexion (une empreinte de ton jeton de connexion et ses dates).</li>
+        <li>tes sessions de connexion (une empreinte de ton jeton de connexion et ses dates) ;</li>
+        <li>ton blason, ton Elo et tes nombres de parties et de victoires classées (1v1 et 2v2) ;</li>
+        <li>l'historique de tes parties : date, type (classée, en ligne, contre l'IA), carte, durée, résultat, évolution de l'Elo et pseudos des autres joueurs de la partie.</li>
       </ul>
-      <p>Ton email n'est jamais montré aux autres joueurs. Il sert uniquement à confirmer ton compte et à t'envoyer un lien si tu oublies ton mot de passe : pas de lettre d'information, pas de publicité.</p>
+      <p>Ton pseudo, ton blason, ton rang et ton Elo apparaissent dans le classement public dès que tu as fini tes parties de placement. Ton pseudo et ton blason apparaissent aussi dans l'historique des joueurs que tu as affrontés.</p>
+      <p>Ton email n'est jamais montré aux autres joueurs. Il sert uniquement à t'envoyer un lien si tu oublies ton mot de passe : pas de lettre d'information, pas de publicité.</p>
       <h3>Pourquoi, et sur quelle base ?</h3>
-      <p>Pour créer et gérer ton compte, réserver ton pseudo et, à venir, tenir ton classement et ton historique de parties. La base légale est l'exécution des <a href="#cgu">conditions d'utilisation</a> que tu acceptes en créant ton compte. Les limites de tentatives de connexion et les journaux techniques relèvent de l'intérêt légitime : protéger le service et les comptes.</p>
+      <p>Pour créer et gérer ton compte, réserver ton pseudo, tenir ton classement et ton historique de parties. La base légale est l'exécution des <a href="#cgu">conditions d'utilisation</a> que tu acceptes en créant ton compte. Les limites de tentatives de connexion et les journaux techniques relèvent de l'intérêt légitime : protéger le service et les comptes.</p>
       <h3>Combien de temps ?</h3>
       <ul>
-        <li>le compte : jusqu'à ce que tu le supprimes ;</li>
-        <li>un compte jamais confirmé : effacé au bout de 7 jours ;</li>
+        <li>le compte, ton Elo et ton historique : jusqu'à ce que tu le supprimes. À la suppression, ton pseudo est remplacé par « Compte supprimé » dans l'historique des autres joueurs ;</li>
         <li>une session : 30 jours après ta dernière visite ;</li>
-        <li>les liens envoyés par email : 48 heures (confirmation) ou 1 heure (mot de passe) ;</li>
+        <li>les liens envoyés par email : 1 heure (mot de passe) ;</li>
         <li>les journaux techniques du serveur, qui peuvent contenir ton adresse IP : effacés automatiquement au fil de leur renouvellement (durée précise <span class="pending">en cours de définition</span>).</li>
       </ul>
       <h3>Qui y a accès ?</h3>
@@ -603,6 +626,19 @@
   <p class="g-chat-hint" id="gChatHint">Entrée : discuter</p>
 </div>
 
+<div class="overlay elo-ov" id="eloOv" hidden role="dialog" aria-modal="true" aria-labelledby="eloTitle">
+  <div class="card elo-card">
+    <p class="elo-kind" id="eloKind">Partie classée</p>
+    <h1 id="eloTitle">Victoire</h1>
+    <div class="elo-badge" id="eloBadge"></div>
+    <div class="elo-rank" id="eloRank"></div>
+    <div class="elo-line"><b class="elo-num" id="eloNum">1000</b><span class="elo-unit">Elo</span><b class="elo-delta" id="eloDelta"></b></div>
+    <div class="elo-bar" aria-hidden="true"><i id="eloBar"></i></div>
+    <div class="elo-bar-lbl" aria-hidden="true"><span id="eloLo"></span><span id="eloHi"></span></div>
+    <p class="elo-msg" id="eloMsg" role="status"></p>
+    <div class="end-btns"><button class="go" id="eloOk" type="button">Voir le bilan</button></div>
+  </div>
+</div>
 <div class="overlay" id="end" hidden>
   <div class="card end-card">
     <div class="end-head"><h1 id="endTitle">Victoire</h1><p id="endText"></p></div>
