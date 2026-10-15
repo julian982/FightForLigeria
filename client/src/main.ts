@@ -1,7 +1,7 @@
 // FightForLigeria : point d'entrée du client.
 import '../css/game.css';
 import '../css/home.css';
-import { S, MAPS, loadMap, genTrees, newGame, update, setHooks, G, trees, pushOut, findSpot, addBuilding, pay, afford, spawnUnit } from '@ffl/shared';
+import { S, MAPS, MAP_IDS, loadMap, genTrees, newGame, update, setHooks, G, trees, pushOut, findSpot, addBuilding, pay, afford, spawnUnit } from '@ffl/shared';
 import { $, ui, sel, ME, setMe, view } from './state';
 import { online, act } from './net/act';
 import { initMirror, netTick } from './net/mirror';
@@ -22,6 +22,7 @@ import { endGame } from './ui/end';
 import { steerLord, updateCursor } from './ui/input';
 import { audio, startAmbiance, stopAmbiance, setAmbianceVolume, setMuted, audioState, loadSfx, setSfxVolume } from './audio';
 import { updateSfx } from './sfx';
+import { startTutorial, stopTutorial } from './ui/tutorial';
 
 initHome();
 initGameChat();
@@ -40,7 +41,7 @@ let worldMap:string|null=null;
 /** charge une carte dans sa version 1v1 ou 2v2 et reconstruit le décor (si ce n'est pas déjà celle-là) */
 function setMap(id,mode:'1v1'|'2v2'='1v1'){const key=id+':'+mode;if(worldMap===key)return;loadMap(id,mode);worldMap=key;rebuildWorld();makeMiniBase()}
 function startGame(opts){
-  newGame({rich:!!opts.rich});
+  newGame({rich:!!opts.rich,tuto:!!opts.tuto});
   sel.clear();ui.placing=null;ui.box=null;ui.selB=null;ui.selW=null;
   const L=G.teams[ME].lord;camT.set(L.x*S,0,L.y*S);
 }
@@ -49,10 +50,10 @@ function showHome(on){$('home').hidden=!on;$('play').hidden=on;if(on&&window.__s
 let gameOpts:any={},timeScale=1;
 /** oriente la caméra pour que son camp soit toujours en bas à gauche de l'écran */
 function faceTeam(){view.camYaw=view.yawTarget=Math.PI/4+(ME===1?Math.PI:0)}
-function start(opts){leaveGame();setMe(0);faceTeam();gameOpts=opts||{};timeScale=gameOpts.speed||1;showHome(false);applyColors();setMap(selMap);startGame(gameOpts);
+function start(opts){leaveGame();setMe(0);faceTeam();gameOpts=opts||{};timeScale=gameOpts.speed||1;showHome(false);applyColors();setMap(gameOpts.tuto?'jardin':selMap);startGame(gameOpts);
   ui.running=true;$('end').hidden=true;endButtons(false);resize();refreshHud();startAmbiance();loadSfx();refreshGameChat();
-  if(timeScale>1||gameOpts.rich)toast([timeScale>1?'Vitesse rapide':'',gameOpts.rich?'stock généreux':''].filter(Boolean).join(' · '));toast('Ton stock attend dans les charrettes : pose ta réserve (1) et ton grenier (2), ils sont gratuits')}
-function goHome(){if(online())leaveGame();exitFps();stopAmbiance();ui.running=false;if(G)G.ctrl[ME].charging=false;ui.placing=null;ui.box=null;$('end').hidden=true;showHome(true);$('start').focus();refreshGameChat()}
+  if(timeScale>1||gameOpts.rich)toast([timeScale>1?'Vitesse rapide':'',gameOpts.rich?'stock généreux':''].filter(Boolean).join(' · '));if(gameOpts.tuto)startTutorial();else{stopTutorial();toast('Ton stock attend dans les charrettes : pose ta réserve (1) et ton grenier (2), ils sont gratuits')}}
+function goHome(){stopTutorial();if(online())leaveGame();exitFps();stopAmbiance();ui.running=false;if(G)G.ctrl[ME].charging=false;ui.placing=null;ui.box=null;$('end').hidden=true;showHome(true);$('start').focus();refreshGameChat()}
 // en ligne : « Retour au salon » (la revanche se prépare là), sinon on rejoue contre l'IA
 $('again').addEventListener('click',()=>{if(gameOpts.online){toSalon();return}start(gameOpts)});
 /** depuis l'écran de fin d'une partie en ligne : retour dans le salon, qui a été gardé par le serveur */
@@ -69,8 +70,8 @@ $('toMenu').addEventListener('click',goHome);
 $('quit').addEventListener('click',goHome);
 
 // sélection de la carte (vignettes dessinées depuis les vraies données de chaque carte)
-let selMap='amboise';try{const v=localStorage.getItem('ffl.map');if(MAPS[v])selMap=v}catch(e){}
-{const box=$('maps'),ids=Object.keys(MAPS);
+let selMap='amboise';try{const v=localStorage.getItem('ffl.map');if(MAPS[v]&&!MAPS[v].tuto)selMap=v}catch(e){}
+{const box=$('maps'),ids=MAP_IDS;
   for(const [i,id] of ids.entries()){
     loadMap(id);const tl=genTrees();
     const b=document.createElement('button');b.type='button';b.className='mapcard';b.dataset.id=id;b.setAttribute('role','radio');

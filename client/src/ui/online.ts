@@ -9,7 +9,8 @@ const $ = (id: string): any => document.getElementById(id);
 const ESC: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 /** tout ce qui vient des autres joueurs (pseudos, noms de partie, messages) passe par ici avant d'entrer dans le HTML */
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ESC[c]);
-const MAP_IDS = Object.keys(MAPS);
+import { MAP_IDS as PLAYABLE } from '@ffl/shared';
+const MAP_IDS = PLAYABLE;
 const mapName = (id: string) => MAPS[id] ? MAPS[id].name : '?';
 /** vignette d'une carte dans sa version 1v1 ou 2v2 */
 const thumbOf = (id: string, mode: string) => THUMBS[mode === '2v2' ? id + ':2v2' : id] || THUMBS[id] || '';

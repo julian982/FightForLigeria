@@ -21,7 +21,7 @@ export type Mode = '1v1' | '2v2';
 export const seatsOf = (mode: Mode) => mode === '2v2' ? 4 : 2;
 export function cleanSettings(o: any, prev = { map: 'amboise', mode: '1v1' as Mode, rich: false, speed: 1 }) {
   return {
-    map: o && MAPS[o.map] ? o.map : prev.map,
+    map: o && MAPS[o.map] && !MAPS[o.map].tuto ? o.map : prev.map,
     mode: (o && (o.mode === '1v1' || o.mode === '2v2') ? o.mode : prev.mode) as Mode,
     rich: o && 'rich' in o ? !!o.rich : prev.rich,
     speed: o && SPEEDS.includes(+o.speed) ? +o.speed : prev.speed,

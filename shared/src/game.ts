@@ -13,6 +13,8 @@ export interface GameOptions {
   rich?: boolean;
   /** pour chaque joueur : true si l'IA le contrôle (par défaut en 1v1 : le joueur 1) */
   ai?: boolean[];
+  /** tutoriel : un seul royaume, pas d'adversaire, pas de fin de partie, stock généreux */
+  tuto?: boolean;
 }
 
 export function newStats() { return { killS: 0, killW: 0, lostS: 0, lostW: 0, recruits: 0, prod: { bois: 0, pierre: 0, ble: 0, fer: 0, arc: 0, lance: 0, epee: 0, fleche: 0 }, built: 0, lostB: 0, razed: 0, shot: 0, hit: 0, dmg: 0, longest: 0, starve: 0, army: [], resH: [] } }
@@ -26,7 +28,7 @@ export function newGame(opts: GameOptions = {}) {
   setTrees(genTrees().map((t, i) => (t.id = i, t)));
   // la disposition (1v1 ou 2v2) vient de la carte chargée par loadMap
   const N = PLAYERS, ids = Array.from({ length: N }, (_, i) => i);
-  const ai = ids.map(i => opts.ai ? !!opts.ai[i] : N === 2 && i === 1);
+  const ai = ids.map(i => opts.tuto ? false : opts.ai ? !!opts.ai[i] : N === 2 && i === 1);
   setG({ t: 0, seed: Math.random() * 2 ** 31 | 0, teams: [], buildings: [], units: [], workers: [], arrows: [], fx: [], over: null, winner: null, foodT: 0, nid: 1, uid: 1, aid: 1,
     ai: ids.map(() => ({ i: 0, t: 0, wave: 5, next: 240 })), stats: { kills: 0, recruits: 0 }, st: ids.map(newStats), histT: 0,
     ctrl: ids.map(i => newCtrl(ai[i])), boat: newBoat() });
@@ -39,6 +41,14 @@ export function newGame(opts: GameOptions = {}) {
   }
   buildNav();
   if (opts.rich) for (const tm of G.teams) for (const k in RICH_RES) (k in tm.stash ? tm.stash : tm.res)[k] = RICH_RES[k];
+  if (opts.tuto) {
+    // le royaume d'en face n'existe pas : ni donjon ni seigneur, et la partie ne finit jamais
+    G.tuto = true;
+    for (const tm of G.teams) if (tm.id !== 0) { tm.out = true; tm.lord.dead = true; tm.keep.dead = true }
+    G.units = G.units.filter(u => u.team === 0); G.buildings = G.buildings.filter(b => b.team === 0);
+    const tm = G.teams[0]; Object.assign(tm.stash, { bois: 250, pierre: 150, ble: 80, fer: 0 }); tm.res.fleche = 20;
+    buildNav();
+  }
   return G;
 }
 /** ressources rangées dans chaque bâtiment de stockage */
@@ -388,7 +398,7 @@ function eliminate(p, left = false) {
 }
 /** un camp n'a plus aucun seigneur debout : l'autre gagne */
 function checkEnd() {
-  if (G.over) return;
+  if (G.over || G.tuto) return;
   const alive = [0, 1].map(s => G.teams.some(t => t.side === s && !t.out));
   if (!alive[0]) finish(1); else if (!alive[1]) finish(0);
 }

@@ -203,7 +203,8 @@ a.go{text-decoration:none;display:inline-flex;align-items:center;justify-content
 .play-sec{display:flex;flex-direction:column;gap:28px}
 .play-head{display:flex;flex-direction:column;gap:8px}
 .play-h1{margin:0;font-family:var(--f-display);font-weight:400;font-size:clamp(40px,6vw,60px);line-height:1;color:var(--text)}
-.modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.modes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+@media (max-width:1280px){.modes{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .mode{display:flex;flex-direction:column;gap:14px;padding:26px;background:var(--wood);border:1px solid var(--rule);border-radius:4px;min-width:0}
 .mode.hot{border-color:var(--gold)}
 .mode.off{opacity:.62}

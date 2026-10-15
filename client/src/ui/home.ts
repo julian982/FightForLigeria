@@ -145,6 +145,7 @@ export function initHome(){
     const solo={stock:'normal',speed:'1'};
     for(const [box,key] of [['soloStock','stock'],['soloSpeed','speed']])
       for(const b of byId(box).children)b.addEventListener('click',()=>{solo[key]=b.dataset.v;for(const o of byId(box).children)o.setAttribute('aria-pressed',o===b)});
+    byId('tutoStart').addEventListener('click',()=>{if(window.__startGame)window.__startGame({tuto:true})});
     byId('start').addEventListener('click',()=>{if(window.__startGame)window.__startGame({rich:solo.stock==='riche',speed:+solo.speed})});
   })();
   initOnline();

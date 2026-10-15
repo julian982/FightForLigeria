@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  loadMap, newGame, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater,
+  loadMap, newGame, MAPS, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater,
   placeBuilding, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
   START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRONS, shotClear, findPath, buildNav, KEEPS, PLAYERS, H, isFoe, onPath, MAP, fireArrow, orderAttack, applyCommand, makeSnapshot, B_TYPES, forfeit, canPlace, GW, GH, identityOf, jobOf, riverY, W,
 } from '../src/index';
@@ -525,5 +525,26 @@ describe('gisements de pierre', () => {
       G.teams[p].res.bois = 50;
       const sp = findSpot(p, 'carriere'); expect(sp, 'carrière pour le joueur ' + p).toBeTruthy();
     }
+  });
+});
+
+describe('tutoriel', () => {
+  it('la carte du tutoriel n\'est pas proposée en partie normale', () => {
+    expect(MAPS.jardin.tuto).toBe(true);
+    expect(MAP_IDS).not.toContain('jardin');
+  });
+  it('une partie tutoriel n\'a pas d\'adversaire et ne se termine jamais', () => {
+    loadMap('jardin'); newGame({ tuto: true });
+    expect(G.tuto).toBe(true);
+    expect(G.units.every((u: any) => u.team === 0)).toBe(true);
+    expect(G.buildings.every((b: any) => b.team === 0)).toBe(true);
+    for (let i = 0; i < 60 * 60; i++) update(1 / 60);
+    expect(G.over).toBeFalsy();
+    // on peut tout poser, la réserve puis le bûcheron
+    const r = findSpot(0, 'reserve'); expect(r).toBeTruthy();
+    addBuilding(0, 'reserve', r!.x, r!.y);
+    const b = findSpot(0, 'bucheron'); expect(b).toBeTruthy();
+    for (let i = 0; i < 60 * 30; i++) update(1 / 60);
+    expect(G.over).toBeFalsy();
   });
 });

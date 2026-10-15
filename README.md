@@ -144,12 +144,15 @@ Trois cartes symétriques, au choix sur la page Jouer. Les donjons, le tuffeau e
 
 En classé, la carte sera tirée au sort parmi les trois.
 
+Une quatrième carte, **Le Jardin de la France**, est réservée au tutoriel : un val paisible au bord de la Loire, sans adversaire. Elle n'apparaît ni dans le choix des cartes ni en ligne.
+
 ## Écran de fin
 
 À la fin de chaque partie, un bilan compare toi et l'ennemi : ennemis tués, soldats et ouvriers perdus, soldats recrutés, flèches tirées et touchées, précision, dégâts et plus long tir du seigneur, bâtiments construits, perdus et rasés, ressources produites par type, temps de famine, une courbe de la taille des armées et une courbe des ressources produites (total ou par ressource).
 
 ## Modes de jeu
 
+- **Tutoriel** : sur Le Jardin de la France, sans adversaire et sans fin de partie. Un panneau présente chaque bâtiment, un par un (ce qu'il fait, sa touche, son coût) et passe au suivant dès qu'il est posé ; le bouton du bâtiment attendu clignote. « Passer le tutoriel » ferme le panneau et laisse bâtir son village librement.
 - **Contre l'IA** : partie libre sur la carte choisie.
 - **Partie classée** (en préparation) : file d'attente 1v1 ou 2v2, carte tirée au sort, fait bouger l'Elo.
 - **Contre l'IA** : choix de la carte, stock de départ (normal ou généreux), vitesse (normale ou rapide) et couleur du royaume.

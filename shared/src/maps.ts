@@ -25,8 +25,17 @@ export const MAPS: Record<string, any> = {
     clusters:[[150,250,140,22],[520,450,110,16],[140,1170,130,20],[480,1380,120,16],[937,640,140,22],[878,240,130,20],[966,1180,130,20],[1322,420,90,12],[1322,1240,90,12]],
     scatter:420,clearings:[[1440,840,190],[700,980,100],[W-700,980,100],[560,640,110],[W-560,640,110]],vines:[[1440,200]],sand:[[996,1585,2.4],[1884,1585,2.4]],bridges:[],
     grass:[0x4f8036,0x5a8b3c,0x4a7832,0x63964a,0x55873a]},
+  // carte du tutoriel : un val paisible, sans adversaire (jamais proposée dans les parties normales)
+  jardin:{name:'Le Jardin de la France',desc:"Un val paisible au bord de la Loire, pour apprendre à bâtir ton village sans être dérangé.",
+    seed:1789,treeSeed:1515,amp:.35,tuto:true,
+    south:x=>1480+20*Math.sin(x/260)+10*Math.sin(x/90+2),
+    path:x=>800+Math.sin(x/280)*55*Math.sin(clamp01((x-300)/(W-600))*Math.PI),
+    clusters:[[150,260,120,16],[540,470,80,9],[140,1180,110,14],[460,1430,110,12],[1000,700,110,14],[880,240,100,12],[1010,1210,100,12]],
+    scatter:0,clearings:[],vines:[[1440,190],[1440,1080],[700,620]],sand:[[640,1555,3],[1500,1565,3.4]],bridges:[],
+    grass:[0x66984a,0x6fa24f,0x619447,0x78ac55,0x6a9b4b]},
 };
-export const MAP_IDS = Object.keys(MAPS);
+/** cartes des parties (le tutoriel a sa propre carte, hors liste) */
+export const MAP_IDS = Object.keys(MAPS).filter(id => !MAPS[id].tuto);
 
 /** carte chargée, dans sa version 1v1 ou 2v2 (liaison vivante : les autres modules voient toujours la valeur à jour) */
 export let MAP: any = MAPS.amboise;

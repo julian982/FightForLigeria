@@ -34,6 +34,13 @@
       </div>
       <p id="nogl" class="net-msg warn" hidden>Le moteur 3D n'a pas pu se charger. Vérifie ta connexion puis recharge la page.</p>
       <div class="modes">
+        <article class="mode tuto">
+          <svg class="mode-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V10l8-6 8 6v11"/><path d="M9 21v-6h6v6"/><path d="M2 21h20"/><path d="M12 4V2"/></svg>
+          <h2>Tutoriel</h2>
+          <p class="mode-txt">Bâtis ton village au bord de la Loire, sans adversaire. Chaque bâtiment t'est présenté, un par un.</p>
+          <p class="mode-meta">Le Jardin de la France · sans ennemi</p>
+          <button class="go mode-go" type="button" id="tutoStart">Apprendre à bâtir</button>
+        </article>
         <article class="mode">
           <svg class="mode-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/><path d="M9.5 6.5 14 2h3v3l-4.5 4.5"/><path d="M5 14l-2 2 2 2"/></svg>
           <h2>Contre l'IA</h2>
@@ -314,6 +321,7 @@
     <div class="view" id="v-guide" hidden>
     <section class="guide-sec" aria-labelledby="howto">
       <h2 id="howto">Comment jouer</h2>
+      <p class="g-note">Le plus simple pour débuter : lance le <b>Tutoriel</b> depuis la page Jouer. Il te fait poser chaque bâtiment, un par un, sans adversaire.</p>
       <div class="guide">
         <article class="g">
           <h3>Ton seigneur</h3>
@@ -575,6 +583,7 @@
 </div>
 
 <div class="hud-bot" id="hudBot">
+  <div id="tutoPanel" class="tuto-panel" hidden aria-live="polite"></div>
   <div id="selBar" hidden></div>
   <div id="bldPanel" hidden></div>
   <div id="wkPanel" hidden></div>
