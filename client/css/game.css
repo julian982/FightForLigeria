@@ -65,10 +65,13 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 .hud-bot:has(#bldPanel:not([hidden])) #selBar{right:262px}
 .hud-bot:has(#wkPanel:not([hidden])) #selBar{right:332px}
 #selBar>span{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted,#a99d87);margin-right:2px}
-#selBar button{font:inherit;font-size:16px;font-weight:700;color:var(--text);background:var(--wood2);border:1px solid var(--rule);border-radius:4px;min-height:44px;padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:8px}
-#selBar button:hover{border-color:var(--gold);background:#3a2f22}
+#selBar button{font:inherit;font-size:16px;font-weight:700;color:var(--text);background:linear-gradient(#3a3026,var(--wood2));border:1px solid var(--rule);border-radius:6px;width:116px;padding:6px 6px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+#selBar button img{display:block;width:80px;height:100px;object-fit:contain;pointer-events:none;filter:drop-shadow(0 4px 5px rgba(0,0,0,.45))}
+#selBar .sb-txt{display:flex;align-items:baseline;gap:6px;line-height:1.1}
+#selBar button:hover{border-color:var(--gold);background:linear-gradient(#4a3d2c,#3a2f22)}
+#selBar button:active{transform:translateY(1px)}
 #selBar button:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
-#selBar button b{color:var(--gold);font-size:18px;font-variant-numeric:tabular-nums}
+#selBar button b{color:var(--gold);font-size:20px;font-variant-numeric:tabular-nums}
 /* vue seigneur : on ne garde que le bandeau du haut */
 #play.fps .hud-bot{display:none}
 #play.fps #game{cursor:none}

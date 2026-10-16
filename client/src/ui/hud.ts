@@ -2,6 +2,7 @@
 import { BUILD_LIST, DEF, G, RESN, STORE_OF, afford, armySize, identityOf, isFoe, jobOf, missing, refundOf } from '@ffl/shared';
 import { TEAMC } from '../render/engine';
 import { portraitSvg } from './portrait';
+import { unitShot } from '../render/unitshot';
 import { act } from '../net/act';
 import { $, ME, sel, ui } from '../state';
 
@@ -45,7 +46,9 @@ export function renderSelBar(){
   const types=Object.keys(SEL_NAMES).filter(t=>n[t]);
   const key=types.map(t=>t+n[t]).join(',');if(key===selKey)return;selKey=key;
   selBar.hidden=!types.length;if(!types.length){selBar.innerHTML='';return}
-  selBar.innerHTML='<span>Sélection</span>'+types.map(t=>`<button type="button" data-t="${t}" title="Ne garder que les ${SEL_NAMES[t][1].toLowerCase()} (Maj : les retirer)"><b>${n[t]}</b>${SEL_NAMES[t][n[t]>1?1:0]}</button>`).join('');
+  // chaque type de troupe a sa carte : image du modèle 3D, nombre et nom
+  selBar.innerHTML='<span>Sélection</span>'+types.map(t=>{const img=unitShot(t,ME);
+    return `<button type="button" data-t="${t}" title="Ne garder que les ${SEL_NAMES[t][1].toLowerCase()} (Maj : les retirer)">${img?`<img src="${img}" alt="" draggable="false">`:''}<span class="sb-txt"><b>${n[t]}</b>${SEL_NAMES[t][n[t]>1?1:0]}</span></button>`}).join('');
 }
 selBar.addEventListener('click',(e:any)=>{
   const b=e.target.closest('button');if(!b)return;const t=b.dataset.t;

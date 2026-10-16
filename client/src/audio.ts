@@ -1,6 +1,5 @@
-// Le son : l'ambiance nature (boucle) et les bruitages (arc, travail des ouvriers, dépôts), avec volumes réglables
+// Le son : les bruitages (arc, travail des ouvriers, dépôts), avec volumes réglables
 // et coupure. Réglages gardés dans le navigateur.
-import natureUrl from './assets/sounds/ambiance-nature.mp3?url';
 import bandUrl from './assets/sounds/arc-bander.mp3?url';
 import tirUrl from './assets/sounds/arc-tir.mp3?url';
 import chairUrl from './assets/sounds/impact-chair.mp3?url';
@@ -38,20 +37,9 @@ function ensure() {
 function ramp(g: GainNode, v: number, sec: number) { const t = ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(v, t + sec) }
 const ambTarget = () => audio.muted ? 0 : audio.ambiance * .8;
 const sfxTarget = () => audio.muted ? 0 : audio.sfx;
-function loadAmb() {
-  if (ambBuf) return Promise.resolve();
-  if (!loading) loading = fetch(natureUrl).then(r => r.arrayBuffer()).then(b => new Promise<void>((ok, ko) => ctx.decodeAudioData(b, buf => { ambBuf = buf; ok() }, ko)));
-  return loading;
-}
-/** lance l'ambiance en fondu (à appeler après un clic : les navigateurs l'exigent) */
-export async function startAmbiance() {
-  wanted = true;
-  try {
-    if (!ensure()) return; await loadAmb(); if (!wanted) return;
-    if (!ambSrc) { ambSrc = ctx.createBufferSource(); ambSrc.buffer = ambBuf; ambSrc.loop = true; ambSrc.connect(ambGain); ambSrc.start(0, Math.random() * ambBuf.duration) }
-    ramp(ambGain, ambTarget(), 2.5);
-  } catch (e) { /* pas de son : le jeu continue */ }
-}
+/** début de partie : prépare le son (à appeler après un clic : les navigateurs l'exigent). Il n'y a plus de musique
+ *  d'ambiance : seulement les bruitages. */
+export function startAmbiance() { wanted = true; try { ensure() } catch (e) { /* pas de son : le jeu continue */ } }
 /** coupe l'ambiance en fondu (retour au menu) */
 export function stopAmbiance() {
   wanted = false; if (!ctx || !ambSrc) return;
