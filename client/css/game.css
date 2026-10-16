@@ -60,11 +60,15 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 .go[disabled]{background:transparent;color:var(--muted);border-color:var(--rule);cursor:default}
 #nogl{color:var(--bad)}
 /* sélection en cours : un bouton par type de soldat */
-#selBar{position:absolute;left:16px;bottom:calc(100% + 8px);display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;background:rgba(31,26,21,.88);border:1px solid var(--rule);border-radius:3px}
+#selBar{position:absolute;right:16px;bottom:calc(100% + 8px);display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:8px;max-width:calc(100% - 32px);padding:8px 8px 8px 12px;background:rgba(31,26,21,.92);border:1px solid var(--rule);border-radius:4px}
+/* une fenêtre de bâtiment ou d'ouvrier est ouverte à droite : la sélection se pose juste à sa gauche */
+.hud-bot:has(#bldPanel:not([hidden])) #selBar{right:262px}
+.hud-bot:has(#wkPanel:not([hidden])) #selBar{right:332px}
 #selBar>span{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted,#a99d87);margin-right:2px}
-#selBar button{font:inherit;font-size:14px;color:var(--text);background:var(--wood2);border:1px solid var(--rule);border-radius:3px;padding:4px 10px;cursor:pointer;display:flex;align-items:center;gap:6px}
-#selBar button:hover{border-color:var(--gold)}
-#selBar button b{color:var(--gold);font-variant-numeric:tabular-nums}
+#selBar button{font:inherit;font-size:16px;font-weight:700;color:var(--text);background:var(--wood2);border:1px solid var(--rule);border-radius:4px;min-height:44px;padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:8px}
+#selBar button:hover{border-color:var(--gold);background:#3a2f22}
+#selBar button:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+#selBar button b{color:var(--gold);font-size:18px;font-variant-numeric:tabular-nums}
 /* vue seigneur : on ne garde que le bandeau du haut */
 #play.fps .hud-bot{display:none}
 #play.fps #game{cursor:none}

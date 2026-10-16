@@ -15,10 +15,11 @@ let lastArcher = 0, lastSmallHit = 0, lastFrame = 0;
 /** bruit de chaque métier : son, intervalle entre deux coups (s), volume, hauteur */
 const WORK: Record<string, [string, number, number, number]> = {
   bucheron: ['coupe', .95, .75, 1], carriere: ['taille', 1.15, .6, 1], mine: ['pic', 1.3, .6, 1], forge: ['enclume', 1.1, .4, 1],
-  arcs: ['atelier', 1.7, .45, 1], lances: ['atelier', 1.7, .45, .88], fleches: ['atelier', 1.9, .4, 1.25], ferme: ['faux', 2.6, .4, 1],
+  // l'atelier d'arcs et l'atelier de flèches ne font aucun bruit (ni travail ni dépôt)
+  lances: ['atelier', 1.7, .45, .88], ferme: ['faux', 2.6, .4, 1],
 };
 /** bruit du dépôt selon ce que l'ouvrier rapporte */
-const DROP: Record<string, string> = { bois: 'd-bois', pierre: 'd-pierre', fer: 'd-fer', ble: 'd-ble', arc: 'd-armes', lance: 'd-armes', epee: 'd-armes', fleche: 'd-armes' };
+const DROP: Record<string, string> = { bois: 'd-bois', pierre: 'd-pierre', fer: 'd-fer', ble: 'd-ble', lance: 'd-armes', epee: 'd-armes' };
 const workT = new Map<number, number>(), carried = new Map<number, string | null>();
 let workBudget = 0;
 /** volume d'un bruit du village : on l'entend surtout de près, et plus fort quand on zoome */
