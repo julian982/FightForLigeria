@@ -1,35 +1,38 @@
 // Les cartes : données, eau, relief. Toutes symétriques, donjons et gisements aux mêmes places.
-import { W, H, H1, T, S, GH_MAX, IRONS, ROCKS, KEEPS, BRIDGE_Y, setLayout, type Mode } from './config';
+import { W, H, H1, T, S, GH_MAX, IRONS, ROCKS, KEEPS, BRIDGE_Y, MAP_SCALE, setLayout, type Mode } from './config';
 import { clamp01, dist, rng } from './util';
 
+/** largeur du dessin d'origine des cartes : leurs coordonnées sont écrites pour 2880 × 1600 px, puis agrandies
+ *  au chargement (MAP_SCALE) */
+const BW = 2880;
 export const MAPS: Record<string, any> = {
   amboise:{name:"Rives d'Amboise",desc:"La Loire borde le sud, des forêts sur les flancs, le fer au milieu de la plaine. Une carte ouverte et équilibrée.",
     seed:42,treeSeed:1337,amp:.55,
     south:x=>1470+25*Math.sin(x/230)+14*Math.sin(x/97+1),
-    path:x=>800+Math.sin(x/260)*70*Math.sin(clamp01((x-300)/(W-600))*Math.PI),
+    path:x=>800+Math.sin(x/260)*70*Math.sin(clamp01((x-300)/(BW-600))*Math.PI),
     clusters:[[150,260,120,18],[520,470,80,10],[130,1180,110,16],[470,1420,120,16],[966,720,120,18],[878,250,100,14],[996,1190,110,14],[1336,430,80,8],[1336,1270,80,8]],
     scatter:0,clearings:[],vines:[[1440,190],[1440,1080]],sand:[[620,1545,3.2],[1558,1565,4],[2410,1535,2.6]],bridges:[],
     grass:[0x5f8f3e,0x689c45,0x5a8a3a,0x71a54b,0x638f40]},
   cher:{name:'Confluence du Cher',desc:"Le Cher coupe la carte en deux avant de rejoindre la Loire. Trois passages seulement, et le fer au cœur d'une île que chacun voudra tenir.",
     seed:7,treeSeed:2024,amp:.45,cher:true,
-    south:x=>1500+18*Math.cos((x-W/2)/260)+10*Math.cos((x-W/2)/90),
-    path:x=>780+60*Math.sin(clamp01((x-300)/(W-600))*Math.PI),
+    south:x=>1500+18*Math.cos((x-BW/2)/260)+10*Math.cos((x-BW/2)/90),
+    path:x=>780+60*Math.sin(clamp01((x-300)/(BW-600))*Math.PI),
     clusters:[[150,250,120,18],[520,430,90,12],[140,1160,110,16],[470,1320,100,12],[907,560,100,14],[848,210,100,14],[937,1130,110,14],[1203,1010,40,5],[1218,520,45,6]],
-    scatter:0,clearings:[],vines:[[640,170],[W-640,170]],sand:[[700,1565,3],[2180,1565,3]],
-    bridges:[{x:W/2-70,y:256,w:140,h:84},{x:W/2-228,y:798,w:92,h:84},{x:W/2+228-92,y:798,w:92,h:84},{x:W/2-70,y:1190,w:140,h:84}],
+    scatter:0,clearings:[],vines:[[640,170],[BW-640,170]],sand:[[700,1565,3],[2180,1565,3]],
+    bridges:[{x:BW/2-70,y:256,w:140,h:84},{x:BW/2-228,y:798,w:92,h:84},{x:BW/2+228-92,y:798,w:92,h:84},{x:BW/2-70,y:1190,w:140,h:84}],
     grass:[0x5c8e3d,0x66994a,0x588a3a,0x6fa34c,0x619242]},
   chinon:{name:'Forêt de Chinon',desc:"Une forêt dense percée de clairières, la Vienne au sud. Le bois abonde, mais on voit mal venir l'ennemi et les flèches s'arrêtent dans les arbres.",
     seed:13,treeSeed:777,amp:.7,
-    south:x=>1530+16*Math.cos((x-W/2)/200)+9*Math.cos((x-W/2)/70),
-    path:x=>{const t=clamp01((x-300)/(W-600));return 790+70*Math.sin(t*Math.PI)*Math.cos(t*Math.PI*4)},
+    south:x=>1530+16*Math.cos((x-BW/2)/200)+9*Math.cos((x-BW/2)/70),
+    path:x=>{const t=clamp01((x-300)/(BW-600));return 790+70*Math.sin(t*Math.PI)*Math.cos(t*Math.PI*4)},
     clusters:[[150,250,140,22],[520,450,110,16],[140,1170,130,20],[480,1380,120,16],[937,640,140,22],[878,240,130,20],[966,1180,130,20],[1322,420,90,12],[1322,1240,90,12]],
-    scatter:420,clearings:[[1440,840,190],[700,980,100],[W-700,980,100],[560,640,110],[W-560,640,110]],vines:[[1440,200]],sand:[[996,1585,2.4],[1884,1585,2.4]],bridges:[],
+    scatter:420,clearings:[[1440,840,190],[700,980,100],[BW-700,980,100],[560,640,110],[BW-560,640,110]],vines:[[1440,200]],sand:[[996,1585,2.4],[1884,1585,2.4]],bridges:[],
     grass:[0x4f8036,0x5a8b3c,0x4a7832,0x63964a,0x55873a]},
   // carte du tutoriel : un val paisible, sans adversaire (jamais proposée dans les parties normales)
   jardin:{name:'Le Jardin de la France',desc:"Un val paisible au bord de la Loire, pour apprendre à bâtir ton village sans être dérangé.",
     seed:1789,treeSeed:1515,amp:.35,tuto:true,
     south:x=>1480+20*Math.sin(x/260)+10*Math.sin(x/90+2),
-    path:x=>800+Math.sin(x/280)*55*Math.sin(clamp01((x-300)/(W-600))*Math.PI),
+    path:x=>800+Math.sin(x/280)*55*Math.sin(clamp01((x-300)/(BW-600))*Math.PI),
     clusters:[[150,260,120,16],[540,470,80,9],[140,1180,110,14],[460,1430,110,12],[1000,700,110,14],[880,240,100,12],[1010,1210,100,12]],
     scatter:0,clearings:[],vines:[[1440,190],[1440,1080],[700,620]],sand:[[640,1555,3],[1500,1565,3.4]],bridges:[],
     grass:[0x66984a,0x6fa24f,0x619447,0x78ac55,0x6a9b4b]},
@@ -45,6 +48,24 @@ export let MAPID: string | null = null;
  * la moitié du bas la reprend décalée d'une rangée, avec la Loire tout au sud. Chaque élément (forêts, clairières,
  * vignes, ponts, chemin) existe donc deux fois, aux mêmes places par rapport à chaque paire de châteaux.
  */
+/**
+ * agrandit une carte dessinée en 2880 × 1600 à la taille réelle : rivières, chemins, forêts (plus d'arbres pour garder
+ * la même densité), clairières, vignes, plages et ponts. Les ponts gardent leur taille (le lit des rivières aussi).
+ */
+function scaleMap(m: any) {
+  const k = MAP_SCALE, P = (l: any[]) => l.map(([x, y, ...r]) => [x * k, y * k, ...r]);
+  return {
+    ...m,
+    south: (x: number) => m.south(x / k) * k,
+    path: (x: number) => m.path(x / k) * k,
+    clusters: m.clusters.map(([x, y, r, n]) => [x * k, y * k, r * k, Math.round(n * k * k)]),
+    scatter: Math.round(m.scatter * k * k),
+    clearings: m.clearings.map(([x, y, r]) => [x * k, y * k, r * k]),
+    vines: P(m.vines),
+    sand: P(m.sand),
+    bridges: m.bridges.map(b => ({ ...b, x: (b.x + b.w / 2) * k - b.w / 2, y: (b.y + b.h / 2) * k - b.h / 2 })),
+  };
+}
 function derive(base: any, mode: Mode) {
   if (mode !== '2v2') return { ...base, paths: [base.path] };
   const O = H1, dup = (l: any[]) => [...l, ...l.map(([x, y, ...r]) => [x, y + O, ...r])];
@@ -102,7 +123,7 @@ function buildTerrain() {
 export function loadMap(id: string, mode: Mode = '1v1') {
   if (!MAPS[id]) id = 'amboise';
   setLayout(mode);
-  MAP = derive(MAPS[id], mode); MAPID = id; buildTerrain();
+  MAP = derive(scaleMap(MAPS[id]), mode); MAPID = id; buildTerrain();
   return id;
 }
 export const wDist = (px, py) => dgrid[Math.max(0, Math.min(GZV - 1, Math.round(py / HC))) * GXV + Math.max(0, Math.min(GXV - 1, Math.round(px / HC)))];

@@ -1,10 +1,13 @@
+/* titres en Grenze Gotisch ; seuls le « I » et le « A » majuscules viennent de Grenze (en gothique, « l'IA » se lit mal) */
+@font-face{font-family:'FFL I';src:url('@fontsource/grenze/files/grenze-latin-500-normal.woff2') format('woff2');font-weight:400 600;unicode-range:U+0041,U+0049}
+@font-face{font-family:'FFL I';src:url('@fontsource/grenze/files/grenze-latin-700-normal.woff2') format('woff2');font-weight:700 900;unicode-range:U+0041,U+0049}
 /* Plein écran : diorama isométrique low poly dans le canvas WebGL, interface en deux bandeaux de bois sombre (ressources en haut, chantier en bas) */
 :root{
   --ink:#141a1f; --sky1:#4d7590; --sky2:#1b2730;
   --wood:#1f1a15; --wood2:#2b241d; --rule:#4b3f31;
   --text:#efe7d6; --muted:#a99d87; --gold:#d9a441;
   --azur:#3f6fd8; --gueules:#c9402e; --bad:#e3634f; --me:#3f6fd8; --foe:#c9402e;
-  --f-display:'IM Fell English SC','Iowan Old Style',Georgia,serif;
+  --f-display:'FFL I','Grenze Gotisch','Iowan Old Style',Georgia,serif;
   --f-body:'Alegreya Sans','Segoe UI',system-ui,sans-serif;
   color-scheme:dark;
 }
@@ -13,10 +16,10 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 #game{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:none;background:radial-gradient(ellipse 120% 90% at 50% 35%,var(--sky1),var(--sky2))}
 #ov{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
 .hud-top{position:fixed;left:0;right:0;top:0;z-index:5;padding:calc(8px + env(safe-area-inset-top,0px)) 16px 8px;display:flex;gap:12px 20px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:linear-gradient(var(--wood),rgba(31,26,21,.8));border-bottom:1px solid var(--rule);pointer-events:none}
-.res{display:flex;gap:6px;flex-wrap:wrap}
-.chip{display:flex;align-items:center;gap:5px;padding:4px 8px;border:1px solid var(--rule);border-radius:3px;background:var(--wood2);font-variant-numeric:tabular-nums;font-weight:800;font-size:15px;transition:border-color .2s}
-.chip i{width:10px;height:10px;border-radius:2px;display:inline-block;flex:none}
-.chip small{font-weight:500;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.res{display:flex;gap:7px;flex-wrap:wrap}
+.chip{display:flex;align-items:center;gap:6px;padding:6px 11px;border:1px solid var(--rule);border-radius:4px;background:var(--wood2);font-variant-numeric:tabular-nums;font-weight:800;font-size:18px;transition:border-color .2s}
+.chip i{width:13px;height:13px;border-radius:3px;display:inline-block;flex:none}
+.chip small{font-weight:600;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
 .chip.low{border-color:var(--bad)} .chip.low b{color:var(--bad)}
 .lords{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .hp{width:140px}
@@ -46,7 +49,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 .btn .n{font-weight:700;font-size:14px;line-height:1.1}
 .btn .c{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 #mini{flex:none;height:112px;border:1px solid var(--rule);border-radius:2px;background:#2d4a24}
-#toast{position:fixed;left:50%;top:calc(76px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:6;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;width:min(92vw,460px)}
+#toast{position:fixed;left:50%;top:calc(108px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:6;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;width:min(92vw,460px)}
 #toast div{padding:6px 14px;background:rgba(20,17,13,.92);border:1px solid var(--rule);border-radius:3px;font-weight:500;text-align:center;animation:fade 2.6s forwards}
 #toast div.warn{border-color:var(--gueules)}
 @keyframes fade{0%{opacity:0;transform:translateY(-4px)}8%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0}}
@@ -115,7 +118,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 #sndBtn.off .wave{display:none}
 #sndBtn:not(.off) .cross{display:none}
 /* tutoriel */
-.tuto-panel{position:fixed;left:16px;top:calc(76px + env(safe-area-inset-top,0px));z-index:6;width:min(340px,calc(100vw - 32px));padding:14px 16px;background:rgba(31,26,21,.95);border:1px solid var(--gold);border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,.35);font-size:14px;line-height:1.5}
+.tuto-panel{position:fixed;left:16px;top:calc(108px + env(safe-area-inset-top,0px));z-index:6;width:min(340px,calc(100vw - 32px));padding:14px 16px;background:rgba(31,26,21,.95);border:1px solid var(--gold);border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,.35);font-size:14px;line-height:1.5}
 .tuto-panel[hidden]{display:none}
 .tuto-panel .tp-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .tuto-panel .tp-step{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}

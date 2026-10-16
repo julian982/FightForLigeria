@@ -8,5 +8,9 @@
     "build": "vite build",
     "build:single": "vite build --mode single && node scripts/to-artifact.mjs",
     "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource/grenze": "^5.3.0",
+    "@fontsource/grenze-gotisch": "^5.3.0"
   }
 }

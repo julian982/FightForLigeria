@@ -1,10 +1,13 @@
 // Règles du jeu : toutes les valeurs d'équilibrage, partagées par le client et (plus tard) le serveur.
 
-// une carte 1v1 fait 72 × 40 cases : les deux donjons sont à 2280 px l'un de l'autre.
-// En 2v2, la carte est deux fois plus haute (72 × 80) : chaque camp a deux châteaux l'un au-dessus de l'autre.
-export const T = 40, GW = 72, W = GW * T, TERR = 520, S = 1 / T;
+// une carte 1v1 fait 83 × 46 cases (agrandie de 15 % : elle faisait 72 × 40) ; les cases, les unités et les bâtiments
+// gardent leur taille, la carte est simplement plus vaste. En 2v2, elle est deux fois plus haute (83 × 92) :
+// chaque camp a deux châteaux l'un au-dessus de l'autre.
+/** agrandissement des cartes par rapport à leur dessin d'origine (2880 × 1600 px) */
+export const MAP_SCALE = 1.15;
+export const T = 40, GW = 83, W = GW * T, TERR = 520, S = 1 / T;
 /** hauteur d'une « rangée » de la carte (une carte 1v1), et hauteur maximale (2v2) */
-export const GH1 = 40, GH_MAX = 80, H1 = GH1 * T;
+export const GH1 = 46, GH_MAX = GH1 * 2, H1 = GH1 * T;
 /** dimensions de la carte chargée (liaisons vivantes : mises à jour par setLayout) */
 export let GH = GH1, H = GH * T;
 
@@ -72,10 +75,13 @@ export function setLayout(mode: Mode) {
   KEEPS = []; STONES = []; IRONS = [];
   for (let r = 0; r < rows; r++) {
     const off = r * H1;
-    KEEPS.push({ tx: 6, ty: 18 + r * GH1 }, { tx: GW - 9, ty: 18 + r * GH1 });
-    // à bonne distance du donjon (≈ 570 px) : le village s'étire et la carrière est à défendre
-    STONES.push({ x: 780, y: 1080 + off, r: 80 }, { x: W - 780, y: 1080 + off, r: 80 });
-    IRONS.push({ x: W / 2, y: 840 + off, r: 75, iron: true });
+    // positions d'origine × MAP_SCALE ; le donjon de droite est le miroir exact de celui de gauche (3 cases de large)
+    const ktx = Math.round(6 * MAP_SCALE), kty = Math.round(18 * MAP_SCALE);
+    KEEPS.push({ tx: ktx, ty: kty + r * GH1 }, { tx: GW - ktx - 3, ty: kty + r * GH1 });
+    // à bonne distance du donjon : le village s'étire et la carrière est à défendre
+    const sx = Math.round(780 * MAP_SCALE), sy = Math.round(1080 * MAP_SCALE);
+    STONES.push({ x: sx, y: sy + off, r: 80 }, { x: W - sx, y: sy + off, r: 80 });
+    IRONS.push({ x: W / 2, y: Math.round(840 * MAP_SCALE) + off, r: 75, iron: true });
   }
   ROCKS = [...STONES, ...IRONS];
 }

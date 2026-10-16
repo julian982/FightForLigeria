@@ -11,8 +11,8 @@ export let NH = H / NC;
 export const navGrid = new Uint8Array(NW * NH_MAX);
 export let navDirty = true, navVer = 0;
 export function dirtyNav() { navDirty = true }
-const TB = 80, TBW = W / TB; let TBH = H / TB, treeB: any[][] = [];
-function bucketTrees() { TBH = H / TB; treeB = Array.from({ length: TBW * TBH }, () => []); for (const t of trees) if (t.wood > 0) treeB[Math.min(TBH - 1, Math.floor(t.y / TB)) * TBW + Math.min(TBW - 1, Math.floor(t.x / TB))].push(t) }
+const TB = 80, TBW = Math.ceil(W / TB); let TBH = Math.ceil(H / TB), treeB: any[][] = [];
+function bucketTrees() { TBH = Math.ceil(H / TB); treeB = Array.from({ length: TBW * TBH }, () => []); for (const t of trees) if (t.wood > 0) treeB[Math.min(TBH - 1, Math.floor(t.y / TB)) * TBW + Math.min(TBW - 1, Math.floor(t.x / TB))].push(t) }
 export function treesNear(x, y, fn) { const cx = Math.floor(x / TB), cy = Math.floor(y / TB); for (let j = cy - 1; j <= cy + 1; j++) { if (j < 0 || j >= TBH) continue; for (let i = cx - 1; i <= cx + 1; i++) { if (i < 0 || i >= TBW) continue; const a = treeB[j * TBW + i]; if (!a) continue; for (let k = 0; k < a.length; k++) { const t = a[k]; if (t.wood > 0 && fn(t)) return t } } } return null }
 export function blocksOf(b) {
   if (b.type === 'ferme') return [{ bx: b.x + 24, by: b.y - 58, bw: 36, bh: 48 }];

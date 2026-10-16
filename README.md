@@ -134,7 +134,7 @@ Sans ordre, tes soldats tiennent leur position : ils ne poursuivent personne et 
 
 ## Cartes
 
-Trois cartes symétriques, au choix sur la page Jouer. Les donjons, le tuffeau et le fer sont toujours aux mêmes places.
+Trois cartes symétriques (83 × 46 cases, agrandies de 15 % ; 83 × 92 en 2v2), au choix sur la page Jouer. Les donjons, le tuffeau et le fer sont toujours aux mêmes places.
 
 | Carte | Particularité |
 |---|---|

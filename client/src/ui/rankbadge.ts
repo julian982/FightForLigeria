@@ -18,7 +18,7 @@ let uid=0;
 export function shield(rank:number,div:number,unknown=false){
   const id='rk'+(uid++),r=RANKS[rank]||RANKS[0];
   const path='M50 4 L92 16 L92 56 C92 86 72 104 50 116 C28 104 8 86 8 56 L8 16 Z';
-  if(unknown)return `<path d="${path}" fill="none" stroke="#6b5b45" stroke-width="4" stroke-dasharray="7 6"/><text x="50" y="72" text-anchor="middle" font-family="IM Fell English SC, Georgia, serif" font-size="44" fill="#8a7a62">?</text>`;
+  if(unknown)return `<path d="${path}" fill="none" stroke="#6b5b45" stroke-width="4" stroke-dasharray="7 6"/><text x="50" y="72" text-anchor="middle" font-family="Grenze Gotisch, Georgia, serif" font-size="44" fill="#8a7a62">?</text>`;
   let deco='';
   if(r.k==='grain')deco=`<g stroke="${r.e}" stroke-width="2" fill="none" opacity=".55"><path d="M26 24 C30 50 24 76 34 100"/><path d="M50 14 C46 46 54 74 50 108"/><path d="M74 24 C70 50 76 76 66 100"/></g><path d="M8 40 L92 40" stroke="#c9a46a" stroke-width="5" opacity=".7"/>`;
   if(r.k==='blocks')deco=`<g stroke="${r.e}" stroke-width="2" opacity=".55"><path d="M10 38 H90 M10 62 H90 M12 86 H88"/><path d="M36 16 V38 M64 16 V38 M50 38 V62 M28 62 V86 M72 62 V86 M50 86 V108"/></g>`;

@@ -1,4 +1,7 @@
 // FightForLigeria : point d'entrée du client.
+// police des titres (gothique), servie avec le jeu
+import '@fontsource/grenze-gotisch/500.css';
+import '@fontsource/grenze-gotisch/700.css';
 import '../css/game.css';
 import '../css/home.css';
 import { S, MAPS, MAP_IDS, loadMap, genTrees, newGame, update, setHooks, G, trees, pushOut, findSpot, addBuilding, pay, afford, spawnUnit } from '@ffl/shared';

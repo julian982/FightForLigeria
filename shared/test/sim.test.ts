@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  loadMap, newGame, MAPS, cleanBlason, randomBlason, BLASON_DEFAULT, queueWindow, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater,
+  loadMap, newGame, MAPS, H1, cleanBlason, randomBlason, BLASON_DEFAULT, queueWindow, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater,
   placeBuilding, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
   START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRONS, shotClear, findPath, buildNav, KEEPS, PLAYERS, H, isFoe, onPath, MAP, fireArrow, orderAttack, applyCommand, makeSnapshot, B_TYPES, forfeit, canPlace, GW, GH, identityOf, jobOf, riverY, W,
 } from '../src/index';
@@ -288,26 +288,26 @@ describe('2v2', () => {
   it('chaque carte existe en 2v2, deux fois plus haute, avec quatre châteaux', () => {
     for (const id of MAP_IDS) {
       loadMap(id, '2v2'); newGame({ ai: [false, false, false, false] });
-      expect(H).toBe(3200); expect(PLAYERS).toBe(4);
+      expect(H).toBe(2 * H1); expect(PLAYERS).toBe(4);
       expect(G.teams.length).toBe(4);
       expect(G.teams.map(t => t.side)).toEqual([0, 1, 0, 1]);
       // deux châteaux par camp, l'un au-dessus de l'autre ; un gisement de fer par rangée
       const k = G.teams.map(t => t.keep);
-      expect(k[0].x).toBeLessThan(1000); expect(k[2].x).toBe(k[0].x); expect(k[2].y - k[0].y).toBe(1600);
-      expect(k[1].x).toBeGreaterThan(1800); expect(k[3].y - k[1].y).toBe(1600);
+      expect(k[0].x).toBeLessThan(1000); expect(k[2].x).toBe(k[0].x); expect(k[2].y - k[0].y).toBe(H1);
+      expect(k[1].x).toBeGreaterThan(W - 1000); expect(k[3].y - k[1].y).toBe(H1);
       expect(IRONS.length).toBe(2); expect(STONES.length).toBe(4);
       // la Loire est tout au sud : pas d'eau entre les deux rangées, sauf le Cher
-      expect(rawWater(300, 1500)).toBe(false); expect(rawWater(300, 3190)).toBe(true);
+      expect(rawWater(300, H1 - 100)).toBe(false); expect(rawWater(300, H - 10)).toBe(true);
       // des arbres dans les deux moitiés, et un chemin dans chaque rangée
-      expect(trees.some(t => t.y < 1600)).toBe(true); expect(trees.some(t => t.y > 1600)).toBe(true);
-      expect(MAP.paths.length).toBe(2); expect(onPath(1440, MAP.paths[1](1440), 5)).toBe(true);
+      expect(trees.some(t => t.y < H1)).toBe(true); expect(trees.some(t => t.y > H1)).toBe(true);
+      expect(MAP.paths.length).toBe(2); expect(onPath(W / 2, MAP.paths[1](W / 2), 5)).toBe(true);
       // on peut marcher d'un château à n'importe quel autre
       buildNav();
       for (const j of [1, 2, 3]) expect(findPath(k[0].x + 110, k[0].y, k[j].x - 110 * (j % 2 ? 1 : -1), k[j].y)).not.toBeNull();
     }
     // revenir en 1v1 remet la carte à sa taille
     loadMap('amboise'); newGame();
-    expect(H).toBe(1600); expect(G.teams.length).toBe(2);
+    expect(H).toBe(H1); expect(G.teams.length).toBe(2);
   });
   it('les alliés ne se blessent pas, les ennemis oui', () => {
     loadMap('amboise', '2v2'); newGame({ ai: [false, false, false, false] });
@@ -459,8 +459,10 @@ describe('duel de seigneurs', () => {
     fireArrow(0, 1200, 700, 0, 1); run(.4);
     expect(L1.maxhp - L1.hp).toBe(Math.round(60 * .75));
     // contre un soldat, plein dégât
-    const s = spawnUnit(1, 'lancier', { x: 1300, y: 900 }); s.x = 1300; s.y = 900;
-    fireArrow(0, 1200, 900, 0, 1); run(.4);
+    // (en terrain dégagé : un arbre arrêterait la flèche)
+    L1.x = 2000; L1.y = 300;
+    const s = spawnUnit(1, 'lancier', { x: 1300, y: 700 }); s.x = 1300; s.y = 700;
+    fireArrow(0, 1200, 700, 0, 1); run(.4);
     expect(s.maxhp - s.hp).toBe(60);
   });
 });
