@@ -21,7 +21,7 @@ import dBleUrl from './assets/sounds/depot-ble.mp3?url';
 import dArmesUrl from './assets/sounds/depot-armes.mp3?url';
 
 const KEY = 'ffl.audio';
-export const audio = { ambiance: .5, sfx: .7, muted: false };
+export const audio = { ambiance: .35, sfx: .7, muted: false };
 try { Object.assign(audio, JSON.parse(localStorage.getItem(KEY) || '{}')) } catch (e) {}
 function save() { try { localStorage.setItem(KEY, JSON.stringify(audio)) } catch (e) {} }
 
@@ -38,7 +38,8 @@ function ensure() {
   return true;
 }
 function ramp(g: GainNode, v: number, sec: number) { const t = ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(v, t + sec) }
-const ambTarget = () => audio.muted ? 0 : audio.ambiance * .8;
+// l'ambiance reste un fond discret : même à 100 %, elle ne couvre pas les bruitages
+const ambTarget = () => audio.muted ? 0 : audio.ambiance * .55;
 const sfxTarget = () => audio.muted ? 0 : audio.sfx;
 /** les trois boucles d'ambiance : chaque partie en joue une au hasard (chacune est raccordée en fondu, sans coupure) */
 const AMB_URLS = [amb1Url, amb2Url, amb3Url];
