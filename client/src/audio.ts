@@ -1,5 +1,8 @@
-// Le son : les bruitages (arc, travail des ouvriers, dépôts), avec volumes réglables
+// Le son : l'ambiance nature (3 boucles de 3 minutes, une tirée au hasard à chaque partie) et les bruitages (arc, travail des ouvriers, dépôts), avec volumes réglables
 // et coupure. Réglages gardés dans le navigateur.
+import amb1Url from './assets/sounds/ambiance-1.mp3?url';
+import amb2Url from './assets/sounds/ambiance-2.mp3?url';
+import amb3Url from './assets/sounds/ambiance-3.mp3?url';
 import bandUrl from './assets/sounds/arc-bander.mp3?url';
 import tirUrl from './assets/sounds/arc-tir.mp3?url';
 import chairUrl from './assets/sounds/impact-chair.mp3?url';
@@ -22,7 +25,7 @@ export const audio = { ambiance: .5, sfx: .7, muted: false };
 try { Object.assign(audio, JSON.parse(localStorage.getItem(KEY) || '{}')) } catch (e) {}
 function save() { try { localStorage.setItem(KEY, JSON.stringify(audio)) } catch (e) {} }
 
-let ctx: AudioContext | null = null, master: GainNode, sfxGain: GainNode, ambGain: GainNode, ambSrc: AudioBufferSourceNode | null = null, ambBuf: AudioBuffer | null = null, loading: Promise<void> | null = null;
+let ctx: AudioContext | null = null, master: GainNode, sfxGain: GainNode, ambGain: GainNode, ambSrc: AudioBufferSourceNode | null = null, ambBuf: AudioBuffer | null = null;
 let wanted = false;
 function ensure() {
   if (!ctx) {
@@ -37,9 +40,28 @@ function ensure() {
 function ramp(g: GainNode, v: number, sec: number) { const t = ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(v, t + sec) }
 const ambTarget = () => audio.muted ? 0 : audio.ambiance * .8;
 const sfxTarget = () => audio.muted ? 0 : audio.sfx;
-/** début de partie : prépare le son (à appeler après un clic : les navigateurs l'exigent). Il n'y a plus de musique
- *  d'ambiance : seulement les bruitages. */
-export function startAmbiance() { wanted = true; try { ensure() } catch (e) { /* pas de son : le jeu continue */ } }
+/** les trois boucles d'ambiance : chaque partie en joue une au hasard (chacune est raccordée en fondu, sans coupure) */
+const AMB_URLS = [amb1Url, amb2Url, amb3Url];
+const ambBufs = new Map<string, Promise<AudioBuffer>>();
+function loadAmb(url: string) {
+  if (!ambBufs.has(url)) ambBufs.set(url, fetch(url).then(r => r.arrayBuffer()).then(b => new Promise<AudioBuffer>((ok, ko) => ctx!.decodeAudioData(b, ok, ko))));
+  return ambBufs.get(url)!;
+}
+let ambGen = 0;
+/** lance une ambiance en fondu (à appeler après un clic : les navigateurs l'exigent) */
+export async function startAmbiance() {
+  wanted = true; const gen = ++ambGen;
+  try {
+    if (!ensure()) return;
+    if (ambSrc) { ramp(ambGain, ambTarget(), 1); return }
+    const buf = await loadAmb(AMB_URLS[(Math.random() * AMB_URLS.length) | 0]);
+    if (!wanted || gen !== ambGen || ambSrc) return;
+    ambBuf = buf;
+    ambSrc = ctx!.createBufferSource(); ambSrc.buffer = buf; ambSrc.loop = true; ambSrc.connect(ambGain);
+    ambSrc.start(0, Math.random() * buf.duration); // départ à un moment différent de la boucle
+    ramp(ambGain, ambTarget(), 2.5);
+  } catch (e) { /* pas de son : le jeu continue */ }
+}
 /** coupe l'ambiance en fondu (retour au menu) */
 export function stopAmbiance() {
   wanted = false; if (!ctx || !ambSrc) return;
