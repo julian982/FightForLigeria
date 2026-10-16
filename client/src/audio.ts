@@ -39,7 +39,7 @@ function ensure() {
 }
 function ramp(g: GainNode, v: number, sec: number) { const t = ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(v, t + sec) }
 // l'ambiance reste un fond discret : même à 100 %, elle ne couvre pas les bruitages
-const ambTarget = () => audio.muted ? 0 : audio.ambiance * .55;
+const ambTarget = () => audio.muted ? 0 : audio.ambiance * .275;
 const sfxTarget = () => audio.muted ? 0 : audio.sfx;
 /** les trois boucles d'ambiance : chaque partie en joue une au hasard (chacune est raccordée en fondu, sans coupure) */
 const AMB_URLS = [amb1Url, amb2Url, amb3Url];

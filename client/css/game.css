@@ -105,7 +105,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 .chip em{font-style:normal;font-size:12px;font-weight:700;color:#a99d87;margin-left:-2px}
 /* réglages du son */
 .snd{position:relative}
-#sndPanel{position:absolute;right:0;top:calc(100% + 8px);z-index:8;width:220px;padding:10px 12px;display:flex;flex-direction:column;gap:10px;background:rgba(31,26,21,.96);border:1px solid var(--rule);border-radius:3px;font-size:13px}
+#sndPanel{pointer-events:auto;position:absolute;right:0;top:calc(100% + 8px);z-index:8;width:220px;padding:10px 12px;display:flex;flex-direction:column;gap:10px;background:rgba(31,26,21,.96);border:1px solid var(--rule);border-radius:3px;font-size:13px}
 #sndPanel label{display:flex;flex-direction:column;gap:6px;font-weight:700}
 #sndPanel label.chk{flex-direction:row;align-items:center;gap:8px;font-weight:500}
 #sndPanel input[type=range]{width:100%;accent-color:var(--gold)}
