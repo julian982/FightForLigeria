@@ -6,6 +6,7 @@ import { enterFps, exitFps, fpsLook } from '../render/fps';
 import { addMark, ghostTile, screenToWorld, toScreen } from '../render/sync';
 import { $, ME, keys, mouse, sel, tilt, ui, view } from '../state';
 import { askRecruit, refreshHud, selectBuild, toast } from './hud';
+import { playSfx } from '../audio';
 export function setMouse(e){mouse.sx=e.clientX;mouse.sy=e.clientY;mouse.in=true;const w=screenToWorld(mouse.sx,mouse.sy);mouse.wx=w.x;mouse.wy=w.y}
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 addEventListener('mousemove',e=>{if(ui.fps){fpsLook(e.movementX||0,e.movementY||0);return}if(view.rotDrag){view.yawTarget+=(e.clientX-view.rotDrag.x)*.008;tilt((e.clientY-view.rotDrag.y)*.006);view.rotDrag.x=e.clientX;view.rotDrag.y=e.clientY}setMouse(e)});
@@ -31,6 +32,7 @@ addEventListener('mouseup',e=>{if(e.button!==0)return;if(ui.fps){releaseShot();r
 export function tryPlace(keep){
   const g=ghostTile(),err=act.place(ui.placing,g.tx,g.ty);
   if(err){toast(err);return}
+  playSfx('pose',.75,0,.96+Math.random()*.08);
   if(!keep)ui.placing=null;refreshHud();
 }
 export function pickNear(list,maxPx){let best=null,bd=maxPx;for(const e of list){const p=toScreen(e.x,e.y,.4),d=Math.hypot(p.x-mouse.sx,p.y-mouse.sy);if(d<bd){bd=d;best=e}}return best}

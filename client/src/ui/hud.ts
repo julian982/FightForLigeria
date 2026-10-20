@@ -4,6 +4,7 @@ import { TEAMC } from '../render/engine';
 import { portraitSvg } from './portrait';
 import { unitShot } from '../render/unitshot';
 import { act } from '../net/act';
+import { playSfx } from '../audio';
 import { $, ME, sel, ui } from '../state';
 
 export const SHORT={ferme:'Ferme',fleches:'Flèches',arcs:'Arcs',lances:'Lances',mine:'Mine de fer'};
@@ -16,7 +17,7 @@ export const bb=$('buildBtns');
 for(const t of BUILD_LIST){const d=DEF[t],b=document.createElement('button');b.className='btn';b.type='button';b.dataset.b=t;
   b.title=d.name+" : "+costStr(d.cost);b.innerHTML=`<kbd>${d.key}</kbd><span class="n">${SHORT[t]||d.name}</span><span class="c">${costHtml(d.cost)}</span>`;
   b.addEventListener('click',()=>selectBuild(t));bb.appendChild(b)}
-export function selectBuild(t){if(!ui.running)return;ui.placing=ui.placing===t?null:t;ui.selB=null;ui.selW=null;act.cancel();refreshHud()}
+export function selectBuild(t){if(!ui.running)return;ui.placing=ui.placing===t?null:t;if(ui.placing)playSfx('choix',.6,0,.97+Math.random()*.06);ui.selB=null;ui.selW=null;act.cancel();refreshHud()}
 export function askRecruit(type){
   if(!ui.running)return;
   const err=act.recruit(type);if(err){toast(err);return}
