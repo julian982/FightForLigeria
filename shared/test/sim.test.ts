@@ -208,7 +208,7 @@ describe('soldats du joueur en position', () => {
   it('un archer ne poursuit pas : il tire seulement ce qui est à portée', () => {
     setup();
     const a = spawnUnit(0, 'archer', { x: 1000, y: 600 }); const x0 = a.x, y0 = a.y;
-    const far = spawnUnit(1, 'lancier', { x: 1360, y: 600 }); far.speed = 0; // hors de portée (288 px)
+    const far = spawnUnit(1, 'lancier', { x: 1420, y: 600 }); far.speed = 0; // hors de portée (346 px)
     run(3);
     expect(Math.hypot(a.x - x0, a.y - y0)).toBeLessThan(10);
     expect(far.hp).toBe(far.maxhp);

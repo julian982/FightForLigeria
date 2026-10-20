@@ -89,6 +89,15 @@ export function workerGeoOf(u){const idn=identityOf(u.id,(G&&G.seed)||0),k='w'+u
 function rigObj(u){
   const R=rigGeo(u.type,u.team),m=mk(R.base,VC),rig=new THREE.Group();rig.scale.setScalar(R.scale);m.add(rig);
   const meshes=[m],part=(geo,parent)=>{const p=mk(geo,VC);p.receiveShadow=false;parent.add(p);meshes.push(p);return p};
+  if(u.type==='lancier'){
+    // bras droit + lance (la lance est posée à la main, sa propre orientation est gérée à part), bras gauche + bouclier
+    const armR=new THREE.Group();armR.position.set(0,SHOULDER.y,SHOULDER.z);rig.add(armR);part(R.armSpear,armR);
+    const spear=new THREE.Group();rig.add(spear);part(R.spear,spear);
+    const armL=new THREE.Group();armL.position.set(0,SHOULDER.y,-SHOULDER.z);rig.add(armL);part(R.armShield,armL);
+    const hand=new THREE.Group();hand.position.set(0,-ARM_LEN,0);armL.add(hand);part(R.shield,hand);
+    u.rig={kind:'spear',armR,spear,armL,hand,guard:0,thrust:0,meshes};
+    return m;
+  }
   const armL=new THREE.Group();armL.position.set(0,SHOULDER.y,-SHOULDER.z);rig.add(armL);part(R.armBow,armL);
   const hand=new THREE.Group();hand.position.set(0,-ARM_LEN,0);armL.add(hand);part(R.bow,hand);
   const sTop=part(R.string,hand),sBot=part(R.string,hand),arrow=part(R.arrow,hand);arrow.visible=false;

@@ -128,8 +128,8 @@ Sans ordre, tes soldats tiennent leur position : ils ne poursuivent personne et 
 
 | Unité | Arme | PV | Dégâts | Particularité |
 |---|---|---|---|---|
-| Archer | 1 arc | 55 | 9 | Tire à distance (environ 7 cases), ne tire que si la voie est dégagée ; on le voit bander son arc avant chaque tir |
-| Lancier | 1 lance | 120 | 13 | Corps à corps, plus rapide |
+| Archer | 1 arc | 55 | 9 | Tire à distance (environ 8 à 9 cases), ne tire que si la voie est dégagée ; on le voit bander son arc avant chaque tir |
+| Lancier | 1 lance | 120 | 13 | Corps à corps, plus rapide ; au combat il baisse sa lance, lève son bouclier et porte des estocs |
 | Spadassin | 1 épée | 420 | 34 | Unité d'élite, flèches −50 %, vaut environ 4 lanciers |
 
 ## Cartes

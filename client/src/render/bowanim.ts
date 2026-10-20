@@ -2,10 +2,14 @@
 // la joue avec une flèche encochée, puis relâche (la corde claque, l'arc reste levé un instant, puis redescend).
 // - le seigneur bande pendant toute la charge (barre d'espace), la corde se tend avec la puissance ;
 // - un archer au combat bande pendant les 0,6 s qui précèdent chaque tir (rythme de son rechargement).
-// Tout est déduit de ce que le jeu affiche déjà (flèches qui partent, charge du seigneur) : marche aussi en ligne.
+// Lanciers : en garde au combat (lance baissée à l'horizontale, bouclier levé devant soi), estoc vers l'avant à chaque coup.
+// Tout est déduit de ce que le jeu affiche déjà (flèches qui partent, charge du seigneur, fente du lancier) : marche aussi en ligne.
 import * as THREE from 'three';
 import { G, UT, CHARGE_T } from '@ffl/shared';
 import { SHOULDER, ARM_LEN, bowTips } from './people';
+
+/** anime les pièces articulées d'une unité (arc ou lance) ; renvoie de combien le buste se penche (en radians) */
+export function animRig(u: any, dt: number, now: number) { return u.rig.kind === 'spear' ? animSpear(u, dt, now) : (animBow(u, dt, now) || 0) * -.08 }
 
 const DOWN = new THREE.Vector3(0, -1, 0);
 const IDLE_L = new THREE.Vector3(.28, -1, .05).normalize(), AIM_L = new THREE.Vector3(1, .05, .14).normalize();
@@ -84,3 +88,29 @@ function seg(m: any, x: number, y: number, z: number, n: THREE.Vector3) {
 }
 /** le flash rouge d'un coup reçu s'applique aussi aux pièces articulées */
 export function rigMaterial(u: any, mat: any) { if (u.rig) for (const m of u.rig.meshes) m.material = mat }
+
+// ---------------- lancier ----------------
+const SP_IDLE_P = new THREE.Vector3(0, .28, .19), SP_GUARD_P = new THREE.Vector3(.1, .38, .12);
+const SP_IDLE_Q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, -.05));
+const SP_GUARD_Q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, -Math.PI / 2 - .03)); // pointe devant, presque à l'horizontale
+const SH_IDLE = new THREE.Vector3(.1, -1, -.05).normalize(), SH_GUARD = new THREE.Vector3(.75, -.55, .15).normalize();
+const SH_IDLE_Q = new THREE.Quaternion(), SH_GUARD_Q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -1, 0)); // le bouclier fait face à l'ennemi
+const grip = new THREE.Vector3(), shR = new THREE.Vector3(0, SHOULDER.y, SHOULDER.z);
+function animSpear(u: any, dt: number, now: number) {
+  const r = u.rig, l = u.lunge || 0;
+  if (l > (r.prevL || 0) + .01) r.hit = now; // un coup vient d'être porté
+  r.prevL = l;
+  const since = r.hit == null ? 1e9 : now - r.hit, engaged = !u.dead && since < UT.lancier.cd + 1.2;
+  r.guard += ((engaged ? 1 : 0) - r.guard) * Math.min(1, dt * (engaged ? 10 : 3));
+  // estoc : la lance part vite vers l'avant, revient plus lentement
+  r.thrust = u.dead ? 0 : since < .07 ? since / .07 : since < .32 ? 1 - (since - .07) / .25 : 0;
+  grip.copy(SP_IDLE_P).lerp(SP_GUARD_P, r.guard); grip.x += r.thrust * .26 * r.guard;
+  r.spear.position.copy(grip);
+  r.spear.quaternion.copy(SP_IDLE_Q).slerp(SP_GUARD_Q, r.guard);
+  // le bras droit suit la main qui tient la lance
+  v.copy(grip).sub(shR).normalize(); r.armR.quaternion.setFromUnitVectors(DOWN, v);
+  // le bras gauche lève le bouclier devant soi
+  v.copy(SH_IDLE).lerp(SH_GUARD, r.guard).normalize(); r.armL.quaternion.setFromUnitVectors(DOWN, v);
+  qA.copy(SH_IDLE_Q).slerp(SH_GUARD_Q, r.guard); r.hand.quaternion.copy(r.armL.quaternion).invert().multiply(qA);
+  return r.thrust * .06; // le buste accompagne l'estoc
+}

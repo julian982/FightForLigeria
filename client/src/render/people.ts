@@ -49,6 +49,14 @@ function quiver(k: Kit, fletch: number[]) {
   for (let i = 0; i < 3; i++) k.add(cbox(.02, .07, .02, .005), fletch[i], -.15 + (i - 1) * .02, .52, .1 + (i - 1) * .015, .3);
 }
 
+/** la lance, debout, la pointe vers le haut (base en 0) */
+function spear(k: Kit) { k.add(cyl(.016, .016, 1.35, 5), C.woodL); k.add(cyl(.022, .022, .04, 6), C.steelD, 0, 1.31); k.add(cone(.038, .16, 4), C.steel, 0, 1.35) }
+/** le bouclier rond (face selon l'axe y de son repère) */
+function shield(k: Kit, T: ReturnType<typeof teamPal>) {
+  k.add(new THREE.CylinderGeometry(.17, .17, .035, 10), T.main); k.add(new THREE.CylinderGeometry(.175, .175, .02, 10), C.steelD, 0, -.01);
+  k.add(new THREE.CylinderGeometry(.05, .05, .06, 8), C.steel, 0, -.03);
+  for (let i = 0; i < 2; i++) k.add(cbox(.02, .038, .3, .004), T.light, 0, -.018, 0, 0, i * Math.PI / 2 + Math.PI / 4);
+}
 const BUILD: Record<string, (k: Kit, T: ReturnType<typeof teamPal>) => void> = {
   worker(k, T) {
     body(k, { boot: C.boot, legs: C.trousers, torso: C.linen, belt: 0xa98b5e, arms: C.linenD });
@@ -74,12 +82,9 @@ const BUILD: Record<string, (k: Kit, T: ReturnType<typeof teamPal>) => void> = {
     k.add(cbox(.03, .3, .18, .008), T.main, .105, .14, 0); k.add(cbox(.06, .06, .02, .02), C.gold, .122, .36, 0, 0, 0, Math.PI / 4);
     k.add(cyl(.24, .24, .025, 10), C.steelD, 0, .69); k.add(cyl(.13, .155, .1, 8), C.steel, 0, .71); k.add(cyl(.04, .13, .05, 8), C.steel, 0, .81);
     // la lance : manche, bague et pointe dans le même repère incliné
-    k.at(.02, .02, .19, 0, () => { k.add(cyl(.016, .016, 1.35, 5), C.woodL); k.add(cyl(.022, .022, .04, 6), C.steelD, 0, 1.31); k.add(cone(.038, .16, 4), C.steel, 0, 1.35) }, 0, -.05);
-    k.at(.08, .3, -.24, 0, () => {
-      k.add(new THREE.CylinderGeometry(.17, .17, .035, 10), T.main); k.add(new THREE.CylinderGeometry(.175, .175, .02, 10), C.steelD, 0, -.01);
-      k.add(new THREE.CylinderGeometry(.05, .05, .06, 8), C.steel, 0, -.03);
-      for (let i = 0; i < 2; i++) k.add(cbox(.02, .038, .3, .004), T.light, 0, -.018, 0, 0, i * Math.PI / 2 + Math.PI / 4);
-    }, Math.PI / 2);
+    if (RIG) return; // articulé : lance et bouclier sont des pièces à part (voir rigGeo)
+    k.at(.02, .02, .19, 0, () => spear(k), 0, -.05);
+    k.at(.08, .3, -.24, 0, () => shield(k, T), Math.PI / 2);
   },
   spadassin(k, T) {
     body(k, { boot: C.steelD, legs: C.steelD, torso: C.steel, belt: C.leatherD, arms: C.steel, face: false });
@@ -163,7 +168,9 @@ export function workerGeo(female: boolean, f: Face, id: number, team: number) {
 // séparées que render/sync.ts anime (bander, viser, relâcher). Repères : épaules en (0, .5, ±.19) ; la main est au bout
 // du bras, à .22 sous l'épaule ; (les formes du kit sont posées par leur base : d'où les décalages de moitié) l'arc est dans le repère de la main, son ventre devant la main (+x), la corde derrière.
 // ---------------------------------------------------------------------
-export const RIG_TYPES = new Set(['archer', 'lord']);
+export const RIG_TYPES = new Set(['archer', 'lord', 'lancier']);
+/** la lance est tenue à .26 de sa base (la main du lancier) */
+export const SPEAR_GRIP = .26;
 export const SHOULDER = { y: .5, z: .19 }, ARM_LEN = .22;
 const BOW_R: Record<string, number> = { archer: .34, lord: .38 }, BOW_A = Math.PI * .78;
 /** extrémités de la corde (repère de la main) */
@@ -174,8 +181,14 @@ const rigCache: Record<string, any> = {};
 export function clearRigCache() { for (const k in rigCache) delete rigCache[k] }
 export function rigGeo(type: string, team: number) {
   const key = type + team; if (rigCache[key]) return rigCache[key];
-  const T = teamPal(team), s = PEOPLE_SCALE[type] || 1, armC = type === 'lord' ? T.dark : C.leatherD;
+  const T = teamPal(team), s = PEOPLE_SCALE[type] || 1, armC = type === 'lord' ? T.dark : type === 'lancier' ? C.gambesonD : C.leatherD;
   RIG = true; const base = one(k => (BUILD[type] || BUILD.archer)(k, T)); RIG = false; base.scale(s, s, s);
+  if (type === 'lancier') {
+    // bras (épaule en 0), lance dans le repère de la main (prise à SPEAR_GRIP de la base), bouclier dans la main gauche
+    const armG = () => one(k => { k.add(cbox(.09, .2, .085, .025), armC, 0, -.2, 0); k.add(cbox(.075, .075, .075, .02), C.skin, .005, -.255, 0) });
+    return rigCache[key] = { base, armSpear: armG(), armShield: armG(), spear: one(k => k.at(0, -SPEAR_GRIP, 0, 0, () => spear(k))),
+      shield: one(k => k.at(.06, .02, -.05, 0, () => shield(k, T), Math.PI / 2)), scale: s };
+  }
   const arm = (bracer: boolean) => one(k => {
     k.add(cbox(.09, .2, .085, .025), armC, 0, -.2, 0); k.add(cbox(.075, .075, .075, .02), C.skin, .005, -.255, 0);
     if (bracer) k.add(cbox(.095, .06, .09, .012), type === 'lord' ? C.gold : C.leather, 0, -.17, 0);
