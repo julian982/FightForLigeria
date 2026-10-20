@@ -86,7 +86,7 @@ export function makeSnapshot(fell: number[]): Snapshot {
       (w.working ? WF.working : 0) | (w.need ? WF.need : 0) | (w.idle ? WF.idle : 0) | (w.noStore === 'reserve' ? WF.noReserve : 0) | (w.noStore === 'grenier' ? WF.noGrenier : 0) | (w.noStore === 'armurerie' ? WF.noArmory : 0)
       | (w.state === 'toFetch' ? WF.fetch : 0) | (w.carry && w.carry.input ? WF.supply : 0)]),
     b: G.buildings.map(b => [b.id, b.team, B_TYPES.indexOf(b.type), b.tx, b.ty, Math.ceil(b.hp), b.maxhp, r2(b.grow || 0), b.respawn == null ? -1 : r1(b.respawn), r2(Math.max(0, b.flash))]),
-    a: G.arrows.map(a => [a.id, a.team, a.lord ? 1 : 0, r1(a.x), r1(a.y), r1(a.vx), r1(a.vy), r1(a.d), r1(a.md)]),
+    a: G.arrows.map(a => [a.id, a.team, a.lord ? 1 : 0, r1(a.x), r1(a.y), r1(a.vx), r1(a.vy), r1(a.d), r1(a.md), (a as any).by || 0]),
     fx, fell,
   };
 }

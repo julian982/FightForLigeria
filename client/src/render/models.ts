@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { G, S, gh, identityOf, isFoe } from '@ffl/shared';
 import { B, C, I, K, M, TEAMC, TM, VC, boxM, cylM, companion, dyn, gableGeo, merge, mk, teamColor, tr } from './engine';
 import { terrRing } from './world';
-import { personGeo, workerGeo, workerKey } from './people';
+import { personGeo, workerGeo, workerKey, rigGeo, clearRigCache, RIG_TYPES, SHOULDER, ARM_LEN } from './people';
 import { buildKeep, buildHut, buildQuarry, buildBarracks, buildReserve, buildGranary, buildFarm, buildArmory, buildBowyer, buildSpearmaker, buildFletcher, buildMine, buildForge } from './stylized';
 import { ME } from '../state';
 /** peuplier : une colonne de feuillage faite de boules déformées, sur un tronc fin */
@@ -85,7 +85,18 @@ export const RINGGEO=new THREE.RingGeometry(.34,.42,24).rotateX(-Math.PI/2);
 export const RINGMAT=new THREE.MeshBasicMaterial({color:0xffe9a8,transparent:true,opacity:.85,depthWrite:false});
 /** chaque ouvrier a son apparence (la même que sur sa fiche) ; les géométries identiques sont partagées */
 export function workerGeoOf(u){const idn=identityOf(u.id,(G&&G.seed)||0),k='w'+u.team+workerKey(idn.female,idn.face,u.id);return UGEO[k]||(UGEO[k]=workerGeo(idn.female,idn.face,u.id,u.team))}
-export function unitObj(u){const m=mk(u.kind==='worker'?workerGeoOf(u):unitGeo(u.type,u.team),VC);m.rotation.order='YXZ';m.receiveShadow=false;dyn.add(m);u.obj=m;
+/** archer et seigneur : corps + pièces articulées (bras d'arc, arc, corde en deux brins, bras qui tire, flèche encochée) */
+function rigObj(u){
+  const R=rigGeo(u.type,u.team),m=mk(R.base,VC),rig=new THREE.Group();rig.scale.setScalar(R.scale);m.add(rig);
+  const meshes=[m],part=(geo,parent)=>{const p=mk(geo,VC);p.receiveShadow=false;parent.add(p);meshes.push(p);return p};
+  const armL=new THREE.Group();armL.position.set(0,SHOULDER.y,-SHOULDER.z);rig.add(armL);part(R.armBow,armL);
+  const hand=new THREE.Group();hand.position.set(0,-ARM_LEN,0);armL.add(hand);part(R.bow,hand);
+  const sTop=part(R.string,hand),sBot=part(R.string,hand),arrow=part(R.arrow,hand);arrow.visible=false;
+  const armR=new THREE.Group();armR.position.set(0,SHOULDER.y,SHOULDER.z);rig.add(armR);part(R.armDraw,armR);
+  u.rig={armL,hand,armR,sTop,sBot,arrow,aim:0,draw:0,meshes};
+  return m;
+}
+export function unitObj(u){const m=u.kind!=='worker'&&RIG_TYPES.has(u.type)?rigObj(u):mk(u.kind==='worker'?workerGeoOf(u):unitGeo(u.type,u.team),VC);m.rotation.order='YXZ';m.receiveShadow=false;dyn.add(m);u.obj=m;
   if(u.kind==='worker'){const cm=new THREE.Mesh(CARRY.bois,VC);cm.position.set(0,.98,0);cm.visible=false;cm.castShadow=true;m.add(cm);u.cobj=cm}}
 export let AGEO=[0,1,2,3].map(t=>merge([[C(.012,.012,.5,4).rotateZ(-Math.PI/2),0xd8c49a],[K(.03,.08,4).rotateZ(-Math.PI/2).translate(.29,0,0),0x9aa1a8],[B(.1,.01,.07).translate(-.21,0,0),TEAMC[t].light],[B(.1,.07,.01).translate(-.21,0,0),TEAMC[t].light]]));
 // applique la couleur choisie à tout le royaume (unités, bâtiments, flèches, territoire)
@@ -94,7 +105,7 @@ export function applyColors(){
   // toi : ta couleur ; ton allié : une teinte voisine ; les ennemis : la couleur adverse et sa voisine
   const foes=[0,1,2,3].filter(p=>isFoe(p,ME));
   for(let p=0;p<4;p++)TEAMC[p]=teamColor(p===ME?k.me:!isFoe(p,ME)?companion(k.me):foes.indexOf(p)===0?k.foe:companion(k.foe));
-  for(const key in UGEO)delete UGEO[key];
+  for(const key in UGEO)delete UGEO[key];clearRigCache();
   AGEO=[0,1,2,3].map(t=>merge([[C(.012,.012,.5,4).rotateZ(-Math.PI/2),0xd8c49a],[K(.03,.08,4).rotateZ(-Math.PI/2).translate(.29,0,0),0x9aa1a8],[B(.1,.01,.07).translate(-.21,0,0),TEAMC[t].light],[B(.1,.07,.01).translate(-.21,0,0),TEAMC[t].light]]));
   terrRing.forEach((r,id)=>{if(r)r.material.color.setHex(TEAMC[id].light)});
 }

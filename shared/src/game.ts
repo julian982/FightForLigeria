@@ -130,7 +130,7 @@ function unitArrow(u, t) {
   const s = UT.archer, sp = 470, p = t.kind === 'building' ? rectClamp(u.x, u.y, t) : { x: t.x, y: t.y };
   const d = dist(u.x, u.y, p.x, p.y), tt = d / sp, px = p.x + (t.vx || 0) * tt * .7, py = p.y + (t.vy || 0) * tt * .7;
   const ang = Math.atan2(py - u.y, px - u.x) + (Math.random() - .5) * .08; u.face = ang;
-  const a = { team: u.team, x: u.x + Math.cos(ang) * 10, y: u.y + Math.sin(ang) * 10, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, d: 0, md: Math.min(rangeOf(u).range + 60, d + 40), dmg: s.dmg, lord: false, z: 0 };
+  const a = { team: u.team, x: u.x + Math.cos(ang) * 10, y: u.y + Math.sin(ang) * 10, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, d: 0, md: Math.min(rangeOf(u).range + 60, d + 40), dmg: s.dmg, lord: false, z: 0, by: u.id };
   (a as any).id = G.aid++; G.arrows.push(a);
 }
 /** nuage de poussière (effet visuel, sans incidence sur le jeu) */

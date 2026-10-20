@@ -12,6 +12,8 @@ const C = {
 };
 type Look = { boot: number, legs: number, torso: number, belt: number, arms: number, brow?: number, face?: boolean, skin?: number, skinD?: number, skirt?: number };
 
+/** construction « articulée » (archer, seigneur) : le corps sans les bras ni l'arc, qui sont des pièces à part animées */
+let RIG = false;
 /** le corps commun : jambes, torse, bras, tête (et visage, sauf sous un heaume) */
 function body(k: Kit, t: Look) {
   const skin = t.skin ?? C.skin, skinD = t.skinD ?? C.skinD;
@@ -20,7 +22,7 @@ function body(k: Kit, t: Look) {
   k.add(cbox(.2, .25, .3, .05), t.torso, 0, .23);
   k.add(cbox(.215, .045, .315, .012), t.belt, 0, .28);
   k.add(cbox(.02, .035, .045, .006), C.gold, .11, .285, 0);
-  for (const s of [-1, 1]) { k.add(cbox(.09, .2, .085, .025), t.arms, 0, .3, s * .19); k.add(cbox(.075, .075, .075, .02), skin, .005, .245, s * .19) }
+  if (!RIG) for (const s of [-1, 1]) { k.add(cbox(.09, .2, .085, .025), t.arms, 0, .3, s * .19); k.add(cbox(.075, .075, .075, .02), skin, .005, .245, s * .19) }
   k.add(cbox(.25, .26, .25, .075), skin, 0, .47);
   if (t.face === false) return;
   for (const s of [-1, 1]) {
@@ -37,6 +39,7 @@ function hair(k: Kit, color: number, style: 'short' | 'long') {
 }
 function beard(k: Kit, color: number, size = 1) { k.add(cbox(.06, .1 * size, .22, .02), color, .115, .46 - .04 * size, 0); k.add(cbox(.02, .025, .1, .006), color, .13, .53, 0) }
 function bow(k: Kit, R: number) {
+  if (RIG) return;
   const a = Math.PI * .78;
   k.add(new THREE.TorusGeometry(R, .016, 4, 12, a), C.wood, .07 - R * Math.cos(a / 2), .3, -.24, 0, 0, -a / 2);
   k.add(cbox(.006, 2 * R * Math.sin(a / 2), .006, .002), C.white, .07, .3 - R * Math.sin(a / 2), -.24);
@@ -62,7 +65,7 @@ const BUILD: Record<string, (k: Kit, T: ReturnType<typeof teamPal>) => void> = {
     k.add(cone(.08, .16, 4), T.dark, -.12, .74, 0, 0, Math.PI / 4, -.6);
     k.add(cbox(.15, .05, .3, .015), T.dark, -.01, .4);
     quiver(k, [C.red, C.white, C.red]); bow(k, .34);
-    k.add(cbox(.03, .06, .03, .006), C.leatherD, .08, .28, -.24);
+    if (!RIG) k.add(cbox(.03, .06, .03, .006), C.leatherD, .08, .28, -.24);
   },
   lancier(k, T) {
     body(k, { boot: C.boot, legs: C.trousers, torso: C.gambeson, belt: C.leather, arms: C.gambesonD, brow: C.hairDk });
@@ -105,7 +108,7 @@ const BUILD: Record<string, (k: Kit, T: ReturnType<typeof teamPal>) => void> = {
     k.add(cbox(.22, .06, .34, .03), C.white, -.01, .45);
     k.add(cbox(.025, .14, .1, .01), C.gold, .105, .3, 0);
     quiver(k, [C.white, C.white, C.white]); bow(k, .38);
-    for (const y of [.28, .36]) k.add(cbox(.03, .025, .03, .006), C.gold, .08, y, -.24);
+    if (!RIG) for (const y of [.28, .36]) k.add(cbox(.03, .025, .03, .006), C.gold, .08, y, -.24);
   },
 };
 /** taille de chaque personnage dans le jeu (le seigneur domine, l'ouvrier est plus petit) */
@@ -153,4 +156,40 @@ export function workerGeo(female: boolean, f: Face, id: number, team: number) {
   if (!female) k.add(cbox(.04, .06, .05, .01), C.leather, -.02, .27, .13);
   const g = new THREE.Group(); k.build(g);
   const geo = (g.children[0] as any).geometry; const s = PEOPLE_SCALE.worker * (female ? .95 : 1); geo.scale(s, s, s); return geo;
+}
+
+// ---------------------------------------------------------------------
+// Archer et seigneur articulés : le bras d'arc, l'arc, la corde, le bras qui tire et la flèche encochée sont des pièces
+// séparées que render/sync.ts anime (bander, viser, relâcher). Repères : épaules en (0, .5, ±.19) ; la main est au bout
+// du bras, à .22 sous l'épaule ; (les formes du kit sont posées par leur base : d'où les décalages de moitié) l'arc est dans le repère de la main, son ventre devant la main (+x), la corde derrière.
+// ---------------------------------------------------------------------
+export const RIG_TYPES = new Set(['archer', 'lord']);
+export const SHOULDER = { y: .5, z: .19 }, ARM_LEN = .22;
+const BOW_R: Record<string, number> = { archer: .34, lord: .38 }, BOW_A = Math.PI * .78;
+/** extrémités de la corde (repère de la main) */
+export function bowTips(type: string) { const R = BOW_R[type] || .34; return { x: -R + R * Math.cos(BOW_A / 2), h: R * Math.sin(BOW_A / 2), z: -.03 } }
+const one = (fn: (k: Kit) => void) => { const k = new Kit(1); fn(k); const g = new THREE.Group(); k.build(g); return (g.children[0] as any).geometry };
+const rigCache: Record<string, any> = {};
+/** à appeler quand les couleurs des équipes changent */
+export function clearRigCache() { for (const k in rigCache) delete rigCache[k] }
+export function rigGeo(type: string, team: number) {
+  const key = type + team; if (rigCache[key]) return rigCache[key];
+  const T = teamPal(team), s = PEOPLE_SCALE[type] || 1, armC = type === 'lord' ? T.dark : C.leatherD;
+  RIG = true; const base = one(k => (BUILD[type] || BUILD.archer)(k, T)); RIG = false; base.scale(s, s, s);
+  const arm = (bracer: boolean) => one(k => {
+    k.add(cbox(.09, .2, .085, .025), armC, 0, -.2, 0); k.add(cbox(.075, .075, .075, .02), C.skin, .005, -.255, 0);
+    if (bracer) k.add(cbox(.095, .06, .09, .012), type === 'lord' ? C.gold : C.leather, 0, -.17, 0);
+  });
+  const R = BOW_R[type] || .34, tips = bowTips(type);
+  const bowG = one(k => {
+    k.add(new THREE.TorusGeometry(R, .016, 4, 12, BOW_A), C.wood, -R, 0, tips.z, 0, 0, -BOW_A / 2);
+    k.add(cbox(.035, .07, .035, .008), type === 'lord' ? C.gold : C.leatherD, 0, -.035, tips.z); // la poignée
+  });
+  const string = one(k => k.add(cbox(.007, 1, .007, .002), C.white, 0, -.5, 0)); // centrée : une unité de long
+  const arrow = one(k => {
+    k.add(cyl(.009, .009, .42, 4), C.woodL, -.04, 0, 0, 0, 0, -Math.PI / 2);
+    k.add(cone(.022, .06, 4), C.steel, .38, 0, 0, 0, 0, -Math.PI / 2);
+    for (const r of [0, Math.PI / 2]) k.add(cbox(.07, .03, .004, .001), type === 'lord' ? C.white : C.red, .04, 0, 0, r);
+  });
+  return rigCache[key] = { base, armBow: arm(true), armDraw: arm(false), bow: bowG, string, arrow, scale: s };
 }

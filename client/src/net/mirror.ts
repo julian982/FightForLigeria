@@ -40,7 +40,7 @@ export function applySnapshot(s: Snapshot) {
       w.working = !!(f & WF.working); w.need = !!(f & WF.need); w.state = f & WF.fetch ? 'toFetch' : w.working ? 'working' : ''; w.idle = !!(f & WF.idle);
       w.noStore = f & WF.noReserve ? 'reserve' : f & WF.noGrenier ? 'grenier' : f & WF.noArmory ? 'armurerie' : null;
       const b = byId.b.get(r[2]); w.b = b; if (b) b.worker = w });
-  G.arrows = sync(G.arrows, byId.a, s.a, r => ({ id: r[0], team: r[1], lord: !!r[2], x: r[3], y: r[4] }),
+  G.arrows = sync(G.arrows, byId.a, s.a, r => ({ id: r[0], team: r[1], lord: !!r[2], x: r[3], y: r[4], by: r[9] || 0 }),
     (a, r) => { a.x = r[3]; a.y = r[4]; a.vx = r[5]; a.vy = r[6]; a.d = r[7]; a.md = r[8] });
   for (const f of s.fx) G.fx.push(f);
   if (s.fell.length) { const ids = new Set(s.fell); for (const t of trees) if (ids.has(t.id)) { t.wood = 0; hooks.removed(t) } setTrees(trees.filter(t => t.wood > 0)) }

@@ -41,7 +41,8 @@ export const START_RES = {bois:30,pierre:10,ble:20,fer:0,arc:0,lance:0,epee:0,fl
 export const RICH_RES = {bois:120,pierre:60,ble:90,fleche:16};
 export const UT: Record<string, any> = {
   lord:{hp:300,speed:125,r:13},
-  archer:{hp:55,speed:78,r:9,range:240,dmg:9,cd:1.5,aggro:290},
+  // portée 288 (240 + 20 %) ; ils repèrent l'ennemi d'un peu plus loin encore
+  archer:{hp:55,speed:78,r:9,range:288,dmg:9,cd:1.5,aggro:348},
   lancier:{hp:120,speed:88,r:10,range:16,dmg:13,cd:1.0,aggro:250},
   spadassin:{hp:420,speed:80,r:11,range:18,dmg:34,cd:.9,aggro:260},
 };

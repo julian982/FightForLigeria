@@ -7,6 +7,7 @@ import { birdsTakeOff, life } from './life';
 import { AGEO, CARRY, RINGGEO, RINGMAT, STUMPGEO, arrowObj, buildingObj, treeObj, unitObj } from './models';
 import { groundMesh, halfShade, terrRing } from './world';
 import { updSmoke } from './stylized';
+import { animBow, scanShots, rigMaterial } from './bowanim';
 import { $, ME, keys, mouse, sel, tilt, ui, view } from '../state';
 export const ray=new THREE.Raycaster(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),V2=new THREE.Vector2(),V3=new THREE.Vector3(),HIT=new THREE.Vector3();
 export function screenToWorld(sx,sy){V2.set(sx/view.VW*2-1,-(sy/view.VH)*2+1);ray.setFromCamera(V2,camera);if(groundMesh){const h=ray.intersectObject(groundMesh,false)[0];if(h)return{x:h.point.x*T,y:h.point.z*T}}return ray.ray.intersectPlane(plane,HIT)?{x:HIT.x*T,y:HIT.z*T}:{x:0,y:0}}
@@ -37,16 +38,19 @@ export function ghostTile(){const d=DEF[ui.placing];return{tx:Math.round(mouse.w
 export function syncScene(dt){
   const t=G.t;
   ensureObjs();
+  const now=performance.now()/1000;scanShots(now);
   for(const u of [...G.units,...G.workers]){
     const m=u.obj;if(!m)continue;
     const sp=Math.hypot(u.vx||0,u.vy||0);u.ph=(u.ph||0)+dt*Math.min(sp,140)*.11;
-    if(u.dead){u.dT=(u.dT||0)+dt;m.position.set(u.x*S,gh(u.x,u.y)+.05,u.y*S);m.rotation.set(0,-u.face,-Math.min(1,u.dT*2.5)*Math.PI/2);if(u.ring)u.ring.visible=false;continue}
+    if(u.dead){u.dT=(u.dT||0)+dt;m.position.set(u.x*S,gh(u.x,u.y)+.05,u.y*S);m.rotation.set(0,-u.face,-Math.min(1,u.dT*2.5)*Math.PI/2);if(u.ring)u.ring.visible=false;if(u.rig)animBow(u,dt,now);continue}
     let bob=sp>5?Math.abs(Math.sin(u.ph))*.06:0,sway=sp>5?Math.sin(u.ph*2)*.07:0,pitch=0;
     if(u.working){bob=Math.abs(Math.sin((u.anim||0)*7))*.04;pitch=Math.sin((u.anim||0)*7)*.25}
     const l=u.lunge?u.lunge/.15*.14:0;
     m.position.set(u.x*S+Math.cos(u.face)*l,gh(u.x,u.y)+bob,u.y*S+Math.sin(u.face)*l);
+    // archers et seigneurs : arc animé ; en bandant, le buste part légèrement en arrière
+    if(u.rig){const d=animBow(u,dt,now)||0;pitch-=d*.08}
     m.rotation.set(sway,-u.face,-pitch);
-    m.material=u.flash>0?VCF:VC;
+    m.material=u.flash>0?VCF:VC;if(u.rig)rigMaterial(u,m.material);
     if(u.cobj){u.cobj.visible=!!u.carry;if(u.carry)u.cobj.geometry=CARRY[u.carry.type]}
     const isSel=sel.has(u);
     if(isSel&&!u.ring){u.ring=new THREE.Mesh(RINGGEO,RINGMAT);dyn.add(u.ring)}
