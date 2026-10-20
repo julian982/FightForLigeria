@@ -87,8 +87,12 @@ async function sendVerify(user: { id: number, pseudo: string, email: string }) {
 }
 /** Elo et rang d'un mode (1v1 ou 2v2) */
 export const ladderOf = (elo: number, games: number, wins: number) => ({ elo, games, wins, placed: games >= ELO.PLACEMENT, rank: ELO.rank(elo), tier: ELO.tier(elo) });
+/** administrateurs : comptes listés dans la configuration du serveur (ADMIN_EMAILS et/ou ADMIN_PSEUDOS, séparés par des virgules) */
+const listEnv = (k: string) => String(process.env[k] || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+const ADMIN_EMAILS = listEnv('ADMIN_EMAILS'), ADMIN_PSEUDOS = listEnv('ADMIN_PSEUDOS');
+export const isAdmin = (u: any) => !!u && (ADMIN_EMAILS.includes(String(u.email).toLowerCase()) || ADMIN_PSEUDOS.includes(String(u.pseudo).toLowerCase()));
 const publicUser = (u: any) => ({
-  id: u.id, pseudo: u.pseudo, email: u.email, createdAt: u.created_at, blason: cleanBlason(u.blason),
+  id: u.id, pseudo: u.pseudo, email: u.email, createdAt: u.created_at, blason: cleanBlason(u.blason), admin: isAdmin(u),
   r1: ladderOf(u.elo1 ?? ELO.START, u.games1 ?? 0, u.wins1 ?? 0), r2: ladderOf(u.elo2 ?? ELO.START, u.games2 ?? 0, u.wins2 ?? 0),
 });
 async function openSession(userId: number) {
@@ -315,4 +319,37 @@ export async function leaderboard(token: string | null, mode: string): Promise<R
     me = { place, ...ladderOf(elo, games, u['wins' + n]) };
   }
   return ok({ mode: n === 2 ? '2v2' : '1v1', players: top.map((p: any, i: number) => ({ place: i + 1, pseudo: p.pseudo, blason: cleanBlason(p.blason), ...ladderOf(p.elo, p.games, p.wins), you: !!u && u.id === p.id })), me });
+}
+
+// ---------------- administration ----------------
+/** chiffres clés et liste des comptes, réservés aux administrateurs */
+export async function adminStats(token: string | null): Promise<Res> {
+  if (!dbReady()) return unavailable();
+  const u = await sessionUser(token); if (!u) return err(401, 'Session expirée : reconnecte-toi.', 'session');
+  if (!isAdmin(u)) return err(403, 'Réservé aux administrateurs.', 'forbidden');
+  if (limited('admin:' + u.id, 60, 60_000)) return tooMany();
+  const one = async (sql: string) => Number((await q(sql))[0].c) || 0;
+  const since = (d: number) => `DATE_SUB(UTC_TIMESTAMP(), INTERVAL ${d} DAY)`;
+  const stats = {
+    users: await one(`SELECT COUNT(*) AS c FROM users`),
+    users1: await one(`SELECT COUNT(*) AS c FROM users WHERE created_at > ${since(1)}`),
+    users7: await one(`SELECT COUNT(*) AS c FROM users WHERE created_at > ${since(7)}`),
+    users30: await one(`SELECT COUNT(*) AS c FROM users WHERE created_at > ${since(30)}`),
+    active7: await one(`SELECT COUNT(DISTINCT p.user_id) AS c FROM match_players p JOIN matches m ON m.id = p.match_id WHERE p.user_id IS NOT NULL AND m.played_at > ${since(7)}`),
+    logins7: await one(`SELECT COUNT(*) AS c FROM users WHERE last_login_at > ${since(7)}`),
+    matches: await one(`SELECT COUNT(*) AS c FROM matches`),
+    matches1: await one(`SELECT COUNT(*) AS c FROM matches WHERE played_at > ${since(1)}`),
+    matches7: await one(`SELECT COUNT(*) AS c FROM matches WHERE played_at > ${since(7)}`),
+    avgDuration: await one(`SELECT COALESCE(ROUND(AVG(duration_s)), 0) AS c FROM matches`),
+    byKind: Object.fromEntries((await q(`SELECT kind, COUNT(*) AS c FROM matches GROUP BY kind`)).map((r: any) => [r.kind, Number(r.c)])),
+    byMap: Object.fromEntries((await q(`SELECT map, COUNT(*) AS c FROM matches GROUP BY map ORDER BY c DESC`)).map((r: any) => [r.map, Number(r.c)])),
+  };
+  const users = (await q(`SELECT u.id, u.pseudo, u.email, u.created_at, u.last_login_at, u.elo1, u.games1, u.wins1, u.elo2, u.games2, u.wins2,
+      (SELECT COUNT(*) FROM match_players p WHERE p.user_id = u.id) AS games,
+      (SELECT MAX(m.played_at) FROM match_players p JOIN matches m ON m.id = p.match_id WHERE p.user_id = u.id) AS last_game
+    FROM users u ORDER BY u.created_at DESC LIMIT 5000`)).map((r: any) => ({
+      id: r.id, pseudo: r.pseudo, email: r.email, createdAt: r.created_at, lastLogin: r.last_login_at, lastGame: r.last_game, games: Number(r.games),
+      elo1: r.elo1, games1: r.games1, wins1: r.wins1, elo2: r.elo2, games2: r.games2, wins2: r.wins2,
+    }));
+  return ok({ stats, users });
 }

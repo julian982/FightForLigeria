@@ -5,6 +5,7 @@ import { ELO } from '@ffl/shared';
 import { initOnline } from './online';
 import { initAccount } from './account';
 import { initRanked } from './ranked';
+import { initAdmin } from './admin';
 import { RANKS, DIV, range, shield } from './rankbadge';
 
 const byId=(id:string):any=>document.getElementById(id);
@@ -12,8 +13,8 @@ const all=(q:string):any[]=>Array.from(document.querySelectorAll(q));
 
 export function initHome(){
   (()=>{
-    const VIEWS=['jouer','solo','en-ligne','creer','salon','classement','guide','file','compte','parties','reinit','mentions','confidentialite','cgu'],NAV={file:'jouer',solo:'jouer','en-ligne':'jouer',creer:'jouer',salon:'jouer'},
-      TITLES={jouer:'FightForLigeria',solo:'Contre l\'IA · FightForLigeria','en-ligne':'Parties en ligne · FightForLigeria',creer:'Créer une partie · FightForLigeria',salon:'Salon · FightForLigeria',classement:'Classement · FightForLigeria',guide:'Comment jouer · FightForLigeria',file:'Partie classée · FightForLigeria',compte:'Mon compte · FightForLigeria',parties:'Mes parties · FightForLigeria',reinit:'Nouveau mot de passe · FightForLigeria',mentions:'Mentions légales · FightForLigeria',confidentialite:'Confidentialité · FightForLigeria',cgu:'Conditions d\'utilisation · FightForLigeria'};
+    const VIEWS=['jouer','solo','en-ligne','creer','salon','classement','guide','file','compte','parties','admin','reinit','mentions','confidentialite','cgu'],NAV={file:'jouer',solo:'jouer','en-ligne':'jouer',creer:'jouer',salon:'jouer'},
+      TITLES={jouer:'FightForLigeria',solo:'Contre l\'IA · FightForLigeria','en-ligne':'Parties en ligne · FightForLigeria',creer:'Créer une partie · FightForLigeria',salon:'Salon · FightForLigeria',classement:'Classement · FightForLigeria',guide:'Comment jouer · FightForLigeria',file:'Partie classée · FightForLigeria',compte:'Mon compte · FightForLigeria',parties:'Mes parties · FightForLigeria',admin:'Administration · FightForLigeria',reinit:'Nouveau mot de passe · FightForLigeria',mentions:'Mentions légales · FightForLigeria',confidentialite:'Confidentialité · FightForLigeria',cgu:'Conditions d\'utilisation · FightForLigeria'};
     const home=byId('home');
     function show(v,scroll=false){
       v=String(v||'').split('?')[0];
@@ -108,4 +109,5 @@ export function initHome(){
   initOnline();
   initAccount();
   initRanked();
+  initAdmin();
 }

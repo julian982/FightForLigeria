@@ -65,6 +65,7 @@ export function initAccount() {
     $('pfPseudo').textContent = u.pseudo; $('pfEmail').textContent = u.email;
     $('pfSince').textContent = new Date(u.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
     $('pfBlason').innerHTML = blasonSvg(u.blason, { title: 'Blason de ' + u.pseudo });
+    $('pfAdmin').hidden = !u.admin;
   }
   /** la page « Mes parties » : rangs 1v1 et 2v2, historique des parties */
   function renderParties() {

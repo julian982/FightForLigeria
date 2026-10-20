@@ -8,7 +8,7 @@ if (!process.env.DB_HOST) { console.log('classé : pas de base de données (DB_H
 const PORT = 3300 + (Math.random() * 300 | 0), BASE = `http://localhost:${PORT}`, WS = `ws://localhost:${PORT}`;
 const admin = await mariadb.createConnection({ host: process.env.DB_HOST, port: +(process.env.DB_PORT || 3306), user: process.env.DB_USER, password: process.env.DB_PASSWORD, database: process.env.DB_NAME });
 for (const t of ['match_players', 'matches', 'email_tokens', 'sessions', 'users', 'schema_version']) await admin.query(`DROP TABLE IF EXISTS ${t}`);
-const srv = spawn(process.execPath, ['dist/index.mjs'], { env: { ...process.env, PORT: String(PORT), SMTP_HOST: '', EMAIL_VERIFY: '' }, stdio: ['ignore', 'pipe', 'inherit'] });
+const srv = spawn(process.execPath, ['dist/index.mjs'], { env: { ...process.env, PORT: String(PORT), SMTP_HOST: '', EMAIL_VERIFY: '', ADMIN_PSEUDOS: 'arthur', ADMIN_EMAILS: '' }, stdio: ['ignore', 'pipe', 'inherit'] });
 let out = '';
 await new Promise((ok, ko) => { srv.stdout.on('data', d => { out += d; if (out.includes('base de données prête')) ok() }); setTimeout(() => ko(new Error('le serveur ne démarre pas :\n' + out.slice(-500))), 20000) });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -136,7 +136,14 @@ try {
   for (const u of [A, B, C, D]) gs.push(await enter(u.token, q4[0].match.roomId));
   await until(() => gs.every(g => g.start), 5000, 'lancement 2v2');
   ok(gs.every(g => g.start.mode === '2v2' && g.start.ranked), '2v2 classé lancé');
-  console.log('OK : inscription sans email, blason, historique (solo, classé), file classée sans compte refusée, partie classée fabriquée refusée, 1v1 (appariement, intrus refusé, lancement, abandon, Elo ±40), partie annulée, classement et place, 2v2 (appariement, lancement)');
+  // ---- administration : réservée aux comptes déclarés ----
+  ok(A.user.admin === true && B.user.admin === false, 'drapeau administrateur');
+  r = await api('/api/admin/stats', null, B.token); ok(r.status === 403, 'un joueur ordinaire ne voit pas l\'administration');
+  r = await api('/api/admin/stats'); ok(r.status === 401, 'administration sans session');
+  r = await api('/api/admin/stats', null, A.token);
+  ok(r.status === 200 && r.body.stats.users === 4 && r.body.users.length === 4 && r.body.stats.matches >= 2 && r.body.stats.byKind.ranked >= 1, 'statistiques : ' + JSON.stringify(r.body.stats));
+  ok(r.body.users.find(x => x.pseudo === 'Arthur').games >= 2, 'nombre de parties par joueur');
+  console.log('OK : administration (droits, chiffres, liste des joueurs) · inscription sans email, blason, historique (solo, classé), file classée sans compte refusée, partie classée fabriquée refusée, 1v1 (appariement, intrus refusé, lancement, abandon, Elo ±40), partie annulée, classement et place, 2v2 (appariement, lancement)');
   for (const g of gs) g.room.leave();
   try { g2 && g2.room.leave() } catch (e) {}
 } catch (e) { fail(e.stack || e) }

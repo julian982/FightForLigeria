@@ -442,7 +442,7 @@
           <div class="pf-id">
             <h3 class="pf-name" id="pfPseudo"></h3>
             <p class="help small">Membre depuis le <span id="pfSince"></span> · <span id="pfEmail"></span> (jamais montré aux autres joueurs)</p>
-            <div class="end-btns"><button class="go ghost" type="button" id="pfEditBl">Modifier mon blason</button><a class="go ghost" href="#parties">Mes parties et mes rangs</a><button class="go ghost" type="button" id="pfLogout">Se déconnecter</button></div>
+            <div class="end-btns"><button class="go ghost" type="button" id="pfEditBl">Modifier mon blason</button><a class="go ghost" href="#parties">Mes parties et mes rangs</a><a class="go ghost" href="#admin" id="pfAdmin" hidden>Administration</a><button class="go ghost" type="button" id="pfLogout">Se déconnecter</button></div>
           </div>
         </div>
         <div class="panel" id="pfBlEdit" hidden>
@@ -477,6 +477,22 @@
           <div class="pf-hist-head"><h3 class="step" id="histT">Historique des parties</h3>
             <div class="seg" id="histFilter"><button type="button" data-k="all" aria-pressed="true">Toutes</button><button type="button" data-k="ranked" aria-pressed="false">Classées</button><button type="button" data-k="online" aria-pressed="false">En ligne</button><button type="button" data-k="solo" aria-pressed="false">Contre l'IA</button></div></div>
           <div id="pfHist" class="hist"></div>
+        </section>
+      </div>
+    </section>
+    </div>
+
+    <div class="view" id="v-admin" hidden>
+    <section class="sub-sec" aria-labelledby="adT">
+      <a class="back" href="#compte">← Mon compte</a>
+      <div class="rank-head"><h2 id="adT">Administration</h2><button class="go ghost" type="button" id="adRefresh">Actualiser</button></div>
+      <p class="net-msg" id="adMsg" role="status"></p>
+      <div id="adBody" hidden>
+        <div class="ad-tiles" id="adTiles"></div>
+        <section class="panel">
+          <div class="ad-head"><h3 class="step">Joueurs inscrits <span id="adCount"></span></h3>
+            <input class="txt ad-search" id="adSearch" type="search" placeholder="Pseudo ou email" aria-label="Rechercher un joueur"></div>
+          <div class="ad-wrap"><table class="ad-table" id="adTable"><thead></thead><tbody></tbody></table></div>
         </section>
       </div>
     </section>

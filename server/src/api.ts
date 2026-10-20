@@ -29,5 +29,6 @@ export const apiRouter = () => createRouter({
   history: get('/api/history', ctx => A.history(token(ctx.request.headers))),
   solo: post('/api/history/solo', ctx => A.soloResult(token(ctx.request.headers), ctx.body)),
   leaderboard: get('/api/leaderboard', ctx => A.leaderboard(token(ctx.request.headers), String(ctx.query?.mode ?? '1v1'))),
+  admin: get('/api/admin/stats', ctx => A.adminStats(token(ctx.request.headers))),
   deleteAccount: post('/api/account/delete', ctx => A.deleteAccount(token(ctx.request.headers), ctx.body, ipOf(ctx.request.headers))),
 });

@@ -529,3 +529,27 @@ svg.blason{display:block;width:100%;height:auto;overflow:visible}
 .pf-ranks-row{flex-direction:row;flex-wrap:wrap}
 .pf-ranks-row .pf-rank{flex:1;min-width:240px}
 #v-parties .rank-head .go{min-height:40px;display:inline-flex;align-items:center}
+
+/* ---------- administration ---------- */
+.ad-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
+.ad-tile{display:flex;flex-direction:column;gap:2px;padding:14px 16px;background:var(--wood);border:1px solid var(--rule);border-radius:4px}
+.ad-tile b{font-family:var(--f-display);font-weight:500;font-size:34px;line-height:1.05;color:var(--gold);font-variant-numeric:tabular-nums}
+.ad-tile span{font-size:14px;color:var(--text)}
+.ad-tile small{font-size:12px;color:var(--muted);line-height:1.4}
+.ad-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.ad-head .step{margin:0}
+.ad-head .step span{color:var(--muted);font-weight:500}
+.ad-search{max-width:320px}
+.ad-wrap{overflow-x:auto}
+.ad-table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.ad-table th{position:sticky;top:0;background:var(--wood);text-align:left;border-bottom:1px solid var(--rule);padding:0}
+.ad-table th button{font:inherit;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);background:none;border:0;padding:8px 10px;cursor:pointer;width:100%;text-align:inherit;white-space:nowrap}
+.ad-table th[aria-sort="ascending"] button,.ad-table th[aria-sort="descending"] button{color:var(--gold)}
+.ad-table th button:hover{color:var(--text)}
+.ad-table th button:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.ad-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.05);white-space:nowrap}
+.ad-table .num{text-align:right}
+.ad-table td small{color:var(--muted)}
+.ad-table tbody tr:hover td{background:rgba(217,164,65,.06)}
+.ad-empty{color:var(--muted);text-align:center;padding:18px}
+.ad-tile b.txt{font-size:24px}

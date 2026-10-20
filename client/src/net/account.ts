@@ -6,7 +6,7 @@ import type { Blason } from '@ffl/shared';
 const KEY = 'ffl.session';
 /** Elo d'un mode (1v1 ou 2v2) : `placed` devient vrai après les 5 parties de placement */
 export type Ladder = { elo: number, games: number, wins: number, placed: boolean, rank: string, tier: number };
-export type User = { id: number, pseudo: string, email: string, createdAt: string, blason: Blason, r1: Ladder, r2: Ladder };
+export type User = { id: number, pseudo: string, email: string, createdAt: string, blason: Blason, r1: Ladder, r2: Ladder, admin?: boolean };
 let token = '', user: User | null = null;
 try { token = localStorage.getItem(KEY) || '' } catch (e) {}
 
@@ -56,6 +56,7 @@ export async function saveBlason(blason: Blason) {
   return r;
 }
 export const history = () => call('/api/history');
+export const adminStats = () => call('/api/admin/stats');
 export const leaderboard = (mode: string) => call('/api/leaderboard?mode=' + encodeURIComponent(mode));
 /** partie contre l'IA terminée : rangée dans l'historique du compte (jamais dans l'Elo) */
 export function reportSolo(map: string, won: boolean, duration: number) { if (token) call('/api/history/solo', { map, won, duration }) }
