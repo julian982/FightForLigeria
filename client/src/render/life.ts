@@ -1,7 +1,7 @@
 // La vie de la carte : vent dans les arbres et l'herbe, eau animée, oiseaux (purement visuels), et l'affichage
-// de la gabarre, dont la position vient de la simulation (G.boat : elle peut être pillée d'une flèche).
+// des gabarres, dont la position vient de la simulation (G.boats : chacune peut être pillée d'une flèche).
 import * as THREE from 'three';
-import { G, H, MAP, ROCKS, S, W, dist, gh, inBridge, onPath, riverY, trees, wDist, walkWater } from '@ffl/shared';
+import { G, H, MAP, ROCKS, S, W, dist, gh, inBridge, onPath, laneY, trees, wDist, walkWater } from '@ffl/shared';
 import { B, C, K, M, mk, scene, tr } from './engine';
 
 /** horloge partagée par les shaders (vent, vagues) */
@@ -137,16 +137,20 @@ export function makeGabarre() {
   g.add(mk(C(.008, .008, .9, 3).rotateZ(.5).translate(-.75, .35, .08), rope));
   return g;
 }
-export let boat: any = null;
-/** affiche la gabarre là où la simulation la place (G.boat) */
+/** les gabarres affichées (une par gabarre de la simulation) */
+export const boatObjs: any[] = [];
+/** affiche les gabarres là où la simulation les place (G.boats) */
 export function updBoat(dt: number) {
-  const b = G && G.boat;
-  if (!b || !b.on) { if (boat) { life.remove(boat); boat = null } return }
-  if (!boat) { boat = makeGabarre(); boat.scale.setScalar(1.5); life.add(boat) }
-  const z2 = riverY(b.x + b.dir * 20);
-  boat.position.set(b.x * S, .02 + Math.sin(LIFE_T.value * 1.4) * .015, b.y * S);
-  boat.rotation.set(Math.sin(LIFE_T.value * 1.1) * .03, -Math.atan2(z2 - b.y, b.dir * 20), Math.sin(LIFE_T.value * .9) * .02);
-  const cargo = boat.getObjectByName('cargo'); if (cargo) cargo.visible = !b.looted;
+  const list = G && G.boats ? G.boats.list : [];
+  list.forEach((b: any, i: number) => {
+    let o = boatObjs[i];
+    if (!b.on) { if (o) { life.remove(o); boatObjs[i] = null } return }
+    if (!o) { o = boatObjs[i] = makeGabarre(); o.scale.setScalar(1.5); life.add(o) }
+    const z2 = laneY(b.x + b.dir * 20, b.dir), ph = LIFE_T.value + i * 1.7; // chacune tangue à son rythme
+    o.position.set(b.x * S, .02 + Math.sin(ph * 1.4) * .015, b.y * S);
+    o.rotation.set(Math.sin(ph * 1.1) * .03, -Math.atan2(z2 - b.y, b.dir * 20), Math.sin(ph * .9) * .02);
+    const cargo = o.getObjectByName('cargo'); if (cargo) cargo.visible = !b.looted;
+  });
 }
 
 // ---------------- boucle ----------------
@@ -166,7 +170,7 @@ export function updateLife(dt: number) {
 /** changement de carte : on retire oiseaux et bateau */
 export function resetLife() {
   for (const f of flocks) for (const b of f.birds) life.remove(b.g); flocks.length = 0;
-  if (boat) { life.remove(boat); boat = null } flockT = 6 + Math.random() * 8;
+  for (let i = 0; i < boatObjs.length; i++) if (boatObjs[i]) { life.remove(boatObjs[i]); boatObjs[i] = null } flockT = 6 + Math.random() * 8;
 }
-/** pour les tests : faire venir tout de suite un vol d'oiseaux et la gabarre */
-export function lifeDebug(force = true, bx?: number) { const b = G && G.boat; if (force) { spawnFlock(); if (b && !b.on) b.t = 0 } if (bx !== undefined && b && b.on) b.x = bx; return { boat: !!boat, x: Math.round(b ? b.x : 0), dir: b ? b.dir : 0, t: Math.round(b ? b.t : 0), flocks: flocks.length, birds: flocks.map(f => f.birds[0] && [+f.birds[0].g.position.x.toFixed(1), +f.birds[0].g.position.z.toFixed(1)]) } }
+/** pour les tests : faire venir tout de suite un vol d'oiseaux et les gabarres */
+export function lifeDebug(force = true, bx?: number) { const f = G && G.boats, b = f && f.list[0]; if (force) { spawnFlock(); if (f && !f.list.some((x: any) => x.on)) f.t = 0 } if (bx !== undefined && b && b.on) b.x = bx; return { boat: boatObjs.filter(Boolean).length, x: Math.round(b ? b.x : 0), dir: b ? b.dir : 0, t: Math.round(f ? f.t : 0), flocks: flocks.length, birds: flocks.map(f => f.birds[0] && [+f.birds[0].g.position.x.toFixed(1), +f.birds[0].g.position.z.toFixed(1)]) } }

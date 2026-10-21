@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  loadMap, newGame, MAPS, H1, cleanBlason, randomBlason, BLASON_DEFAULT, queueWindow, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater,
+  loadMap, newGame, MAPS, H1, cleanBlason, randomBlason, BLASON_DEFAULT, queueWindow, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater, laneY,
   placeBuilding, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
   START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRONS, shotClear, findPath, buildNav, KEEPS, PLAYERS, H, isFoe, onPath, MAP, fireArrow, orderAttack, applyCommand, makeSnapshot, B_TYPES, forfeit, canPlace, GW, GH, identityOf, jobOf, riverY, W,
 } from '../src/index';
@@ -480,39 +480,66 @@ describe('événements pour les bruitages', () => {
   });
 });
 
-describe('gabarre', () => {
-  /** fait venir la gabarre et la place à l'abscisse x */
-  function boatAt(x: number) { const b = G.boat; b.t = 0; update(DT); expect(b.on).toBe(true); b.x = x; b.y = riverY(x); return b }
-  it('passe sur la Loire, et la première flèche de seigneur qui la touche rapporte 10 bois et 5 pierre, une seule fois', () => {
+describe('gabarres', () => {
+  /** fait partir les gabarres et place celle d'indice i à l'abscisse x */
+  function boatAt(x: number, i = 0) { const f = G.boats; f.t = 0; update(DT); expect(f.list.every(b => b.on)).toBe(true); const b = f.list[i]; b.x = x; b.y = laneY(x, b.dir); return b }
+  it('deux gabarres partent ensemble, chacune d\'un bord, sur deux voies du fleuve', () => {
+    loadMap('amboise'); newGame({ ai: [false, false] });
+    G.boats.t = 0; update(DT);
+    const [a, b] = G.boats.list;
+    expect(a.on && b.on).toBe(true);
+    expect(a.dir).toBe(1); expect(b.dir).toBe(-1);
+    expect(a.x).toBeLessThan(0); expect(b.x).toBeGreaterThan(W);
+    expect(a.y).not.toBe(b.y);
+  });
+  it('la première flèche de seigneur qui touche une gabarre rapporte 10 bois et 5 pierre, une seule fois par gabarre', () => {
     loadMap('amboise'); newGame({ ai: [false, false] });
     expect(build('reserve')).toBeNull();
     const tm0 = G.teams[0], tm1 = G.teams[1], bois = tm0.res.bois, pierre = tm0.res.pierre;
-    const b = boatAt(1440); b.dir = 1;
+    const b = boatAt(1440, 0);
     fireArrow(0, b.x, b.y - 60, Math.PI / 2, 1); run(.3, () => b.looted);
     expect(b.looted).toBe(true);
     expect(tm0.res.bois).toBe(bois + 10); expect(tm0.res.pierre).toBe(pierre + 5);
     expect(G.fx.some(f => f.k === 'loot')).toBe(true);
     expect(notes.some(([t, m]) => t === 0 && /Gabarre touchée/.test(m))).toBe(true);
     expect(notes.some(([t]) => t === 1)).toBe(true);
-    // une deuxième flèche, même d'un autre joueur, ne rapporte plus rien
+    // une deuxième flèche sur la même gabarre, même d'un autre joueur, ne rapporte plus rien
     const b1 = tm1.res.bois + tm1.stash.bois;
     fireArrow(1, b.x, b.y - 60, Math.PI / 2, 1); run(.3);
     expect(tm1.res.bois + tm1.stash.bois).toBe(b1);
-    expect(makeSnapshot([]).bt).toEqual([1, Math.round(b.x * 10) / 10, Math.round(b.y * 10) / 10, 1, 1]);
+    // l'autre gabarre, elle, a encore sa cargaison
+    const o = G.boats.list[1]; o.x = 2400; o.y = laneY(o.x, o.dir);
+    fireArrow(1, o.x, o.y - 60, Math.PI / 2, 1); run(.3, () => o.looted);
+    expect(o.looted).toBe(true); expect(tm1.res.bois + tm1.stash.bois).toBe(b1 + 10);
+    expect(makeSnapshot([]).bt[0]).toEqual([1, Math.round(b.x * 10) / 10, Math.round(b.y * 10) / 10, 1, 1]);
   });
   it('sans réserve, le butin attend dans les charrettes ; une flèche qui la manque ne rapporte rien', () => {
     loadMap('amboise'); newGame({ ai: [false, false] });
     const tm = G.teams[0], stash = tm.stash.bois;
-    const b = boatAt(900);
+    const b = boatAt(900, 0); G.boats.list[1].x = 3000; G.boats.list[1].y = laneY(3000, -1);
     fireArrow(0, b.x + 200, b.y - 60, Math.PI / 2, 1); run(.6);
     expect(b.looted).toBe(false);
     fireArrow(0, b.x, b.y - 60, Math.PI / 2, 1); run(.3, () => b.looted);
     expect(b.looted).toBe(true); expect(tm.stash.bois).toBe(stash + 10); expect(tm.res.bois).toBe(0);
   });
-  it('traverse la carte puis repart plus tard', () => {
+  it('traversent la carte puis repartent plus tard, ensemble', () => {
     loadMap('amboise'); newGame({ ai: [false, false] });
-    const b = boatAt(W - 20); b.dir = 1;
-    run(10); expect(b.on).toBe(false); expect(b.t).toBeGreaterThan(60);
+    boatAt(W - 20, 0); const o = G.boats.list[1]; o.x = 20; o.y = laneY(20, -1);
+    run(10); expect(G.boats.list.some(b => b.on)).toBe(false); expect(G.boats.t).toBeGreaterThan(60);
+  });
+});
+
+describe('flèches du seigneur et bâtiments', () => {
+  it('les flèches du seigneur n\'abîment pas les bâtiments ; celles des archers, si', () => {
+    loadMap('amboise'); newGame({ ai: [false, false] });
+    G.teams[1].res.bois = 100; const s = findSpot(1, 'bucheron')!; expect(placeBuilding(1, 'bucheron', s.tx, s.ty)).toBeNull();
+    const bld = G.buildings.find(b => b.team === 1 && b.type === 'bucheron')!;
+    const cx = bld.bx + bld.bw / 2, cy = bld.by + bld.bh / 2;
+    for (let i = 0; i < 3; i++) { fireArrow(0, cx - 120, cy, 0, 1); run(.5) }
+    expect(bld.hp).toBe(bld.maxhp);
+    const a = spawnUnit(0, 'archer', { x: cx - 160, y: cy }); a.x = cx - 160; a.y = cy;
+    orderAttack(0, [a], bld); run(6);
+    expect(bld.hp).toBeLessThan(bld.maxhp);
   });
 });
 

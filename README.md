@@ -100,9 +100,9 @@ Clavier et souris requis.
 - **Construction** : tu poses tes bâtiments où tu veux dans ta moitié de carte (la gauche ou la droite selon ton camp ; en 2v2, la moitié est partagée avec ton allié).
 - **Fer** : un seul gisement, au centre de la carte, à égale distance des deux joueurs. La mine est le seul bâtiment qui se pose hors de ta moitié de carte.
 - **Pierre** : un gisement de tuffeau par joueur, dans sa moitié de carte mais à bonne distance du donjon : la carrière étire le village et doit être défendue.
-- **La gabarre** : de temps en temps, un bateau descend la Loire. Le premier seigneur qui la touche d'une flèche fait tomber sa cargaison : +10 bois et +5 pierre, une seule fois par partie (sans réserve, le butin attend qu'elle soit posée).
+- **Les gabarres** : de temps en temps, deux bateaux traversent la Loire en même temps, l'un depuis le bord gauche, l'autre depuis le bord droit (chaque camp voit arriver le sien). Le premier seigneur qui touche une gabarre d'une flèche fait tomber sa cargaison : +10 bois et +5 pierre, une seule fois par gabarre et par partie (sans réserve, le butin attend qu'elle soit posée).
 - **Ouvrier tué** : le bâtiment s'arrête (icône rouge) et un remplaçant sort du donjon 20 s plus tard.
-- **Collisions** : arbres, bâtiments et rochers bloquent les unités et les flèches. Les rivières bloquent les unités (sauf sur les ponts), pas les flèches.
+- **Collisions** : arbres, bâtiments et rochers bloquent les unités et les flèches. Les flèches du seigneur se plantent dans les bâtiments sans les abîmer : pour raser un bâtiment, il faut des soldats (archers, lanciers, spadassins). Les rivières bloquent les unités (sauf sur les ponts), pas les flèches.
 - **Couleur du royaume** : 8 couleurs au choix sur l'accueil, appliquées aux soldats, bâtiments, drapeaux et flèches.
 
 ### Bâtiments

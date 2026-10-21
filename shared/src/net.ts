@@ -54,7 +54,7 @@ export interface Snapshot {
   /** graine de la partie (noms des ouvriers) */
   sd: number;
   /** gabarre : en route, x, y, sens, déjà pillée */
-  bt: number[];
+  bt: number[][];
   /** un par joueur (2 en 1v1, 4 en 2v2) ; `out` : éliminé */
   tm: { res: any, stash: any, starving: boolean, keep: number, lord: number, out?: boolean }[];
   ctrl: [number, number][];
@@ -78,7 +78,7 @@ export function makeSnapshot(fell: number[]): Snapshot {
   return {
     t: r2(G.t),
     sd: G.seed || 0,
-    bt: G.boat ? [G.boat.on ? 1 : 0, r1(G.boat.x), r1(G.boat.y), G.boat.dir, G.boat.looted ? 1 : 0] : [0, 0, 0, 1, 0],
+    bt: G.boats ? G.boats.list.map(b => [b.on ? 1 : 0, r1(b.x), r1(b.y), b.dir, b.looted ? 1 : 0]) : [],
     tm: G.teams.map(tm => ({ res: tm.res, stash: tm.stash, starving: !!tm.starving, keep: tm.keep.id, lord: tm.lord.id, out: !!tm.out })),
     ctrl: G.ctrl.map(c => [c.charging ? 1 : 0, r2(c.start)]),
     u: G.units.map(u => [u.id, u.team, U_TYPES.indexOf(u.type), r1(u.x), r1(u.y), r2(u.face), Math.ceil(u.hp), u.maxhp, u.dead ? 1 : 0, r2(u.charge || 0), r2(u.lunge || 0), r2(Math.max(0, u.flash))]),

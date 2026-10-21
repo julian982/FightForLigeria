@@ -20,7 +20,7 @@ const STEPS: Step[] = [
   { b: 'caserne', title: 'La caserne', text: 'Elle transforme chaque arme en soldat : <kbd>R</kbd> pour un archer, <kbd>T</kbd> pour un lancier, <kbd>Y</kbd> pour un spadassin. Quinze soldats au plus. Sélectionne-les à la souris, puis clic droit pour les envoyer.' },
   { b: 'mine', title: 'La mine de fer', text: 'Elle se pose sur l\'unique <b>gisement de fer</b>, au centre de la carte : les rochers sombres veinés de rouille. C\'est le seul bâtiment hors de ta moitié. En vraie partie, l\'ennemi la convoitera aussi.' },
   { b: 'forge', title: 'La forge', text: 'Le forgeron prend 2 fer et 3 bois à la réserve et forge une <b>épée</b>. L\'épée fait le spadassin, ton soldat le plus solide.' },
-  { title: 'Ton village est bâti !', text: 'Tu connais tous les bâtiments. Continue à agrandir ton village ici, autant que tu veux, ou retourne au menu pour affronter l\'IA ou tes amis. Un dernier conseil : regarde vers la Loire, une gabarre passe de temps en temps. Le premier qui la touche d\'une flèche ramasse sa cargaison.' },
+  { title: 'Ton village est bâti !', text: 'Tu connais tous les bâtiments. Continue à agrandir ton village ici, autant que tu veux, ou retourne au menu pour affronter l\'IA ou tes amis. Un dernier conseil : regarde vers la Loire, des gabarres passent de temps en temps. Le premier qui en touche une d\'une flèche ramasse sa cargaison.' },
 ];
 
 let step = -1, timer: any = null;
