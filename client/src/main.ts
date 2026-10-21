@@ -1,5 +1,9 @@
 // FightForLigeria : point d'entrée du client.
-// police des titres (gothique), servie avec le jeu
+// polices servies avec le jeu (aucune requête vers Google Fonts : l'adresse IP des joueurs ne part pas chez Google)
+import '@fontsource/alegreya-sans/400.css';
+import '@fontsource/alegreya-sans/500.css';
+import '@fontsource/alegreya-sans/700.css';
+import '@fontsource/alegreya-sans/800.css';
 import '@fontsource/grenze-gotisch/500.css';
 import '@fontsource/grenze-gotisch/700.css';
 import '../css/game.css';
