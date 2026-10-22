@@ -1,6 +1,6 @@
 // Les actions du joueur local. En solo elles agissent directement sur la simulation ;
 // en ligne elles partent au serveur (après une vérification locale pour afficher tout de suite les erreurs).
-import { G, afford, canPlace, cancelCharge, demolish, demolishError, missing, orderAttack, orderMove, placeBuilding, recruit, recruitError, releaseCharge, startCharge, steer } from '@ffl/shared';
+import { G, truceError, afford, canPlace, cancelCharge, demolish, demolishError, missing, orderAttack, orderMove, placeBuilding, recruit, recruitError, releaseCharge, startCharge, steer } from '@ffl/shared';
 import { ME } from '../state';
 
 /** la connexion en cours (null en solo) */
@@ -22,6 +22,7 @@ export const act = {
   charge(): string | null {
     if (!online()) return startCharge(ME);
     const L = G.teams[ME].lord; if (G.over || !L || L.dead) return null;
+    const tr = truceError(); if (tr) return tr;
     if (G.teams[ME].res.fleche < 1) return 'Plus de flèches : construis un atelier de flèches (touche 6)';
     send({ c: 'charge' }); G.ctrl[ME].charging = true; G.ctrl[ME].start = G.t; return null;
   },

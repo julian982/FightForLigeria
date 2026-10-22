@@ -1,10 +1,20 @@
 // Le bandeau du haut (ressources, vie du seigneur) et celui du bas (bâtiments, recrutement).
-import { BUILD_LIST, DEF, G, RESN, STORE_OF, afford, armySize, identityOf, isFoe, jobOf, missing, refundOf } from '@ffl/shared';
+import { BUILD_LIST, DEF, G, RESN, truceReal, STORE_OF, afford, armySize, identityOf, isFoe, jobOf, missing, refundOf } from '@ffl/shared';
 import { TEAMC } from '../render/engine';
 import { portraitSvg } from './portrait';
 import { unitShot } from '../render/unitshot';
 import { act } from '../net/act';
 import { playSfx } from '../audio';
+
+// ---- trêve du début de partie : décompte en haut de l'écran, cloche à la fin ----
+let truceWas = 0;
+export function renderTruce(){
+  const t=G&&ui.running&&!G.over?truceReal():0,el=$('truce');
+  if(t>0){if(el.hidden){el.hidden=false;document.body.classList.add('in-truce')}$('truceS').textContent=String(Math.ceil(t))}
+  else if(!el.hidden){el.hidden=true;document.body.classList.remove('in-truce');
+    if(truceWas>0&&truceWas<1.5&&ui.running){toast('La trêve est terminée : le combat commence !');playSfx('cloche',.75)}}
+  truceWas=t;
+}
 import { $, ME, sel, ui } from '../state';
 
 export const SHORT={ferme:'Ferme',fleches:'Flèches',arcs:'Arcs',lances:'Lances',mine:'Mine de fer'};

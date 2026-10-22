@@ -28,6 +28,7 @@ export function sync<T>(list: any[], map: Map<number, any>, rows: number[][], ma
 export function applySnapshot(s: Snapshot) {
   const first = !gotFirst; gotFirst = true;
   G.t = s.t; G.seed = s.sd;
+  if (s.tr) { G.truceEnd = s.tr[0]; G.truceSpeed = s.tr[1] }
   if (s.bt) G.boats = { t: 0, list: s.bt.map(r => ({ on: !!r[0], x: r[1], y: r[2], dir: r[3], looted: !!r[4] })) };
   G.buildings = sync(G.buildings, byId.b, s.b, r => {
     const type = B_TYPES[r[2]], d = DEF[type], b: any = { kind: 'building', id: r[0], team: r[1], type, tx: r[3], ty: r[4], bx: r[3] * T, by: r[4] * T, bw: d.w * T, bh: d.h * T, dead: false, worker: null };

@@ -3,7 +3,7 @@ import { T, TERR, DEF, ARMY_MAX, AI_ORDER, STONES, IRONS, sideOf, isFoe } from '
 import { dist, dE } from './util';
 import { G, trees, hooks } from './state';
 import { nav, pushOut, shotClear, freePoint } from './nav';
-import { addBuilding, spawnUnit, afford, pay, canPlace, nearestTree, fireArrow } from './game';
+import { addBuilding, spawnUnit, afford, pay, canPlace, nearestTree, fireArrow, truceLeft } from './game';
 
 /** seigneur piloté par l'IA : reste près de chez lui, tire sur ce qui approche */
 export function updAiLord(team, dt) {
@@ -23,7 +23,7 @@ export function updAiLord(team, dt) {
     else { const m = Math.hypot(mx, my); if (m > .01) { const sp = L.speed * .5; L.x += mx / m * sp * dt; L.y += my / m * sp * dt } pushOut(L) }
     L.face = Math.atan2(foe.y - L.y, foe.x - L.x);
     L.ai += dt; const need = 1.4; L.charge = Math.min(1, L.ai / need);
-    if (L.ai >= need && L.cd <= 0 && los && G.teams[team].res.fleche > 0) { G.teams[team].res.fleche--;
+    if (L.ai >= need && L.cd <= 0 && los && G.teams[team].res.fleche > 0 && !truceLeft()) { G.teams[team].res.fleche--;
       const ch = Math.min(1, .45 + d / 900), sp = 380 + 560 * ch, tt = d / sp;
       const px = foe.x + (foe.vx || 0) * tt * .85, py = foe.y + (foe.vy || 0) * tt * .85;
       fireArrow(team, L.x, L.y, Math.atan2(py - L.y, px - L.x) + (Math.random() - .5) * .14, ch);

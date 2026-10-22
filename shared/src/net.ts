@@ -55,6 +55,8 @@ export interface Snapshot {
   sd: number;
   /** gabarre : en route, x, y, sens, déjà pillée */
   bt: number[][];
+  /** trêve : fin (temps de jeu) et vitesse de la partie */
+  tr?: [number, number];
   /** un par joueur (2 en 1v1, 4 en 2v2) ; `out` : éliminé */
   tm: { res: any, stash: any, starving: boolean, keep: number, lord: number, out?: boolean }[];
   ctrl: [number, number][];
@@ -78,6 +80,7 @@ export function makeSnapshot(fell: number[]): Snapshot {
   return {
     t: r2(G.t),
     sd: G.seed || 0,
+    tr: [r1(G.truceEnd || 0), G.truceSpeed || 1],
     bt: G.boats ? G.boats.list.map(b => [b.on ? 1 : 0, r1(b.x), r1(b.y), b.dir, b.looted ? 1 : 0]) : [],
     tm: G.teams.map(tm => ({ res: tm.res, stash: tm.stash, starving: !!tm.starving, keep: tm.keep.id, lord: tm.lord.id, out: !!tm.out })),
     ctrl: G.ctrl.map(c => [c.charging ? 1 : 0, r2(c.start)]),

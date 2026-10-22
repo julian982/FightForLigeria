@@ -23,7 +23,7 @@ import { syncScene, updateCam, onRemoved, onReset, toScreen } from './render/syn
 import { drawOverlay } from './render/overlay';
 import { updateLife, lifeDebug } from './render/life';
 import { drawMapBase, makeMiniBase, renderMini } from './render/minimap';
-import { toast, refreshHud, renderSelBar, renderBldPanel, renderWkPanel } from './ui/hud';
+import { toast, refreshHud, renderSelBar, renderBldPanel, renderWkPanel, renderTruce } from './ui/hud';
 import { fpsCam, updateFps, exitFps } from './render/fps';
 import { endGame } from './ui/end';
 import { steerLord, updateCursor } from './ui/input';
@@ -32,7 +32,7 @@ import { updateSfx } from './sfx';
 import { startTutorial, stopTutorial } from './ui/tutorial';
 import { showEloResult, hideEloResult } from './ui/ranked';
 import { reportSolo, applyElo, refreshMe } from './net/account';
-import { sideOf } from '@ffl/shared';
+import { sideOf, TRUCE } from '@ffl/shared';
 
 initHome();
 initGameChat();
@@ -51,7 +51,7 @@ let worldMap:string|null=null;
 /** charge une carte dans sa version 1v1 ou 2v2 et reconstruit le décor (si ce n'est pas déjà celle-là) */
 function setMap(id,mode:'1v1'|'2v2'='1v1'){const key=id+':'+mode;if(worldMap===key)return;loadMap(id,mode);worldMap=key;rebuildWorld();makeMiniBase()}
 function startGame(opts){
-  newGame({rich:!!opts.rich,tuto:!!opts.tuto});
+  newGame({rich:!!opts.rich,tuto:!!opts.tuto,truce:TRUCE,speed:opts.speed||1});
   sel.clear();ui.placing=null;ui.box=null;ui.selB=null;ui.selW=null;
   const L=G.teams[ME].lord;camT.set(L.x*S,0,L.y*S);
 }
@@ -117,7 +117,7 @@ function frame(now){
   if($('play').hidden||(gameOpts.online&&!G.teams[ME].lord)){requestAnimationFrame(frame);return}
   updateCam(dt);syncScene(dt);updateLife(dt);
   if(ui.fps){updateFps();renderer.render(scene,fpsCam)}else renderer.render(scene,camera);
-  drawOverlay();renderSelBar();renderBldPanel();renderWkPanel();updateCursor();updateSfx();
+  drawOverlay();renderSelBar();renderBldPanel();renderWkPanel();renderTruce();updateCursor();updateSfx();
   hudT+=dt;if(hudT>.15&&ui.running){hudT=0;refreshHud()}
   miniT+=dt;if(miniT>.2){miniT=0;renderMini()}
   requestAnimationFrame(frame);

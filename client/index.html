@@ -327,6 +327,7 @@
     <section class="guide-sec" aria-labelledby="howto">
       <h2 id="howto">Comment jouer</h2>
       <p class="g-note">Le plus simple pour débuter : lance le <b>Tutoriel</b> depuis la page Jouer. Il te fait poser chaque bâtiment, un par un, sans adversaire.</p>
+      <p class="g-note"><b>La trêve</b> : chaque partie (en ligne, contre l'IA ou classée) commence par 20 secondes sans combat. Personne ne peut blesser l'ennemi ni franchir le milieu de la carte : profite-en pour lancer ton village. Une cloche sonne la fin de la trêve.</p>
       <div class="guide">
         <article class="g">
           <h3>Ton seigneur</h3>
@@ -609,6 +610,7 @@
 <canvas id="game"></canvas>
 <canvas id="ov"></canvas>
 
+<div class="truce" id="truce" hidden role="status"><span class="tr-top"><span class="tr-k">Trêve</span><b id="truceS">20</b><span class="tr-s">s</span></span><small>Bâtis ton village : pas de combat, et personne ne franchit le milieu de la carte</small></div>
 <div class="hud-top" id="hudTop">
   <div class="res">
     <div class="chip" id="cBois"><i style="background:#9a6a35"></i><b>0</b><small>bois</small></div>

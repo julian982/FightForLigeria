@@ -1,6 +1,6 @@
 // Une partie en ligne tourne dans son propre fil d'exécution : la simulation de shared/ y est isolée des autres parties.
 import { parentPort, workerData } from 'node:worker_threads';
-import { loadMap, newGame, update, setHooks, G, applyCommand, makeSnapshot, forfeit } from '@ffl/shared';
+import { loadMap, newGame, update, setHooks, G, applyCommand, makeSnapshot, forfeit, TRUCE } from '@ffl/shared';
 
 const STEP = 1 / 60, SNAP_EVERY = 50; // simulation à 60 Hz, instantané toutes les 50 ms
 const SPEED = workerData.speed > 1 ? 1.5 : 1; // vitesse « rapide » : le temps du jeu avance 1,5 fois plus vite
@@ -15,7 +15,8 @@ setHooks({
   end: winner => { ended = true; sendSnap(); post({ type: 'end', winner, st: G.st, t: G.t }) },
 });
 // les places tenues par l'IA dans le salon sont jouées par l'IA de shared/
-newGame({ rich: !!workerData.rich, ai: Array.isArray(workerData.ai) ? workerData.ai.map(Boolean) : [] });
+// trêve de début de partie (20 s réelles, même en vitesse rapide)
+newGame({ rich: !!workerData.rich, ai: Array.isArray(workerData.ai) ? workerData.ai.map(Boolean) : [], truce: TRUCE, speed: SPEED });
 
 function sendSnap() { post({ type: 'snap', snap: makeSnapshot(fell.splice(0)) }) }
 

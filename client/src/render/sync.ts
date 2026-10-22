@@ -1,7 +1,7 @@
 // Synchronise la scène 3D avec l'état de la simulation, image par image.
 // Les maillages sont créés à la demande : la simulation ne connaît pas Three.js.
 import * as THREE from 'three';
-import { DEF, G, S, T, afford, canPlace, gh, isFoe, stockPt, trees } from '@ffl/shared';
+import { DEF, G, S, T, W, H, afford, canPlace, gh, isFoe, stockPt, trees, truceLeft } from '@ffl/shared';
 import { B, C, CAM_D, I, ISO, M, SUN_OFF, VC, VCF, boxM, camT, camera, dyn, mk, scene, sun } from './engine';
 import { birdsTakeOff, life } from './life';
 import { AGEO, CARRY, RINGGEO, RINGMAT, STUMPGEO, arrowObj, buildingObj, treeObj, unitObj } from './models';
@@ -35,8 +35,18 @@ export const ghostRange:any=new THREE.Mesh(new THREE.RingGeometry(280*S-.05,280*
 for(const m of [aimLine,aimEnd,ghost,ghostRange]){m.visible=false;scene.add(m)}
 aimLine.material.depthTest=false;ghostRange.material.depthTest=false;aimLine.renderOrder=aimEnd.renderOrder=ghostRange.renderOrder=5;
 export function ghostTile(){const d=DEF[ui.placing];return{tx:Math.round(mouse.wx/T-d.w/2),ty:Math.round(mouse.wy/T-d.h/2)}}
+/** pendant la trêve : un rideau de lumière dorée au milieu de la carte, que personne ne franchit */
+let truceWall:any=null;
+function updTruceWall(){
+  const left=truceLeft();
+  if(!left){if(truceWall)truceWall.visible=false;return}
+  if(!truceWall){truceWall=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({color:0xffc861,transparent:true,opacity:.3,side:THREE.DoubleSide,depthWrite:false}));truceWall.rotation.y=Math.PI/2;truceWall.renderOrder=4;scene.add(truceWall)}
+  truceWall.visible=true;truceWall.scale.set(H*S,2,1);truceWall.position.set(W/2*S,1,H/2*S);
+  // il pulse doucement, puis s'efface pendant la dernière seconde
+  truceWall.material.opacity=(.3+.1*Math.sin(performance.now()/350))*Math.min(1,left);
+}
 export function syncScene(dt){
-  const t=G.t;
+  const t=G.t;updTruceWall();
   ensureObjs();
   const now=performance.now()/1000;scanShots(now);
   for(const u of [...G.units,...G.workers]){

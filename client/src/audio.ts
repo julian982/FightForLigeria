@@ -5,6 +5,7 @@ import amb2Url from './assets/sounds/ambiance-2.mp3?url';
 import amb3Url from './assets/sounds/ambiance-3.mp3?url';
 import choixUrl from './assets/sounds/ui-choix.mp3?url';
 import poseUrl from './assets/sounds/ui-pose.mp3?url';
+import clocheUrl from './assets/sounds/ui-cloche.mp3?url';
 import bandUrl from './assets/sounds/arc-bander.mp3?url';
 import tirUrl from './assets/sounds/arc-tir.mp3?url';
 import chairUrl from './assets/sounds/impact-chair.mp3?url';
@@ -83,7 +84,7 @@ const SFX_URL: Record<string, string> = { bander: bandUrl, tir: tirUrl, chair: c
   coupe: coupeUrl, taille: tailleUrl, pic: picUrl, enclume: enclumeUrl, atelier: atelierUrl, faux: fauxUrl,
   'd-bois': dBoisUrl, 'd-pierre': dPierreUrl, 'd-fer': dFerUrl, 'd-ble': dBleUrl, 'd-armes': dArmesUrl,
   // interface : choisir un bâtiment à construire, le poser
-  choix: choixUrl, pose: poseUrl };
+  choix: choixUrl, pose: poseUrl, cloche: clocheUrl };
 const sfxBuf: Record<string, AudioBuffer> = {};
 /** nombre de bruitages joués, par nom (pour les tests) */
 const sfxCount: Record<string, number> = {};

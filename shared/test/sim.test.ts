@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  loadMap, newGame, MAPS, H1, cleanBlason, randomBlason, BLASON_DEFAULT, queueWindow, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater, laneY,
+  loadMap, newGame, MAPS, truceLeft, truceReal, cancelCharge, H1, cleanBlason, randomBlason, BLASON_DEFAULT, queueWindow, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater, laneY,
   placeBuilding, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
   START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRONS, shotClear, findPath, buildNav, KEEPS, PLAYERS, H, isFoe, onPath, MAP, fireArrow, orderAttack, applyCommand, makeSnapshot, B_TYPES, forfeit, canPlace, GW, GH, identityOf, jobOf, riverY, W,
 } from '../src/index';
@@ -589,5 +589,37 @@ describe('blason et Elo', () => {
     expect(ELO.rank(1000)).toBe('Bois I'); expect(ELO.rank(1199)).toBe('Pierre III'); expect(ELO.rank(1200)).toBe('Pierre II');
     expect(ELO.tierLo(ELO.tier(1250))).toBe(1200); expect(ELO.tierHi(ELO.tier(1250))).toBe(1300);
     expect(queueWindow(5)).toBe(100); expect(queueWindow(45)).toBe(500); expect(queueWindow(90)).toBe(Infinity);
+  });
+});
+
+describe('trêve du début de partie', () => {
+  it('20 s sans tir ni dégâts entre ennemis, et personne ne franchit le milieu ; ensuite tout reprend', () => {
+    loadMap('amboise'); newGame({ ai: [false, false], truce: 20 });
+    expect(truceLeft()).toBeCloseTo(20);
+    // le seigneur ne peut pas bander son arc
+    expect(startCharge(0)).toMatch(/Trêve/);
+    // un archer à portée d'un ennemi (chacun dans sa moitié) ne lui fait rien
+    const a = spawnUnit(0, 'archer', { x: W / 2 - 150, y: 700 }); a.x = W / 2 - 150; a.y = 700;
+    const e = spawnUnit(1, 'lancier', { x: W / 2 + 100, y: 700 }); e.x = W / 2 + 100; e.y = 700; e.speed = 0;
+    run(5); expect(e.hp).toBe(e.maxhp); expect(a.hp).toBe(a.maxhp);
+    // un soldat posé de l'autre côté est renvoyé dans sa moitié
+    const intrus = spawnUnit(1, 'lancier', { x: W / 2 - 200, y: 400 }); intrus.x = W / 2 - 200; intrus.y = 400; run(.1);
+    expect(intrus.x).toBeGreaterThanOrEqual(W / 2);
+    // le seigneur ne passe pas le milieu de la carte
+    const L = G.teams[0].lord; L.x = W / 2 - 40;
+    steer(0, 1, 0, null); run(3); steer(0, 0, 0, null);
+    expect(L.x).toBeLessThanOrEqual(W / 2);
+    // après la trêve : on tire, on se bat, on traverse
+    run(13); expect(truceLeft()).toBe(0);
+    expect(startCharge(0)).toBeNull(); cancelCharge(0);
+    run(4); expect(e.hp).toBeLessThan(e.maxhp);
+    steer(0, 1, 0, null); run(2); expect(L.x).toBeGreaterThan(W / 2);
+  });
+  it('en vitesse rapide, la trêve dure le même temps réel (30 s de jeu) ; pas de trêve sans option ni au tutoriel', () => {
+    loadMap('amboise'); newGame({ ai: [false, false], truce: 20, speed: 1.5 });
+    expect(truceLeft()).toBeCloseTo(30); expect(truceReal()).toBeCloseTo(20);
+    expect(makeSnapshot([]).tr).toEqual([30, 1.5]);
+    loadMap('amboise'); newGame({ ai: [false, false] }); expect(truceLeft()).toBe(0);
+    loadMap('jardin'); newGame({ tuto: true, truce: 20 }); expect(truceLeft()).toBe(0);
   });
 });

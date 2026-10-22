@@ -90,6 +90,8 @@ setLayout('1v1');
 export const RIVER = {river:true};
 export const BRIDGE_Y = .17;
 export const RESPAWN = 20;
+/** trêve du début de partie (secondes réelles) : pas de tir ni de dégâts entre ennemis, et personne ne franchit le milieu */
+export const TRUCE = 20;
 export const TREE_R = 11;
 /** temps de charge complet de l'arc du seigneur, en secondes */
 export const CHARGE_T = 1.1;

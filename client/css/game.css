@@ -166,3 +166,13 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 .elo-card .end-btns{width:100%;justify-content:center}
 @media (prefers-reduced-motion:reduce){.elo-badge.promo>svg,.elo-badge.demo>svg,.elo-delta.pop{animation:none}}
 .elo-badge>svg.prov{opacity:.6;filter:grayscale(.35) drop-shadow(0 8px 16px rgba(0,0,0,.5))}
+
+/* trêve du début de partie */
+.truce{position:fixed;left:50%;top:calc(104px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:6;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 18px 9px;background:rgba(31,26,21,.92);border:1px solid var(--gold);border-radius:4px;box-shadow:0 6px 18px rgba(0,0,0,.35);text-align:center;max-width:min(92vw,520px)}
+.truce[hidden]{display:none}
+.truce .tr-k{font-family:var(--f-display);font-size:22px;color:var(--gold)}
+.truce b{font-family:var(--f-display);font-weight:500;font-size:30px;line-height:1;color:var(--text);font-variant-numeric:tabular-nums;min-width:1.2em;text-align:right}
+.truce .tr-s{font-size:14px;color:var(--muted);font-weight:700}
+.truce .tr-top{display:flex;align-items:baseline;gap:8px}
+.truce small{font-size:12px;color:var(--muted)}
+body.in-truce #toast{top:calc(186px + env(safe-area-inset-top,0px))}

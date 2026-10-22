@@ -15,11 +15,29 @@ export interface GameOptions {
   ai?: boolean[];
   /** tutoriel : un seul royaume, pas d'adversaire, pas de fin de partie, stock généreux */
   tuto?: boolean;
+  /** trêve du début de partie, en secondes réelles (0 ou absent : pas de trêve) */
+  truce?: number;
+  /** vitesse de la partie (1, ou 1,5 en « rapide ») : la trêve dure le même temps réel à toute vitesse */
+  speed?: number;
 }
 
 export function newStats() { return { killS: 0, killW: 0, lostS: 0, lostW: 0, recruits: 0, prod: { bois: 0, pierre: 0, ble: 0, fer: 0, arc: 0, lance: 0, epee: 0, fleche: 0 }, built: 0, lostB: 0, razed: 0, shot: 0, hit: 0, dmg: 0, longest: 0, starve: 0, army: [], resH: [] } }
 /** contrôle d'un seigneur : direction voulue (monde), point visé, charge de l'arc */
 export function newCtrl(ai: boolean) { return { ai, dx: 0, dy: 0, aim: null as null | { x: number, y: number }, charging: false, start: 0 } }
+
+// ---------------- trêve du début de partie ----------------
+/** temps de trêve restant, en secondes de jeu (0 : pas ou plus de trêve) */
+export function truceLeft() { return G && G.truceEnd ? Math.max(0, G.truceEnd - G.t) : 0 }
+/** temps de trêve restant, en secondes réelles (pour l'affichage) */
+export const truceReal = () => truceLeft() / (G && G.truceSpeed || 1);
+/** message si un tir est interdit par la trêve */
+export function truceError() { const t = truceReal(); return t > 0 ? `Trêve : les combats commencent dans ${Math.ceil(t)} s` : null }
+/** pendant la trêve, soldats et seigneurs restent dans leur moitié de carte (mur invisible au milieu) */
+function truceWall() {
+  if (!truceLeft()) return;
+  for (const u of G.units) { if (u.dead) continue; const lim = W / 2, r = u.r || 10;
+    if (sideOf(u.team) === 0) { if (u.x > lim - r) u.x = lim - r } else if (u.x < lim + r) u.x = lim + r }
+}
 
 /** démarre une partie sur la carte chargée (voir loadMap) */
 export function newGame(opts: GameOptions = {}) {
@@ -49,6 +67,9 @@ export function newGame(opts: GameOptions = {}) {
     const tm = G.teams[0]; Object.assign(tm.stash, { bois: 250, pierre: 150, ble: 80, fer: 0 }); tm.res.fleche = 20;
     buildNav();
   }
+  // trêve : exprimée en temps réel, donc plus longue en temps de jeu quand la partie va plus vite
+  const sp = opts.speed && opts.speed > 1 ? opts.speed : 1;
+  G.truceSpeed = sp; G.truceEnd = !opts.tuto && opts.truce ? opts.truce * sp : 0;
   return G;
 }
 /** ressources rangées dans chaque bâtiment de stockage */
@@ -140,6 +161,8 @@ function puff(x, y, r, h = .3) {
 /** blesse une entité. `by` : le joueur qui a frappé (pour les statistiques et les messages). */
 export function hit(e, dmg, showNum, by?: number) {
   if (e.dead) return;
+  // trêve : aucun dégât entre ennemis
+  if (by != null && e.team != null && isFoe(e.team, by) && truceLeft() > 0) return;
   e.hp -= dmg; e.flash = .12;
   if (showNum) G.fx.push({ k: 'num', x: e.x, y: e.y, h: e.kind === 'building' ? 1.6 : 1.2, t: 0, life: .9, v: dmg });
   if (e.hp <= 0) {
@@ -302,7 +325,9 @@ function updCtrlLord(team, dt) {
 export function steer(team, dx, dy, aim) { const c = G.ctrl[team]; c.dx = dx; c.dy = dy; c.aim = aim }
 /** commence à bander l'arc. Renvoie un message si c'est impossible. */
 export function startCharge(team): string | null {
-  const L = G.teams[team].lord; if (G.over || L.dead || L.cd > 0) return null;
+  const L = G.teams[team].lord; if (G.over || L.dead) return null;
+  const tr = truceError(); if (tr) return tr;
+  if (L.cd > 0) return null;
   if (G.teams[team].res.fleche < 1) return 'Plus de flèches : construis un atelier de flèches (touche 6)';
   const c = G.ctrl[team]; c.charging = true; c.start = G.t; return null;
 }
@@ -420,6 +445,7 @@ export function update(dt) {
   updBoat(dt);
   separate();
   for (const u of G.units) if (!u.dead) pushOut(u);
+  truceWall();
   for (const [e, x, y] of pos) { e.vx = (e.x - x) / dt; e.vy = (e.y - y) / dt }
   for (const a of G.arrows) {
     a.x += a.vx * dt; a.y += a.vy * dt; a.d += Math.hypot(a.vx, a.vy) * dt;
