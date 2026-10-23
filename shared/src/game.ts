@@ -228,7 +228,8 @@ function updUnit(u, dt) {
   u.cd -= dt; if (u.lunge) u.lunge = Math.max(0, u.lunge - dt);
   const aggro = rangeOf(u).aggro, o = u.order;
   if (o && o.type === 'move') { if (nav(u, o.x, o.y, dt, 5)) { u.order = null; u.guard = { x: u.x, y: u.y } } return }
-  if (o && o.type === 'attack') { if (o.target.dead) { u.order = null; u.guard = { x: u.x, y: u.y }; return } engage(u, o.target, dt); return }
+  // cible abattue (par lui ou par un autre) : il continue jusqu'à l'endroit où elle est tombée, en combattant en chemin
+  if (o && o.type === 'attack') { if (o.target.dead) { u.order = { type: 'amove', x: o.target.x, y: o.target.y }; return } engage(u, o.target, dt); return }
   if (o && o.type === 'amove') { const e = nearestEnemy(u, aggro); if (e) { engage(u, e, dt); return } if (nav(u, o.x, o.y, dt, 12)) { u.order = null; u.guard = { x: u.x, y: u.y } } return }
   // soldats du joueur : ils tiennent leur poste comme des tourelles et ne frappent que ce qui est à portée
   if (!G.ctrl[u.team].ai) {

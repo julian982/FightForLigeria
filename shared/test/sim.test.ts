@@ -225,6 +225,18 @@ describe('soldats du joueur en position', () => {
     orderAttack(0, [l], e); run(4);
     expect(e.dead || e.hp < e.maxhp).toBe(true);
   });
+  it('si sa cible meurt en route, il continue jusqu\'à l\'endroit où elle est tombée', () => {
+    setup();
+    const l = spawnUnit(0, 'lancier', { x: 700, y: 600 });
+    const e = spawnUnit(1, 'archer', { x: 1200, y: 600 }); e.speed = 0; e.cd = 99;
+    orderAttack(0, [l], e); run(1.5);
+    const x1 = l.x; expect(x1).toBeGreaterThan(750);
+    e.hp = 0; e.dead = true;                 // abattu par quelqu'un d'autre
+    run(1 / 30);
+    expect(l.order && l.order.type).toBe('amove');
+    run(10, () => !l.order);
+    expect(Math.hypot(l.x - 1200, l.y - 600)).toBeLessThan(40);
+  });
 });
 
 describe('Confluence du Cher', () => {
@@ -237,6 +249,25 @@ describe('Confluence du Cher', () => {
     run(40, () => { if (walkWater(u.x, u.y)) wet = true; return !u.order });
     expect(wet).toBe(false);
     expect(u.x).toBeGreaterThan(1600);
+  });
+  it.each(['1v1', '2v2'] as const)('%s : chaque pont relie les deux rives, et l\'île du fer est accessible', mode => {
+    loadMap('cher', mode); newGame(); buildNav();
+    for (const b of MAP.bridges) {
+      const cy = b.y + b.h / 2;
+      for (let x = b.x; x <= b.x + b.w; x += 2) expect(walkWater(x, cy), `eau sur le pont ${Math.round(b.x)} à x=${x}`).toBe(false);
+      expect(findPath(b.x - 100, cy, b.x + b.w + 100, cy), 'chemin par le pont ' + Math.round(b.x)).toBeTruthy();
+      // les ponts de l'île sont symétriques
+    }
+    const isl = MAP.bridges.filter(b => b.w === 92).slice(0, 2);
+    expect(Math.round(isl[0].x + isl[1].x + isl[1].w)).toBe(W);
+    for (const I of IRONS) expect(findPath(400, I.y, I.x, I.y), 'chemin jusqu\'au fer').toBeTruthy();
+  });
+  it('un soldat va jusqu\'à la mine de fer sur l\'île', () => {
+    loadMap('cher'); newGame(); G.teams[1].lord.x = 2900;
+    const I = IRONS[0], u = spawnUnit(0, 'lancier', { x: 1100, y: I.y });
+    orderMove(0, [u], I.x - 100, I.y);
+    run(30, () => !u.order);
+    expect(Math.hypot(u.x - (I.x - 100), u.y - I.y)).toBeLessThan(30);
   });
 });
 

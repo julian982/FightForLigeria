@@ -50,7 +50,9 @@ export let MAPID: string | null = null;
  */
 /**
  * agrandit une carte dessinée en 2880 × 1600 à la taille réelle : rivières, chemins, forêts (plus d'arbres pour garder
- * la même densité), clairières, vignes, plages et ponts. Les ponts gardent leur taille (le lit des rivières aussi).
+ * la même densité), clairières, vignes, plages et ponts. Les ponts gardent leur taille (le lit des rivières aussi) et
+ * leur écart au milieu de la carte : le Cher et les douves de l'île du fer sont tracés depuis le milieu sans être
+ * agrandis, donc un pont dont on agrandirait l'écart s'arrêterait avant la rive (seule la hauteur suit l'agrandissement).
  */
 function scaleMap(m: any) {
   const k = MAP_SCALE, P = (l: any[]) => l.map(([x, y, ...r]) => [x * k, y * k, ...r]);
@@ -63,7 +65,7 @@ function scaleMap(m: any) {
     clearings: m.clearings.map(([x, y, r]) => [x * k, y * k, r * k]),
     vines: P(m.vines),
     sand: P(m.sand),
-    bridges: m.bridges.map(b => ({ ...b, x: (b.x + b.w / 2) * k - b.w / 2, y: (b.y + b.h / 2) * k - b.h / 2 })),
+    bridges: m.bridges.map(b => ({ ...b, x: W / 2 + (b.x + b.w / 2 - BW / 2) - b.w / 2, y: (b.y + b.h / 2) * k - b.h / 2 })),
   };
 }
 function derive(base: any, mode: Mode) {
