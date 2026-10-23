@@ -1,5 +1,6 @@
-// Le son : l'ambiance nature (3 boucles de 3 minutes, une tirée au hasard à chaque partie) et les bruitages (arc, travail des ouvriers, dépôts), avec volumes réglables
+// Le son : la musique (une piste en boucle pendant la partie), l'ambiance nature (3 boucles de 3 minutes, une tirée au hasard à chaque partie) et les bruitages (arc, travail des ouvriers, dépôts), avec volumes réglables
 // et coupure. Réglages gardés dans le navigateur.
+import musUrl from './assets/sounds/musique-medieval-kingdoms.mp3?url';
 import amb1Url from './assets/sounds/ambiance-1.mp3?url';
 import amb2Url from './assets/sounds/ambiance-2.mp3?url';
 import amb3Url from './assets/sounds/ambiance-3.mp3?url';
@@ -24,17 +25,18 @@ import dBleUrl from './assets/sounds/depot-ble.mp3?url';
 import dArmesUrl from './assets/sounds/depot-armes.mp3?url';
 
 const KEY = 'ffl.audio';
-export const audio = { ambiance: .35, sfx: .7, muted: false };
+export const audio = { music: .5, ambiance: .35, sfx: .7, muted: false };
 try { Object.assign(audio, JSON.parse(localStorage.getItem(KEY) || '{}')) } catch (e) {}
 function save() { try { localStorage.setItem(KEY, JSON.stringify(audio)) } catch (e) {} }
 
-let ctx: AudioContext | null = null, master: GainNode, sfxGain: GainNode, ambGain: GainNode, ambSrc: AudioBufferSourceNode | null = null, ambBuf: AudioBuffer | null = null;
+let ctx: AudioContext | null = null, master: GainNode, sfxGain: GainNode, ambGain: GainNode, musGain: GainNode, musSrc: AudioBufferSourceNode | null = null, ambSrc: AudioBufferSourceNode | null = null, ambBuf: AudioBuffer | null = null;
 let wanted = false;
 function ensure() {
   if (!ctx) {
     const AC: any = (window as any).AudioContext || (window as any).webkitAudioContext; if (!AC) return false;
     ctx = new AC(); master = ctx.createGain(); master.connect(ctx.destination);
     ambGain = ctx.createGain(); ambGain.gain.value = 0; ambGain.connect(master);
+    musGain = ctx.createGain(); musGain.gain.value = 0; musGain.connect(master);
     sfxGain = ctx.createGain(); sfxGain.gain.value = sfxTarget(); sfxGain.connect(master);
   }
   if (ctx.state === 'suspended' && !document.hidden) ctx.resume();
@@ -44,6 +46,8 @@ function ramp(g: GainNode, v: number, sec: number) { const t = ctx.currentTime; 
 // l'ambiance reste un fond discret : même à 100 %, elle ne couvre pas les bruitages
 const ambTarget = () => audio.muted ? 0 : audio.ambiance * .275;
 const sfxTarget = () => audio.muted ? 0 : audio.sfx;
+// la musique accompagne sans couvrir les bruitages (elle est mixée bien plus fort que l'ambiance)
+const musTarget = () => audio.muted ? 0 : audio.music * .4;
 /** les trois boucles d'ambiance : chaque partie en joue une au hasard (chacune est raccordée en fondu, sans coupure) */
 const AMB_URLS = [amb1Url, amb2Url, amb3Url];
 const ambBufs = new Map<string, Promise<AudioBuffer>>();
@@ -52,11 +56,12 @@ function loadAmb(url: string) {
   return ambBufs.get(url)!;
 }
 let ambGen = 0;
-/** lance une ambiance en fondu (à appeler après un clic : les navigateurs l'exigent) */
+/** lance l'ambiance et la musique en fondu (à appeler après un clic : les navigateurs l'exigent) */
 export async function startAmbiance() {
   wanted = true; const gen = ++ambGen;
   try {
     if (!ensure()) return;
+    startMusic(gen);
     if (ambSrc) { ramp(ambGain, ambTarget(), 1); return }
     const buf = await loadAmb(AMB_URLS[(Math.random() * AMB_URLS.length) | 0]);
     if (!wanted || gen !== ambGen || ambSrc) return;
@@ -66,18 +71,29 @@ export async function startAmbiance() {
     ramp(ambGain, ambTarget(), 2.5);
   } catch (e) { /* pas de son : le jeu continue */ }
 }
-/** coupe l'ambiance en fondu (retour au menu) */
+/** la musique : une seule piste pour l'instant, jouée en boucle depuis le début de la partie */
+async function startMusic(gen: number) {
+  if (musSrc) { ramp(musGain, musTarget(), 1); return }
+  const buf = await loadAmb(musUrl);
+  if (!wanted || gen !== ambGen || musSrc) return;
+  musSrc = ctx!.createBufferSource(); musSrc.buffer = buf; musSrc.loop = true; musSrc.connect(musGain);
+  musSrc.start(); ramp(musGain, musTarget(), 2);
+}
+/** coupe l'ambiance et la musique en fondu (retour au menu) */
 export function stopAmbiance() {
-  wanted = false; if (!ctx || !ambSrc) return;
+  wanted = false; if (!ctx) return;
+  if (musSrc) { ramp(musGain, 0, 1.2); const m = musSrc; musSrc = null; setTimeout(() => { try { m.stop() } catch (e) {} }, 1300) }
+  if (!ambSrc) return;
   ramp(ambGain, 0, 1.2); const s = ambSrc; ambSrc = null; setTimeout(() => { try { s.stop() } catch (e) {} }, 1300);
 }
 export function setAmbianceVolume(v: number) { audio.ambiance = Math.max(0, Math.min(1, v)); save(); if (ctx && ambSrc) ramp(ambGain, ambTarget(), .15) }
-export function setMuted(m: boolean) { audio.muted = m; save(); if (ctx && ambSrc) ramp(ambGain, ambTarget(), .3); if (ctx) ramp(sfxGain, sfxTarget(), .1) }
+export function setMusicVolume(v: number) { audio.music = Math.max(0, Math.min(1, v)); save(); if (ctx && musSrc) ramp(musGain, musTarget(), .15) }
+export function setMuted(m: boolean) { audio.muted = m; save(); if (ctx && ambSrc) ramp(ambGain, ambTarget(), .3); if (ctx && musSrc) ramp(musGain, musTarget(), .3); if (ctx) ramp(sfxGain, sfxTarget(), .1) }
 export function setSfxVolume(v: number) { audio.sfx = Math.max(0, Math.min(1, v)); save(); if (ctx) ramp(sfxGain, sfxTarget(), .1) }
 // onglet caché : on met le son en pause
 document.addEventListener('visibilitychange', () => { if (!ctx) return; if (document.hidden) ctx.suspend(); else if (wanted) ctx.resume() });
 /** pour les tests */
-export function audioState() { return { sfx: { ...sfxCount }, sfxLoaded: Object.keys(sfxBuf).length, ctx: ctx ? ctx.state : null, playing: !!ambSrc, loaded: !!ambBuf, gain: ambGain ? +ambGain.gain.value.toFixed(2) : 0, dur: ambBuf ? Math.round(ambBuf.duration) : 0 } }
+export function audioState() { return { sfx: { ...sfxCount }, sfxLoaded: Object.keys(sfxBuf).length, ctx: ctx ? ctx.state : null, playing: !!ambSrc, music: !!musSrc, musicGain: musGain ? +musGain.gain.value.toFixed(2) : 0, loaded: !!ambBuf, gain: ambGain ? +ambGain.gain.value.toFixed(2) : 0, dur: ambBuf ? Math.round(ambBuf.duration) : 0 } }
 
 // ---- bruitages ----
 const SFX_URL: Record<string, string> = { bander: bandUrl, tir: tirUrl, chair: chairUrl, bois: boisUrl, sol: solUrl,

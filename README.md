@@ -87,7 +87,7 @@ Clavier et souris requis.
 | Barre « Sélection » (à droite) | Clic sur un type (archers…) pour ne garder que lui, Maj + clic pour le retirer |
 | Clic droit | Déplacer la sélection, ou attaquer la cible visée (ils s'en approchent juste à portée) |
 | Échap | Annuler la construction ou la sélection |
-| M | Couper ou remettre le son (le bouton haut-parleur en haut règle l'ambiance nature et les bruitages séparément ; l'ambiance est tirée au hasard parmi 3 boucles de 3 minutes) |
+| M | Couper ou remettre le son (le bouton haut-parleur en haut règle la musique, l'ambiance nature et les bruitages séparément ; la musique « Medieval Kingdoms » joue en boucle pendant la partie, l'ambiance est tirée au hasard parmi 3 boucles de 3 minutes) |
 
 ## Règles
 

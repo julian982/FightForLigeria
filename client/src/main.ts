@@ -27,7 +27,7 @@ import { toast, refreshHud, renderSelBar, renderBldPanel, renderWkPanel, renderT
 import { fpsCam, updateFps, exitFps } from './render/fps';
 import { endGame } from './ui/end';
 import { steerLord, updateCursor } from './ui/input';
-import { audio, startAmbiance, stopAmbiance, setAmbianceVolume, setMuted, audioState, loadSfx, setSfxVolume } from './audio';
+import { audio, startAmbiance, stopAmbiance, setAmbianceVolume, setMusicVolume, setMuted, audioState, loadSfx, setSfxVolume } from './audio';
 import { updateSfx } from './sfx';
 import { startTutorial, stopTutorial } from './ui/tutorial';
 import { showEloResult, hideEloResult } from './ui/ranked';
@@ -127,10 +127,11 @@ requestAnimationFrame(frame);
 window.__fief={get G(){return G},get trees(){return trees},setMap,pickMap,pushOut,update,start,findSpot,addBuilding,pay,afford,spawnUnit,syncScene,sel,toScreen,lifeDebug,audioState,act,get ME(){return ME},frame:()=>frame(performance.now())};
 
 // ---- réglages du son ----
-const sndBtn=$('sndBtn'),sndPanel=$('sndPanel'),volAmb=$('volAmb'),volSfx=$('volSfx'),muteBox=$('mute');
-function syncSound(){volAmb.value=String(Math.round(audio.ambiance*100));volSfx.value=String(Math.round(audio.sfx*100));muteBox.checked=audio.muted;sndBtn.classList.toggle('off',audio.muted)}
+const sndBtn=$('sndBtn'),sndPanel=$('sndPanel'),volMus=$('volMus'),volAmb=$('volAmb'),volSfx=$('volSfx'),muteBox=$('mute');
+function syncSound(){volMus.value=String(Math.round(audio.music*100));volAmb.value=String(Math.round(audio.ambiance*100));volSfx.value=String(Math.round(audio.sfx*100));muteBox.checked=audio.muted;sndBtn.classList.toggle('off',audio.muted)}
 syncSound();
 sndBtn.addEventListener('click',()=>{sndPanel.hidden=!sndPanel.hidden;sndBtn.setAttribute('aria-expanded',String(!sndPanel.hidden));sndBtn.blur()});
+volMus.addEventListener('input',()=>{setMusicVolume(+volMus.value/100);if(audio.muted&&+volMus.value>0){setMuted(false)}syncSound()});
 volAmb.addEventListener('input',()=>{setAmbianceVolume(+volAmb.value/100);if(audio.muted&&+volAmb.value>0){setMuted(false)}syncSound()});
 volSfx.addEventListener('input',()=>{setSfxVolume(+volSfx.value/100);if(audio.muted&&+volSfx.value>0){setMuted(false)}syncSound()});
 muteBox.addEventListener('change',()=>{setMuted(muteBox.checked);syncSound()});
