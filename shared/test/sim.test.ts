@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   loadMap, newGame, MAPS, truceLeft, truceReal, cancelCharge, H1, cleanBlason, randomBlason, BLASON_DEFAULT, queueWindow, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater, laneY,
-  placeBuilding, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
+  placeBuilding, finishBuilding, BUILD_T, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
   START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRONS, shotClear, findPath, buildNav, KEEPS, PLAYERS, H, isFoe, onPath, MAP, fireArrow, orderAttack, applyCommand, makeSnapshot, B_TYPES, forfeit, canPlace, GW, GH, identityOf, jobOf, riverY, W,
 } from '../src/index';
 
@@ -12,8 +12,10 @@ beforeEach(() => {
   notes = []; ended = null;
   setHooks({ notify: (t, m) => notes.push([t, m]), end: w => { ended = w } });
 });
-/** pose un bâtiment pour l'équipe 0 à l'endroit que choisirait l'IA */
-function build(type: string) { const s = findSpot(0, type); expect(s, 'emplacement pour ' + type).toBeTruthy(); return placeBuilding(0, type, s!.tx, s!.ty) }
+/** pose un bâtiment pour l'équipe 0 à l'endroit que choisirait l'IA ; sauf demande, le chantier est terminé tout de suite */
+function build(type: string, site = false) { const s = findSpot(0, type); expect(s, 'emplacement pour ' + type).toBeTruthy(); const r = placeBuilding(0, type, s!.tx, s!.ty); if (r === null && !site) finishBuilding(G.buildings[G.buildings.length - 1]); return r }
+/** termine tous les chantiers en cours */
+function finishAll() { for (const b of G.buildings) finishBuilding(b) }
 
 describe('cartes', () => {
   it.each(MAP_IDS)('%s : arbres générés, donjons au sec', id => {
@@ -26,7 +28,8 @@ describe('cartes', () => {
 describe('partie complète contre l\'IA', () => {
   it('l\'IA développe son économie, recrute et attaque', () => {
     loadMap('amboise'); newGame();
-    run(330);
+    // les chantiers ralentissent un peu l'IA : sa première vague part vers 4 à 6 minutes
+    run(420);
     const mine = G.buildings.filter(b => b.team === 1 && b.type !== 'keep');
     expect(mine.length).toBeGreaterThanOrEqual(8);
     expect(G.st[1].prod.bois).toBeGreaterThan(50);
@@ -301,7 +304,12 @@ describe('protocole réseau', () => {
     const s = makeSnapshot([]);
     expect(s.b.some(b => b[1] === 0 && B_TYPES[b[2]] === 'reserve')).toBe(true);
     expect(s.u.find(u => u[0] === G.teams[1].lord.id)).toBeTruthy();
-    expect(s.tm[0].res.bois).toBe(START_RES.bois);
+    // la réserve est un chantier : son avancement part dans l'instantané, le stock attend dans les charrettes
+    const rb = s.b.find(b => b[1] === 0 && B_TYPES[b[2]] === 'reserve')!; expect(rb[10]).toBeLessThan(1);
+    expect(s.tm[0].res.bois).toBe(0);
+    finishAll(); const s2 = makeSnapshot([]);
+    expect(s2.b.find(b => b[1] === 0 && B_TYPES[b[2]] === 'reserve')![10]).toBe(1);
+    expect(s2.tm[0].res.bois).toBe(START_RES.bois);
     expect(JSON.parse(JSON.stringify(s))).toEqual(s);
     // les effets ne partent qu'une fois
     hit(G.teams[1].lord, 5, true);
@@ -446,7 +454,7 @@ describe('armurerie et ateliers', () => {
     run(60, () => w.noStore === 'armurerie');
     expect(w.noStore).toBe('armurerie'); expect(tm.res.arc).toBe(0);
     const sp = findSpot(0, 'armurerie')!;
-    expect(placeBuilding(0, 'armurerie', sp.tx, sp.ty)).toBeNull();
+    expect(placeBuilding(0, 'armurerie', sp.tx, sp.ty)).toBeNull(); finishAll();
     expect(canPlace(0, 'armurerie', sp.tx, sp.ty)).toBe('Tu as déjà une armurerie');
     run(40, () => tm.res.arc > 0);
     expect(tm.res.arc).toBe(1);
@@ -563,7 +571,7 @@ describe('gabarres', () => {
 describe('flèches du seigneur et bâtiments', () => {
   it('les flèches du seigneur n\'abîment pas les bâtiments ; celles des archers, si', () => {
     loadMap('amboise'); newGame({ ai: [false, false] });
-    G.teams[1].res.bois = 100; const s = findSpot(1, 'bucheron')!; expect(placeBuilding(1, 'bucheron', s.tx, s.ty)).toBeNull();
+    G.teams[1].res.bois = 100; const s = findSpot(1, 'bucheron')!; expect(placeBuilding(1, 'bucheron', s.tx, s.ty)).toBeNull(); finishAll();
     const bld = G.buildings.find(b => b.team === 1 && b.type === 'bucheron')!;
     const cx = bld.bx + bld.bw / 2, cy = bld.by + bld.bh / 2;
     for (let i = 0; i < 3; i++) { fireArrow(0, cx - 120, cy, 0, 1); run(.5) }
@@ -652,5 +660,61 @@ describe('trêve du début de partie', () => {
     expect(makeSnapshot([]).tr).toEqual([30, 1.5]);
     loadMap('amboise'); newGame({ ai: [false, false] }); expect(truceLeft()).toBe(0);
     loadMap('jardin'); newGame({ tuto: true, truce: 20 }); expect(truceLeft()).toBe(0);
+  });
+});
+
+describe('chantiers', () => {
+  function setup() { loadMap('amboise'); newGame({ ai: [false, false] }); G.truceEnd = 0 }
+  it('un bâtiment posé est un chantier : son ouvrier part du donjon, le construit, puis y travaille', () => {
+    setup(); const tm = G.teams[0];
+    expect(build('reserve')).toBeNull(); expect(build('bucheron', true)).toBeNull();
+    const b = G.buildings.find(o => o.team === 0 && o.type === 'bucheron')!, w = b.worker;
+    expect(b.build).toBe(0); expect(b.hp).toBeLessThan(b.maxhp);
+    expect(Math.hypot(w.x - tm.keep.x, w.y - (tm.keep.by + tm.keep.bh + 12))).toBeLessThan(5);
+    const bois = tm.res.bois;
+    run(BUILD_T.bucheron * .5); expect(b.build).toBeLessThan(1); expect(tm.res.bois).toBe(bois); // rien produit pendant le chantier
+    run(40, () => !(b.build < 1)); expect(b.build).toBe(1); expect(b.hp).toBe(b.maxhp);
+    expect(b.worker).toBe(w); // le même ouvrier reste y travailler
+    run(25); expect(tm.res.bois).toBeGreaterThan(bois);
+  });
+  it('réserve : un bâtisseur la construit, le stock arrive à la fin, puis il rentre au donjon', () => {
+    setup(); const tm = G.teams[0];
+    expect(build('reserve', true)).toBeNull();
+    const b = G.buildings.find(o => o.team === 0 && o.type === 'reserve')!, w = b.worker;
+    expect(w.builder).toBe(true); expect(tm.res.bois).toBe(0); expect(tm.stash.bois).toBe(START_RES.bois);
+    run(40, () => !(b.build < 1));
+    expect(tm.res.bois).toBe(START_RES.bois); expect(tm.stash.bois).toBe(0);
+    expect(b.worker).toBeNull(); expect(w.state).toBe('home');
+    run(20, () => w.dead); expect(G.workers.includes(w)).toBe(false);
+  });
+  it('caserne en construction : on ne recrute pas encore ; un chantier se démolit', () => {
+    setup(); const tm = G.teams[0]; tm.res.bois = 100; tm.res.pierre = 100; tm.res.arc = 2;
+    expect(build('caserne', true)).toBeNull();
+    expect(recruit(0, 'archer')).toBe('La caserne est en construction');
+    const c = G.buildings.find(o => o.team === 0 && o.type === 'caserne')!;
+    expect(demolish(0, c)).toBeNull(); update(DT);
+    expect(G.workers.filter(w => w.team === 0 && w.builder).length).toBe(0);
+    expect(build('caserne')).toBeNull(); expect(recruit(0, 'archer')).toBeNull();
+  });
+  it('bâtisseur tué : un remplaçant revient finir le chantier', () => {
+    setup();
+    expect(build('grenier', true)).toBeNull();
+    const b = G.buildings.find(o => o.team === 0 && o.type === 'grenier')!;
+    b.worker.dead = true; run(.1);
+    expect(b.respawn).not.toBeNull();
+    run(RESPAWN + 40, () => !(b.build < 1)); expect(b.build).toBe(1);
+  });
+  it('l\'IA aussi bâtit des chantiers', () => {
+    loadMap('amboise'); newGame(); G.truceEnd = 0;
+    run(15);
+    const mine = G.buildings.filter(b => b.team === 1 && b.type !== 'keep');
+    expect(mine.length).toBeGreaterThan(0);
+    run(60); expect(G.buildings.filter(b => b.team === 1 && b.type !== 'keep' && !(b.build < 1)).length).toBeGreaterThan(1);
+  });
+  it('l\'armée monte à 30 soldats', () => {
+    setup(); const tm = G.teams[0]; tm.res.bois = 100; tm.res.pierre = 100; tm.res.arc = 40;
+    expect(build('caserne')).toBeNull();
+    for (let i = 0; i < 30; i++) expect(recruit(0, 'archer')).toBeNull();
+    expect(armySize(0)).toBe(30); expect(recruit(0, 'archer')).toMatch(/30 soldats/);
   });
 });

@@ -1,6 +1,6 @@
 // La simulation : création de partie, ouvriers, combat, famine, commandes des joueurs.
 // Aucun accès au DOM ni à Three.js : le client lit `G` pour dessiner, et reçoit les événements par `hooks`.
-import { T, GW, GH, W, H, TERR, S, DEF, ARMY_MAX, STORE_OF, START_RES, RICH_RES, UT, RESN, NEED, STONES, IRONS, ROCKS, RESPAWN, TREE_R, CHARGE_T, AI_ARCHER_RANGE, KEEPS, PLAYERS, sideOf, isFoe, inHalf, STORE_ART, LORD_VS_LORD } from './config';
+import { T, GW, GH, W, H, TERR, S, DEF, ARMY_MAX, BUILD_T, STORE_OF, START_RES, RICH_RES, UT, RESN, NEED, STONES, IRONS, ROCKS, RESPAWN, TREE_R, CHARGE_T, AI_ARCHER_RANGE, KEEPS, PLAYERS, sideOf, isFoe, inHalf, STORE_ART, LORD_VS_LORD } from './config';
 import { rawWater, genTrees, gh } from './maps';
 import { dist, dE, rectDist, rectClamp, inRect } from './util';
 import { G, trees, setG, setTrees, hooks } from './state';
@@ -76,18 +76,35 @@ export function newGame(opts: GameOptions = {}) {
 export const STORED: Record<string, string[]> = { reserve: ['bois', 'pierre', 'fer'], grenier: ['ble'], armurerie: ['arc', 'lance', 'epee'] };
 /** le stock en attente rejoint la réserve ou le grenier qu'on vient de poser */
 function unstash(tm, type) { for (const k of STORED[type]) { tm.res[k] += tm.stash[k]; tm.stash[k] = 0 } }
-export function addBuilding(team, type, tx, ty) {
+/**
+ * ajoute un bâtiment. Posé par un joueur ou l'IA (built = false), c'est d'abord un chantier : l'ouvrier part du donjon
+ * et le construit sur place ; il ne sert à rien tant qu'il n'est pas fini. Les bâtiments sans métier (réserve, grenier,
+ * armurerie, caserne) reçoivent un bâtisseur, qui rentre au donjon une fois le travail fini.
+ */
+export function addBuilding(team, type, tx, ty, built = true) {
   const d = DEF[type];
   const b: any = { kind: 'building', id: G.nid++, team, type, tx, ty, bx: tx * T, by: ty * T, bw: d.w * T, bh: d.h * T, hp: d.hp, maxhp: d.hp, flash: 0, worker: null, dead: false, grow: 0 };
   b.x = b.bx + b.bw / 2; b.y = b.by + b.bh / 2; b.blocks = blocksOf(b);
+  if (!built && type !== 'keep' && BUILD_T[type]) { b.build = 0; b.hp = Math.ceil(d.hp * .2) }
   G.buildings.push(b); dirtyNav(); if (type !== 'keep' && G.st) G.st[team].built++;
-  if (d.store) unstash(G.teams[team], type);
-  if (d.work) spawnWorker(b);
+  if (d.store && !(b.build < 1)) unstash(G.teams[team], type);
+  if (d.work || b.build < 1) spawnWorker(b);
   return b;
+}
+/** le bâtiment est-il debout et terminé (pas un chantier) ? */
+export const isBuilt = (b) => !!b && !b.dead && !(b.build < 1);
+/** chantier terminé : le bâtiment entre en service */
+export function finishBuilding(b) {
+  if (!(b.build < 1)) return;
+  b.build = 1; b.hp = Math.max(b.hp, b.maxhp);
+  if (DEF[b.type].store) unstash(G.teams[b.team], b.type);
+  const w = b.worker; if (w && w.builder) { w.state = 'home'; b.worker = null }
+  if (w) w.spot = null;
+  G.fx.push({ k: 'built', x: b.x, y: b.y, team: b.team, t: 0, life: .1 });
 }
 function spawnWorker(b) {
   const sp = stockPt(b.team);
-  const w = { kind: 'worker', id: G.uid++, team: b.team, x: sp.x, y: sp.y, r: 7, hp: 30, maxhp: 30, speed: 76, b, state: 'toWork', timer: 0, carry: null, tree: null, need: false, flash: 0, dead: false, vx: 0, vy: 0, face: 0 };
+  const w = { kind: 'worker', id: G.uid++, team: b.team, x: sp.x, y: sp.y, r: 7, hp: 30, maxhp: 30, speed: 76, b, state: 'toWork', timer: 0, carry: null, tree: null, need: false, flash: 0, dead: false, vx: 0, vy: 0, face: 0, builder: !DEF[b.type].work };
   b.worker = w; b.respawn = null; G.workers.push(w); if (G.teams[b.team].starving) setStarve(w, true);
 }
 function setStarve(e, on) {
@@ -252,10 +269,22 @@ function updWorker(w, dt) {
   const b = w.b; if (!b || b.dead) { w.dead = true; return }
   const tm = G.teams[w.team], d = DEF[b.type], eff = 1;
   w.working = false;
+  // le bâtisseur a fini : il rentre au donjon, où il disparaît
+  if (w.state === 'home') { const sp = stockPt(w.team); if (nav(w, sp.x, sp.y, dt, 8)) w.dead = true; return }
+  // chantier : l'ouvrier va sur place et construit le bâtiment avant d'y travailler
+  if (b.build < 1) {
+    if (!w.spot || w.spotVer !== navVer) { w.spotVer = navVer; w.spot = doorSpot(b) }
+    if (!nav(w, w.spot.x, w.spot.y, dt, 4)) return;
+    w.face = Math.atan2(b.y - w.y, b.x - w.x); w.working = true; w.anim = (w.anim || 0) + dt;
+    const k = dt / BUILD_T[b.type];
+    b.build = Math.min(1, b.build + k); b.hp = Math.min(b.maxhp, b.hp + b.maxhp * .8 * k);
+    if (b.build >= 1) { b.build = .999999; finishBuilding(b) }
+    return;
+  }
   // les ateliers (arcs, lances, forge, flèches) vont d'abord chercher leurs matières à la réserve
   if (w.state === 'toWork' && d.input && !w.got) w.state = 'toFetch';
   if (w.state === 'toFetch') {
-    const sb = G.buildings.find(o => o.team === w.team && o.type === 'reserve' && !o.dead);
+    const sb = G.buildings.find(o => o.team === w.team && o.type === 'reserve' && isBuilt(o));
     if (!sb) { w.noStore = 'reserve'; w.need = false; nav(w, b.x, b.by + b.bh + 12, dt, 10); return }
     w.noStore = null;
     // l'IA ne stocke pas plus de 30 flèches
@@ -299,7 +328,7 @@ function updWorker(w, dt) {
   } else if (w.state === 'toStock') {
     const kind = STORE_OF[w.carry.type]; let dest;
     if (kind) {
-      const sb = G.buildings.find(o => o.team === w.team && o.type === kind && !o.dead);
+      const sb = G.buildings.find(o => o.team === w.team && o.type === kind && isBuilt(o));
       if (!sb) { w.noStore = kind; nav(w, w.b.x, w.b.by + w.b.bh + 12, dt, 10); return }
       w.noStore = null;
       dest = storeDoor(w, sb);
@@ -348,20 +377,20 @@ export function placeBuilding(team, type, tx, ty): string | null {
   const tm = G.teams[team], err = canPlace(team, type, tx, ty);
   if (err) return err;
   if (!afford(tm, type)) return 'Il manque ' + missing(tm, type);
-  pay(tm, type); addBuilding(team, type, tx, ty); return null;
+  pay(tm, type); addBuilding(team, type, tx, ty, false); return null;
 }
 /** recrute un soldat à la caserne. Renvoie la raison du refus, ou null. */
 /** pourquoi on ne peut pas recruter ce soldat (ou null si c'est possible) */
 export function recruitError(team, type): string | null {
   const tm = G.teams[team], need = NEED[type];
-  if (!G.buildings.some(b => b.team === team && b.type === 'caserne' && !b.dead)) return 'Construis d\'abord une caserne';
+  if (!G.buildings.some(b => b.team === team && b.type === 'caserne' && isBuilt(b))) return G.buildings.some(b => b.team === team && b.type === 'caserne' && !b.dead) ? 'La caserne est en construction' : 'Construis d\'abord une caserne';
   if (tm.res[need] < 1) return ({ archer: 'Il te faut un arc : construis un atelier d\'arcs', lancier: 'Il te faut une lance : construis un atelier de lances', spadassin: 'Il te faut une épée : prends le fer au centre de la carte (mine) puis forge-la' })[type];
   if (armySize(team) >= ARMY_MAX) return 'Armée complète : ' + ARMY_MAX + ' soldats maximum';
   return null;
 }
 export function recruit(team, type): string | null {
   const err = recruitError(team, type); if (err) return err;
-  const tm = G.teams[team], need = NEED[type], cas = G.buildings.find(b => b.team === team && b.type === 'caserne' && !b.dead);
+  const tm = G.teams[team], need = NEED[type], cas = G.buildings.find(b => b.team === team && b.type === 'caserne' && isBuilt(b));
   tm.res[need]--; spawnUnit(team, type, { x: cas.x, y: cas.by + cas.bh + 14 }); if (team === 0) G.stats.recruits++;
   return null;
 }
@@ -379,7 +408,7 @@ export function refundOf(type) { const c = DEF[type].cost || {}, r: Record<strin
 export function demolishError(team, b): string | null {
   if (!b || b.dead || b.team !== team) return 'Ce bâtiment ne t\'appartient pas';
   if (b.type === 'keep') return 'Le donjon ne peut pas être démoli';
-  if (b.hp < b.maxhp) return 'Bâtiment endommagé : impossible de le démolir';
+  if (b.hp < b.maxhp && !(b.build < 1)) return 'Bâtiment endommagé : impossible de le démolir';
   return null;
 }
 export function demolish(team, b): string | null {
@@ -485,8 +514,8 @@ export function update(dt) {
   G.workers = G.workers.filter(w => !w.dead);
   // un ouvrier tué est remplacé après RESPAWN secondes ; le bâtiment est à l'arrêt en attendant
   for (const b of G.buildings) {
-    if (b.dead || !DEF[b.type].work || (b.worker && !b.worker.dead) || G.teams[b.team].out) continue;
-    if (b.respawn == null) { b.respawn = RESPAWN; b.grow = 0; hooks.notify(b.team, 'Ouvrier tué (' + DEF[b.type].name.toLowerCase() + ') : un remplaçant arrive dans ' + RESPAWN + ' s', 'warn') }
+    if (b.dead || !(DEF[b.type].work || b.build < 1) || (b.worker && !b.worker.dead) || G.teams[b.team].out) continue;
+    if (b.respawn == null) { b.respawn = RESPAWN; b.grow = 0; hooks.notify(b.team, (DEF[b.type].work ? 'Ouvrier tué (' : 'Bâtisseur tué (') + DEF[b.type].name.toLowerCase() + ') : un remplaçant arrive dans ' + RESPAWN + ' s', 'warn') }
     b.respawn -= dt; if (b.respawn <= 0) spawnWorker(b);
   }
   G.buildings = G.buildings.filter(b => !b.dead);

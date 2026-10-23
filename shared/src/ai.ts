@@ -3,7 +3,7 @@ import { T, TERR, DEF, ARMY_MAX, AI_ORDER, STONES, IRONS, sideOf, isFoe } from '
 import { dist, dE } from './util';
 import { G, trees, hooks } from './state';
 import { nav, pushOut, shotClear, freePoint } from './nav';
-import { addBuilding, spawnUnit, afford, pay, canPlace, nearestTree, fireArrow, truceLeft } from './game';
+import { addBuilding, spawnUnit, afford, pay, canPlace, nearestTree, fireArrow, truceLeft, isBuilt } from './game';
 
 /** seigneur piloté par l'IA : reste près de chez lui, tire sur ce qui approche */
 export function updAiLord(team, dt) {
@@ -59,10 +59,10 @@ function targetLord(team) {
 /** économie et armée d'un joueur contrôlé par l'IA, toutes les 1,5 s */
 export function aiTick(p, dt) {
   const A = G.ai[p], tm = G.teams[p]; A.t += dt; if (A.t < 1.5) return; A.t = 0;
-  for (const st of ['reserve', 'grenier', 'armurerie']) if (A.i > Math.max(2, AI_ORDER.indexOf(st)) && !G.buildings.some(b => b.team === p && b.type === st && !b.dead) && afford(tm, st)) { const sp = findSpot(p, st); if (sp) { pay(tm, st); addBuilding(p, st, sp.tx, sp.ty) } }
-  if (A.i < AI_ORDER.length) { const type = AI_ORDER[A.i]; if (afford(tm, type)) { const s = findSpot(p, type); if (s) { pay(tm, type); addBuilding(p, type, s.tx, s.ty) } A.i++ } }
-  else { const cap = { bucheron: 5, ferme: 4, carriere: 2, arcs: 2, lances: 2 }; for (const type of ['bucheron', 'ferme', 'arcs', 'lances', 'carriere']) { const n = G.buildings.filter(b => b.team === p && b.type === type).length; if (n < cap[type] && afford(tm, type)) { const s = findSpot(p, type); if (s) { pay(tm, type); addBuilding(p, type, s.tx, s.ty) } break } } }
-  const cas = G.buildings.find(b => b.team === p && b.type === 'caserne' && !b.dead);
+  for (const st of ['reserve', 'grenier', 'armurerie']) if (A.i > Math.max(2, AI_ORDER.indexOf(st)) && !G.buildings.some(b => b.team === p && b.type === st && !b.dead) && afford(tm, st)) { const sp = findSpot(p, st); if (sp) { pay(tm, st); addBuilding(p, st, sp.tx, sp.ty, false) } }
+  if (A.i < AI_ORDER.length) { const type = AI_ORDER[A.i]; if (afford(tm, type)) { const s = findSpot(p, type); if (s) { pay(tm, type); addBuilding(p, type, s.tx, s.ty, false) } A.i++ } }
+  else { const cap = { bucheron: 5, ferme: 4, carriere: 2, arcs: 2, lances: 2 }; for (const type of ['bucheron', 'ferme', 'arcs', 'lances', 'carriere']) { const n = G.buildings.filter(b => b.team === p && b.type === type).length; if (n < cap[type] && afford(tm, type)) { const s = findSpot(p, type); if (s) { pay(tm, type); addBuilding(p, type, s.tx, s.ty, false) } break } } }
+  const cas = G.buildings.find(b => b.team === p && b.type === 'caserne' && isBuilt(b));
   if (cas) { const at = { x: cas.x, y: cas.by + cas.bh + 14 };
     const armyN = () => G.units.filter(u => u.team === p && u.type !== 'lord' && !u.dead).length;
     while (tm.res.arc > 0 && armyN() < ARMY_MAX) { tm.res.arc--; spawnUnit(p, 'archer', at) }

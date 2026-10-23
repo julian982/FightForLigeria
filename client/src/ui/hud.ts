@@ -44,7 +44,7 @@ export function refreshHud(){
   const sh=tm.stash;setChip('cBois',r.bois,false,sh.bois);setChip('cPierre',r.pierre,false,sh.pierre);setChip('cBle',r.ble,r.ble<=0&&sh.ble<=0,sh.ble);setChip('cFer',r.fer,false,sh.fer);setChip('cArc',r.arc,false,sh.arc||0);setChip('cLance',r.lance,false,sh.lance||0);setChip('cEpee',r.epee,false,sh.epee||0);setChip('cFleche',r.fleche,r.fleche<=2);
   setChip('cArmy',armySize(ME));
   for(const b of bb.children){const t=b.dataset.b,missing=DEF[t].store&&!G.buildings.some(o=>o.team===ME&&o.type===t&&!o.dead);b.classList.toggle('poor',!afford(tm,t)||!!(DEF[t].store&&!missing));b.classList.toggle('active',ui.placing===t);b.classList.toggle('need',!!missing)}
-  const cas=G.buildings.some(b=>b.team===ME&&b.type==='caserne');
+  const cas=G.buildings.some(b=>b.team===ME&&b.type==='caserne'&&!b.dead&&!(b.build<1));
   $('bArcher').classList.toggle('poor',!cas||r.arc<1);$('bLancier').classList.toggle('poor',!cas||r.lance<1);$('bSpad').classList.toggle('poor',!cas||r.epee<1);
   const L=tm.lord,el=$('hpP');el.querySelector('b').textContent=Math.max(0,Math.ceil(L.hp));el.querySelector('.fill').style.width=Math.max(0,L.hp/L.maxhp*100)+'%';
 }
@@ -71,8 +71,8 @@ selBar.addEventListener('click',(e:any)=>{
 export const bldPanel=$('bldPanel');let bldKey='';
 export function renderBldPanel(){
   let b=ui.selB;if(b&&(b.dead||!ui.running)){b=ui.selB=null}
-  const mine=b&&b.team===ME,dmg=b&&b.hp<b.maxhp,ref=b?refundOf(b.type):{};
-  const key=b?[b.id,b.team,Math.ceil(b.hp),dmg].join(','):'';if(key===bldKey)return;bldKey=key;
+  const site=b&&b.build<1,mine=b&&b.team===ME,dmg=b&&!site&&b.hp<b.maxhp,ref=b?refundOf(b.type):{};
+  const key=b?[b.id,b.team,Math.ceil(b.hp),dmg,site?Math.floor(b.build*100):100].join(','):'';if(key===bldKey)return;bldKey=key;
   bldPanel.hidden=!b;if(!b){bldPanel.innerHTML='';return}
   const d=DEF[b.type],gain=Object.entries(ref).map(([k,v])=>'+'+v+' '+RESN[k]).join(', ');
   let act='';
@@ -81,7 +81,7 @@ export function renderBldPanel(){
     act=why?`<p class="why">${why}</p>`:`<button type="button" class="demo">Démolir${gain?' <small>('+gain+')</small>':' <small>(rien à récupérer)</small>'}</button>`;
   }
   bldPanel.innerHTML=`<div class="bp-head"><b>${d.name}</b><button type="button" class="x" aria-label="Fermer">×</button></div>
-    <p class="who">${mine?'Ton bâtiment':'Bâtiment ennemi'}</p>${mine?`<div class="bp-hp"><div style="width:${Math.max(0,b.hp/b.maxhp*100)}%"></div></div><p class="hp">Vie ${Math.max(0,Math.ceil(b.hp))} / ${b.maxhp}</p>`:''}${act}`;
+    <p class="who">${mine?'Ton bâtiment':'Bâtiment ennemi'}</p>${site?`<p class="hp">En construction : ${Math.floor(b.build*100)} %${b.worker&&!b.worker.dead?'':' · l\'ouvrier arrive'}</p>`:''}${mine?`<div class="bp-hp"><div style="width:${Math.max(0,b.hp/b.maxhp*100)}%"></div></div><p class="hp">Vie ${Math.max(0,Math.ceil(b.hp))} / ${b.maxhp}</p>`:''}${act}`;
 }
 bldPanel.addEventListener('click',(e:any)=>{
   if(e.target.closest('.x')){ui.selB=null;renderBldPanel();return}
@@ -90,6 +90,8 @@ bldPanel.addEventListener('click',(e:any)=>{
 
 // ---- fiche de l'ouvrier sélectionné : portrait, prénom et nom, métier, ce qu'il fait ----
 const WITH:Record<string,string>={bois:'du bois',pierre:'de la pierre',ble:'du blé',fer:'du fer',arc:'un arc',lance:'une lance',epee:'une épée',fleche:'des flèches'};
+/** le chantier passe avant le métier */
+const BUILDS='Construit le bâtiment';
 const DOING:Record<string,string>={bucheron:'Coupe du bois',carriere:'Taille la pierre',ferme:'Cultive le blé',arcs:'Fabrique un arc',lances:'Fabrique une lance',mine:'Extrait du fer',forge:'Forge une épée',fleches:'Taille des flèches'};
 const STORE_NAME:Record<string,string>={reserve:'à la réserve',grenier:'au grenier',armurerie:'à l\'armurerie'};
 const WORKSHOP:Record<string,string>={arcs:'à l\'atelier',lances:'à l\'atelier',fleches:'à l\'atelier',forge:'à la forge'};
@@ -105,8 +107,9 @@ export function workerActivity(w){
   if(w.state==='toFetch')return 'Va chercher '+(TAKE[b.type]||'ses matières')+' à la réserve';
   if(w.carry&&w.carry.input)return 'Apporte '+(TAKE[b.type]||'ses matières')+' '+(WORKSHOP[b.type]||'à l\'atelier');
   if(w.carry)return 'Rapporte '+(WITH[w.carry.type]||'sa production')+' '+(STORE_NAME[STORE_OF[w.carry.type]]||'au donjon');
+  if(b.build<1)return w.working?BUILDS:'Se rend sur le chantier';
   if(w.working)return DOING[b.type]||'Travaille';
-  return 'Se rend au travail';
+  return w.builder?'Rentre au donjon':'Se rend au travail';
 }
 export const wkPanel=$('wkPanel');let wkId=-1,wkKey='';
 export function renderWkPanel(){

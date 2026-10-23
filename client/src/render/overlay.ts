@@ -34,7 +34,9 @@ export function drawOverlay(){
   for(const w of G.workers)if(w.hp<w.maxhp){const p=toScreen(w.x,w.y,.95);bar(p.x,p.y,16*z,w.hp/w.maxhp,TEAMC[w.team].m)}
   octx.font='700 13px "Alegreya Sans", sans-serif';octx.textAlign='center';octx.lineWidth=3;octx.strokeStyle='rgba(0,0,0,.65)';
   for(const b of G.buildings){
-    if(b.hp<b.maxhp){const p=toScreen(b.x,b.y,b.type==='caserne'?2:1.7);bar(p.x,p.y,50*z,b.hp/b.maxhp,TEAMC[b.team].m)}
+    // chantier : barre dorée d'avancement (et la vie seulement s'il a été touché)
+    if(b.build<1){const p=toScreen(b.x,b.y,1.2);bar(p.x,p.y,50*z,b.build,'#e3b54e');if(b.hp<b.maxhp*(.2+.8*b.build)-1){const q=toScreen(b.x,b.y,1.45);bar(q.x,q.y,50*z,b.hp/b.maxhp,TEAMC[b.team].m)}}
+    else if(b.hp<b.maxhp){const p=toScreen(b.x,b.y,b.type==='caserne'?2:1.7);bar(p.x,p.y,50*z,b.hp/b.maxhp,TEAMC[b.team].m)}
     const w=b.worker;if(b.team===ME&&w&&!w.dead&&(w.need||w.idle||w.noStore)){const p=toScreen(b.x,b.y,1.9);const s=w.noStore?({grenier:'Pas de grenier',armurerie:'Pas d\'armurerie',reserve:'Pas de réserve'})[w.noStore]:w.idle?'Plus d\'arbres':'Manque de '+Object.keys(DEF[b.type].input).filter(k=>G.teams[ME].res[k]<DEF[b.type].input[k]).map(k=>RESN[k]).join(' et ');octx.fillStyle='#ffd98a';octx.strokeText(s,p.x,p.y-8);octx.fillText(s,p.x,p.y-8)}
   }
   for(const b of G.buildings)if(b.team===ME&&b.respawn!=null&&!b.dead){const p=toScreen(b.x,b.y,2.1);idleBadge(p.x,p.y,Math.ceil(b.respawn),z)}

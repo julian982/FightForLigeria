@@ -74,10 +74,12 @@ export function syncScene(dt){
     else if(f.k==='stuck'&&!f.set){f.set=1;const h=(f.h===undefined?.08:f.h)+gh(f.x,f.y);f.obj.position.set(f.x*S,h,f.y*S);f.obj.rotation.set(0,-f.a,f.h===undefined?-.5:-.1)}}
   for(const b of G.buildings){
     const g=b.obj;if(!g)continue;
-    if(b.rise<1){b.rise=Math.min(1,b.rise+dt*1.8);const e=1-Math.pow(1-b.rise,3);g.scale.y=.05+.95*e}
+    // un chantier sort de terre au rythme de la construction ; terminé, il monte jusqu'en haut
+    const site=b.build<1,top=site?.08+.92*b.build:1;
+    if(b.rise<top||site){b.rise=Math.min(top,b.rise+dt*1.8);g.scale.y=.05+.95*(site?b.rise:1-Math.pow(1-b.rise,3))}
     g.position.x=b.x*S+(b.flash>0?(Math.random()-.5)*.06:0);
     for(let i=0;i<b.flags.length;i++)b.flags[i].rotation.y=Math.sin(t*2.6+b.id+i)*.35;
-    if(b.smoke)updSmoke(b,dt);
+    if(b.smoke&&!(b.build<1))updSmoke(b,dt);
     if(b.wheat){b.wheat.scale.y=.35+.65*b.grow;b.wheat.material.color.setRGB(.48+.4*b.grow,.66+.06*b.grow,.24-.02*b.grow)}
   }
   updMarks(dt);

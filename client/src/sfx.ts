@@ -18,6 +18,8 @@ const WORK: Record<string, [string, number, number, number]> = {
   // les ateliers d'arcs, de lances et de flèches ne font aucun bruit (ni travail ni dépôt)
   ferme: ['faux', 2.6, .4, 1],
 };
+/** un chantier : coups de marteau sur la pierre et le bois */
+const BUILDING: [string, number, number, number] = ['taille', .8, .4, 1.15];
 /** bruit du dépôt selon ce que l'ouvrier rapporte */
 const DROP: Record<string, string> = { bois: 'd-bois', pierre: 'd-pierre', fer: 'd-fer', ble: 'd-ble', epee: 'd-armes' };
 const workT = new Map<number, number>(), carried = new Map<number, string | null>();
@@ -76,6 +78,8 @@ export function updateSfx() {
   for (const id of seenArrows) if (!alive.has(id)) seenArrows.delete(id);
   // ---- une flèche touche ou se plante ----
   for (const f of G.fx) {
+    // un de ses chantiers est terminé
+    if (f.k === 'built' && !f.snd) { f.snd = 1; if (on && f.team === ME) playSfx('pose', .55); continue }
     if (f.snd || (f.k !== 'hit' && f.k !== 'stuck')) continue;
     f.snd = 1; if (!on) continue;
     const kind = f.k === 'hit' ? f.m : f.h !== undefined ? 'bois' : 'sol';
@@ -91,7 +95,7 @@ export function updateSfx() {
     const cur = w.carry && !w.carry.input ? w.carry.type : null, prev = carried.get(w.id);
     if (on && prev && !cur && DROP[prev]) { const p = near(w.x, w.y); if (p.vol > .02) playSfx(DROP[prev], p.vol * .7, p.pan, jitter(.92, 1.08)) }
     carried.set(w.id, cur);
-    const job = w.b && WORK[w.b.type];
+    const job = w.b && (w.b.build < 1 ? BUILDING : WORK[w.b.type]);
     if (!on || !job || !w.working) { workT.delete(w.id); continue }
     let t = workT.has(w.id) ? workT.get(w.id)! - dt : Math.random() * job[1];
     if (t <= 0) {

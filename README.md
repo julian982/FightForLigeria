@@ -108,22 +108,24 @@ Clavier et souris requis.
 
 ### Bâtiments
 
-| Touche | Bâtiment | Coût | Produit |
-|---|---|---|---|
-| 1 | Réserve | Gratuit | Stocke bois, pierre et fer |
-| 2 | Grenier | Gratuit | Stocke le blé |
-| 3 | Bûcheron | 6 bois | 3 bois par voyage |
-| 4 | Carrière | 12 bois | 3 pierre par voyage |
-| 5 | Ferme à blé | 15 bois | 5 blé par récolte |
-| 6 | Atelier de flèches | 12 bois | 4 flèches pour 2 bois |
-| 7 | Atelier d'arcs | 15 bois · 8 pierre | 1 arc pour 3 bois |
-| 8 | Atelier de lances | 15 bois · 8 pierre | 1 lance pour 3 bois |
-| 9 | Caserne | 15 bois · 23 pierre | Transforme les armes en soldats |
-| 0 | Mine de fer | 30 bois · 15 pierre | 1 fer par voyage |
-| ) | Forge | 20 bois · 20 pierre | 1 épée pour 2 fer et 3 bois |
-| = | Armurerie | 5 bois | Stocke arcs, lances et épées |
+Chaque bâtiment posé est d'abord un **chantier** : son ouvrier part du donjon, le construit sur place, puis y travaille. Les bâtiments sans métier (réserve, grenier, armurerie, caserne) reçoivent un bâtisseur qui rentre au donjon une fois le travail fini. Un chantier ne sert à rien tant qu'il n'est pas terminé (le stock de départ n'arrive qu'à la fin de la réserve), il peut être attaqué ou démoli, et si l'ouvrier est tué, un remplaçant vient finir.
 
-### Unités (15 soldats maximum)
+| Touche | Bâtiment | Coût | Construction | Produit |
+|---|---|---|---|---|
+| 1 | Réserve | Gratuit | 6 s | Stocke bois, pierre et fer |
+| 2 | Grenier | Gratuit | 6 s | Stocke le blé |
+| 3 | Bûcheron | 6 bois | 8 s | 3 bois par voyage |
+| 4 | Carrière | 12 bois | 10 s | 3 pierre par voyage |
+| 5 | Ferme à blé | 15 bois | 10 s | 5 blé par récolte |
+| 6 | Atelier de flèches | 12 bois | 8 s | 4 flèches pour 2 bois |
+| 7 | Atelier d'arcs | 15 bois · 8 pierre | 12 s | 1 arc pour 3 bois |
+| 8 | Atelier de lances | 15 bois · 8 pierre | 12 s | 1 lance pour 3 bois |
+| 9 | Caserne | 15 bois · 23 pierre | 16 s | Transforme les armes en soldats |
+| 0 | Mine de fer | 30 bois · 15 pierre | 14 s | 1 fer par voyage |
+| ) | Forge | 20 bois · 20 pierre | 16 s | 1 épée pour 2 fer et 3 bois |
+| = | Armurerie | 5 bois | 8 s | Stocke arcs, lances et épées |
+
+### Unités (30 soldats maximum)
 
 Sans ordre, tes soldats tiennent leur position : ils ne poursuivent personne et ne frappent que ce qui est à leur portée (tir pour les archers, contact pour les lanciers et spadassins).
 

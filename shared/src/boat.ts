@@ -55,7 +55,7 @@ function hull(b: any, a: any) {
 export function lootBoat(b: any, team: number) {
   if (!b || b.looted) return false;
   b.looted = true;
-  const tm = G.teams[team], hasRes = G.buildings.some(o => o.team === team && o.type === 'reserve' && !o.dead);
+  const tm = G.teams[team], hasRes = G.buildings.some(o => o.team === team && o.type === 'reserve' && !o.dead && !(o.build < 1));
   // sans réserve, le butin attend dans les charrettes comme le stock de départ
   for (const k in BOAT_LOOT) (hasRes ? tm.res : tm.stash)[k] += BOAT_LOOT[k];
   G.fx.push({ k: 'loot', x: b.x, y: b.y, dir: b.dir, t: 0, life: 2.4 });
