@@ -27,8 +27,9 @@ export const DEF: Record<string, any> = {
   fleches: {name:'Atelier de flèches',w:2,h:2,cost:{bois:12},hp:180,key:9,work:10,out:['fleche',4],input:{bois:2}},
 };
 export const ARMY_MAX = 30;
-/** temps de construction de chaque bâtiment (secondes de travail de l'ouvrier, une fois arrivé sur le chantier) */
-export const BUILD_T: Record<string, number> = { reserve: 6, grenier: 6, armurerie: 8, bucheron: 8, fleches: 8, carriere: 10, ferme: 10, arcs: 12, lances: 12, mine: 14, caserne: 16, forge: 16 };
+/** temps de construction de chaque bâtiment (secondes de travail de l'ouvrier, une fois arrivé sur le chantier).
+ *  La réserve et le grenier n'en ont pas : ils sont posés tout de suite, pour que le stock de départ arrive aussitôt. */
+export const BUILD_T: Record<string, number> = { armurerie: 8, bucheron: 8, fleches: 8, carriere: 10, ferme: 10, arcs: 12, lances: 12, mine: 14, caserne: 16, forge: 16 };
 export const BUILD_LIST = ['reserve','grenier','bucheron','carriere','ferme','fleches','arcs','lances','caserne','mine','forge','armurerie'];
 export const BUILD_KEYS = ['1','2','3','4','5','6','7','8','9','0',')','='];
 BUILD_LIST.forEach((t, i) => DEF[t].key = BUILD_KEYS[i]);

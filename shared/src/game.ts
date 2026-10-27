@@ -78,8 +78,8 @@ export const STORED: Record<string, string[]> = { reserve: ['bois', 'pierre', 'f
 function unstash(tm, type) { for (const k of STORED[type]) { tm.res[k] += tm.stash[k]; tm.stash[k] = 0 } }
 /**
  * ajoute un bâtiment. Posé par un joueur ou l'IA (built = false), c'est d'abord un chantier : l'ouvrier part du donjon
- * et le construit sur place ; il ne sert à rien tant qu'il n'est pas fini. Les bâtiments sans métier (réserve, grenier,
- * armurerie, caserne) reçoivent un bâtisseur, qui rentre au donjon une fois le travail fini.
+ * et le construit sur place ; il ne sert à rien tant qu'il n'est pas fini. Les bâtiments sans métier (armurerie, caserne)
+ * reçoivent un bâtisseur, qui rentre au donjon une fois le travail fini. La réserve et le grenier sont instantanés (pas de BUILD_T).
  */
 export function addBuilding(team, type, tx, ty, built = true) {
   const d = DEF[type];

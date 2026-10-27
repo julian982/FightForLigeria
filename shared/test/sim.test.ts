@@ -304,12 +304,11 @@ describe('protocole réseau', () => {
     const s = makeSnapshot([]);
     expect(s.b.some(b => b[1] === 0 && B_TYPES[b[2]] === 'reserve')).toBe(true);
     expect(s.u.find(u => u[0] === G.teams[1].lord.id)).toBeTruthy();
-    // la réserve est un chantier : son avancement part dans l'instantané, le stock attend dans les charrettes
-    const rb = s.b.find(b => b[1] === 0 && B_TYPES[b[2]] === 'reserve')!; expect(rb[10]).toBeLessThan(1);
-    expect(s.tm[0].res.bois).toBe(0);
-    finishAll(); const s2 = makeSnapshot([]);
-    expect(s2.b.find(b => b[1] === 0 && B_TYPES[b[2]] === 'reserve')![10]).toBe(1);
-    expect(s2.tm[0].res.bois).toBe(START_RES.bois);
+    // la réserve est instantanée : le stock de départ y est déjà ; un chantier envoie son avancement
+    expect(s.b.find(b => b[1] === 0 && B_TYPES[b[2]] === 'reserve')![10]).toBe(1);
+    expect(s.tm[0].res.bois).toBe(START_RES.bois);
+    expect(applyCommand(0, { c: 'place', type: 'bucheron', tx: 12, ty: 20 })).toBeNull();
+    expect(makeSnapshot([]).b.find(b => b[1] === 0 && B_TYPES[b[2]] === 'bucheron')![10]).toBeLessThan(1);
     expect(JSON.parse(JSON.stringify(s))).toEqual(s);
     // les effets ne partent qu'une fois
     hit(G.teams[1].lord, 5, true);
@@ -677,13 +676,20 @@ describe('chantiers', () => {
     expect(b.worker).toBe(w); // le même ouvrier reste y travailler
     run(25); expect(tm.res.bois).toBeGreaterThan(bois);
   });
-  it('réserve : un bâtisseur la construit, le stock arrive à la fin, puis il rentre au donjon', () => {
+  it('réserve et grenier sont instantanés : le stock de départ arrive tout de suite', () => {
     setup(); const tm = G.teams[0];
-    expect(build('reserve', true)).toBeNull();
-    const b = G.buildings.find(o => o.team === 0 && o.type === 'reserve')!, w = b.worker;
-    expect(w.builder).toBe(true); expect(tm.res.bois).toBe(0); expect(tm.stash.bois).toBe(START_RES.bois);
+    expect(build('reserve', true)).toBeNull(); expect(build('grenier', true)).toBeNull();
+    for (const t of ['reserve', 'grenier']) expect(G.buildings.find(o => o.team === 0 && o.type === t)!.build).toBeUndefined();
+    expect(tm.res.bois).toBe(START_RES.bois); expect(tm.res.ble).toBe(START_RES.ble);
+    expect(G.workers.filter(w => w.team === 0).length).toBe(0);
+  });
+  it('armurerie : un bâtisseur la construit, les armes en attente arrivent à la fin, puis il rentre au donjon', () => {
+    setup(); const tm = G.teams[0]; build('reserve'); tm.stash.arc = 2;
+    expect(build('armurerie', true)).toBeNull();
+    const b = G.buildings.find(o => o.team === 0 && o.type === 'armurerie')!, w = b.worker;
+    expect(w.builder).toBe(true); expect(tm.res.arc).toBe(0);
     run(40, () => !(b.build < 1));
-    expect(tm.res.bois).toBe(START_RES.bois); expect(tm.stash.bois).toBe(0);
+    expect(tm.res.arc).toBe(2); expect(tm.stash.arc).toBe(0);
     expect(b.worker).toBeNull(); expect(w.state).toBe('home');
     run(20, () => w.dead); expect(G.workers.includes(w)).toBe(false);
   });
@@ -697,9 +703,9 @@ describe('chantiers', () => {
     expect(build('caserne')).toBeNull(); expect(recruit(0, 'archer')).toBeNull();
   });
   it('bâtisseur tué : un remplaçant revient finir le chantier', () => {
-    setup();
-    expect(build('grenier', true)).toBeNull();
-    const b = G.buildings.find(o => o.team === 0 && o.type === 'grenier')!;
+    setup(); build('reserve');
+    expect(build('armurerie', true)).toBeNull();
+    const b = G.buildings.find(o => o.team === 0 && o.type === 'armurerie')!;
     b.worker.dead = true; run(.1);
     expect(b.respawn).not.toBeNull();
     run(RESPAWN + 40, () => !(b.build < 1)); expect(b.build).toBe(1);

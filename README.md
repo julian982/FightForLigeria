@@ -108,12 +108,12 @@ Clavier et souris requis.
 
 ### Bâtiments
 
-Chaque bâtiment posé est d'abord un **chantier** : son ouvrier part du donjon, le construit sur place, puis y travaille. Les bâtiments sans métier (réserve, grenier, armurerie, caserne) reçoivent un bâtisseur qui rentre au donjon une fois le travail fini. Un chantier ne sert à rien tant qu'il n'est pas terminé (le stock de départ n'arrive qu'à la fin de la réserve), il peut être attaqué ou démoli, et si l'ouvrier est tué, un remplaçant vient finir.
+Chaque bâtiment posé est d'abord un **chantier** : son ouvrier part du donjon, le construit sur place, puis y travaille. Seules la réserve et le grenier sont posés instantanément (le stock de départ arrive aussitôt). L'armurerie et la caserne, sans métier, reçoivent un bâtisseur qui rentre au donjon une fois le travail fini. Un chantier ne sert à rien tant qu'il n'est pas terminé, il peut être attaqué ou démoli, et si l'ouvrier est tué, un remplaçant vient finir.
 
 | Touche | Bâtiment | Coût | Construction | Produit |
 |---|---|---|---|---|
-| 1 | Réserve | Gratuit | 6 s | Stocke bois, pierre et fer |
-| 2 | Grenier | Gratuit | 6 s | Stocke le blé |
+| 1 | Réserve | Gratuit | instantané | Stocke bois, pierre et fer |
+| 2 | Grenier | Gratuit | instantané | Stocke le blé |
 | 3 | Bûcheron | 6 bois | 8 s | 3 bois par voyage |
 | 4 | Carrière | 12 bois | 10 s | 3 pierre par voyage |
 | 5 | Ferme à blé | 15 bois | 10 s | 5 blé par récolte |

@@ -81,9 +81,8 @@ try {
   const s1 = G.snap, lord1 = s1.u.find(u => u[0] === s1.tm[1].lord);
   ok(lord1[3] < x0 - 60, `le seigneur invité n'a pas bougé (${x0} → ${lord1[3]})`);
   ok(s1.b.filter(b => b[1] === 0 && b[2] === 1).length === 1, 'la réserve de l\'hôte devrait exister une fois');
-  // la réserve est un chantier : le stock de départ attend dans les charrettes, l'avancement part dans l'instantané
-  const rb = s1.b.find(b => b[1] === 0 && b[2] === 1);
-  ok(rb[10] < 1 && s1.tm[0].stash.bois === 30, 'la réserve devrait être un chantier, avec le stock de départ en attente');
+  // la réserve est instantanée (pas de chantier) : le stock de départ y est déjà
+  ok(s1.b.find(b => b[1] === 0 && b[2] === 1)[10] === 1 && s1.tm[0].res.bois === 30, 'le stock de départ devrait être arrivé dans la réserve');
   ok(H.notes.some(n => /déjà/.test(n.msg)), 'le refus de la deuxième réserve n\'est pas arrivé');
   await H.room.leave();
   await sleep(800);
