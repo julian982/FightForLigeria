@@ -7,8 +7,8 @@ import * as mariadb from 'mariadb';
 if (!process.env.DB_HOST) { console.log('classé : pas de base de données (DB_HOST), test ignoré'); process.exit(0) }
 const PORT = 3300 + (Math.random() * 300 | 0), BASE = `http://localhost:${PORT}`, WS = `ws://localhost:${PORT}`;
 const admin = await mariadb.createConnection({ host: process.env.DB_HOST, port: +(process.env.DB_PORT || 3306), user: process.env.DB_USER, password: process.env.DB_PASSWORD, database: process.env.DB_NAME });
-for (const t of ['match_players', 'matches', 'email_tokens', 'sessions', 'users', 'schema_version']) await admin.query(`DROP TABLE IF EXISTS ${t}`);
-const srv = spawn(process.execPath, ['dist/index.mjs'], { env: { ...process.env, PORT: String(PORT), SMTP_HOST: '', EMAIL_VERIFY: '', ADMIN_PSEUDOS: 'arthur', ADMIN_EMAILS: '' }, stdio: ['ignore', 'pipe', 'inherit'] });
+for (const t of ['season_results', 'meta', 'match_players', 'matches', 'email_tokens', 'sessions', 'users', 'schema_version']) await admin.query(`DROP TABLE IF EXISTS ${t}`);
+const srv = spawn(process.execPath, ['dist/index.mjs'], { env: { ...process.env, PORT: String(PORT), SMTP_HOST: '', EMAIL_VERIFY: '', ADMIN_PSEUDOS: 'arthur', ADMIN_EMAILS: '', SEASON_CHECK_MS: '300' }, stdio: ['ignore', 'pipe', 'inherit'] });
 let out = '';
 await new Promise((ok, ko) => { srv.stdout.on('data', d => { out += d; if (out.includes('base de données prête')) ok() }); setTimeout(() => ko(new Error('le serveur ne démarre pas :\n' + out.slice(-500))), 20000) });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -146,5 +146,35 @@ try {
   console.log('OK : administration (droits, chiffres, liste des joueurs) · inscription sans email, blason, historique (solo, classé), file classée sans compte refusée, partie classée fabriquée refusée, 1v1 (appariement, intrus refusé, lancement, abandon, Elo ±40), partie annulée, classement et place, 2v2 (appariement, lancement)');
   for (const g of gs) g.room.leave();
   try { g2 && g2.room.leave() } catch (e) {}
+  await sleep(800);
+
+  // ---- saisons : la saison notée en base est en retard sur le calendrier → elle est clôturée ----
+  r = await api('/api/profile?pseudo=Arthur');
+  ok(r.status === 200 && r.body.pseudo === 'Arthur' && r.body.seasons.length === 0 && r.body.frame === null && r.body.matches.length >= 1 && r.body.matches.every(m => m.kind === 'ranked') && !r.body.you, 'profil public avant la fin de saison : ' + JSON.stringify(r.body).slice(0, 300));
+  ok(r.body.season.n >= 1 && r.body.season.end > r.body.season.start, 'saison en cours dans le profil');
+  ok((await api('/api/profile?pseudo=Arthur', null, A.token)).body.you === true, 'son propre profil');
+  ok((await api('/api/profile?pseudo=Personne')).status === 404, 'profil inconnu');
+  await admin.query(`UPDATE users SET games1 = 12, wins1 = 8, elo1 = 1834, peak1 = 1900 WHERE pseudo = 'Arthur'`);
+  await admin.query(`UPDATE users SET games1 = 3, wins1 = 1, elo1 = 1100, peak1 = 0 WHERE pseudo = 'Blanche'`);
+  const cur = +(await admin.query(`SELECT v FROM meta WHERE k = 'season'`))[0].v, prev = cur - 1;
+  await admin.query(`UPDATE meta SET v = ? WHERE k = 'season'`, [String(prev)]);
+  let meA = null;
+  for (let i = 0; i < 60 && !(meA && meA.r1.games === 0); i++) { await sleep(100); meA = (await api('/api/me', null, A.token)).body.user }
+  ok(meA.r1.games === 0 && meA.r1.elo === 1417 && !meA.r1.placed && meA.r1.rank === 'Fer III', 'soft reset : 1834 → 1417 (Fer III), placement à refaire : ' + JSON.stringify(meA.r1));
+  ok(meA.frame && meA.frame.season === prev && meA.frame.metal === 3, 'cadre Argent (meilleur Elo 1900) : ' + JSON.stringify(meA.frame));
+  const meB = (await api('/api/me', null, B.token)).body.user;
+  ok(meB.frame === null && meB.r1.elo === 1050, 'pas de cadre sans placement, Elo rapproché de 1000 : ' + JSON.stringify(meB));
+  r = await api('/api/profile?pseudo=Arthur');
+  const s0 = r.body.seasons[0];
+  ok(s0.season === prev && s0.modes['1v1'].elo === 1834 && s0.modes['1v1'].peakRank === 'Argent I' && s0.modes['1v1'].place === 1 && s0.reward.metal === 3 && r.body.frame.metal === 3, 'saison passée dans le profil : ' + JSON.stringify(s0));
+  ok(r.body.r1.games === 0 && r.body.r1.place === null, 'nouvelle saison : pas encore placé');
+  r = await api('/api/leaderboard?mode=1v1', null, A.token);
+  ok(r.body.players.length === 0 && r.body.season.n >= 1, 'nouvelle saison : classement vide tant que personne n\'est placé');
+  await admin.query(`UPDATE users SET games1 = 5 WHERE pseudo = 'Arthur'`);
+  r = await api('/api/leaderboard?mode=1v1');
+  ok(r.body.players[0].frame && r.body.players[0].frame.metal === 3, 'le cadre apparaît dans le classement');
+  await sleep(700);
+  ok((await admin.query(`SELECT COUNT(*) AS c FROM season_results WHERE season = ?`, [prev]))[0].c >= 2 && +(await admin.query(`SELECT v FROM meta WHERE k = 'season'`))[0].v === cur, 'la saison n\'est clôturée qu\'une fois');
+  console.log('OK : saisons (clôture, soft reset, cadre de blason, profil public, classement)');
 } catch (e) { fail(e.stack || e) }
 await admin.end(); srv.kill(); process.exit(0);

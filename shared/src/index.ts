@@ -11,3 +11,4 @@ export * from './net';
 export * from './names';
 export * from './boat';
 export * from './blason';
+export * from './season';

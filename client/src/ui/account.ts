@@ -39,9 +39,11 @@ export function rankCard(label: string, l: A.Ladder) {
     <span class="small">${l.elo} Elo${l.placed ? '' : ` · provisoire : ${l.rank}`} · ${l.wins} V – ${l.games - l.wins} D</span>
     ${l.placed ? '' : `<span class="pf-place" aria-label="Parties de placement : ${l.games} sur 5">${dots}<em>${l.games} / 5 placement</em></span>`}</div></div>`;
 }
-function histItem(m: any) {
+export function histItem(m: any) {
   const res = m.left ? 'Abandon' : m.won ? 'Victoire' : 'Défaite';
-  const who = (l: any[]) => l.map(p => `<span class="hi-who">${p.blason ? blasonSvg(p.blason) : p.ai ? '<span class="hi-ai">IA</span>' : ''}${esc(p.ai ? 'IA' : p.pseudo)}</span>`).join('');
+  // un adversaire ou un allié qui a un compte : son nom ouvre son profil
+  const who = (l: any[]) => l.map(p => { const inner = `${p.blason ? blasonSvg(p.blason) : p.ai ? '<span class="hi-ai">IA</span>' : ''}${esc(p.ai ? 'IA' : p.pseudo)}`;
+    return p.acc ? `<a class="hi-who" href="#joueur?p=${encodeURIComponent(p.pseudo)}">${inner}</a>` : `<span class="hi-who">${inner}</span>` }).join('');
   const d = m.eloAfter != null && m.eloBefore != null ? m.eloAfter - m.eloBefore : null;
   return `<article class="hi ${m.won ? 'win' : 'loss'}">
     <div class="hi-res">${res}</div>
@@ -64,7 +66,8 @@ export function initAccount() {
   function renderProfile(u: A.User) {
     $('pfPseudo').textContent = u.pseudo; $('pfEmail').textContent = u.email;
     $('pfSince').textContent = new Date(u.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-    $('pfBlason').innerHTML = blasonSvg(u.blason, { title: 'Blason de ' + u.pseudo });
+    $('pfBlason').innerHTML = blasonSvg(u.blason, { title: 'Blason de ' + u.pseudo, frame: u.frame });
+    $('pfPublic').href = '#joueur?p=' + encodeURIComponent(u.pseudo);
     $('pfAdmin').hidden = !u.admin;
   }
   /** la page « Mes parties » : rangs 1v1 et 2v2, historique des parties */

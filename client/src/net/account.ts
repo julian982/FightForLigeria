@@ -1,12 +1,12 @@
 // Le compte du joueur (facultatif) : appels à l'API du serveur de jeu et session gardée dans le navigateur.
 // L'API est à la même adresse que le serveur de jeu (wss://… → https://…/api/…), quel que soit le domaine de la page.
 import { serverUrl } from './online';
-import type { Blason } from '@ffl/shared';
+import type { Blason, Frame } from '@ffl/shared';
 
 const KEY = 'ffl.session';
 /** Elo d'un mode (1v1 ou 2v2) : `placed` devient vrai après les 5 parties de placement */
 export type Ladder = { elo: number, games: number, wins: number, placed: boolean, rank: string, tier: number };
-export type User = { id: number, pseudo: string, email: string, createdAt: string, blason: Blason, r1: Ladder, r2: Ladder, admin?: boolean };
+export type User = { id: number, pseudo: string, email: string, createdAt: string, blason: Blason, r1: Ladder, r2: Ladder, admin?: boolean, frame?: Frame | null };
 let token = '', user: User | null = null;
 try { token = localStorage.getItem(KEY) || '' } catch (e) {}
 
@@ -57,6 +57,8 @@ export async function saveBlason(blason: Blason) {
 }
 export const history = () => call('/api/history');
 export const adminStats = () => call('/api/admin/stats');
+/** le profil public d'un joueur (ouvert à tous) */
+export const profile = (pseudo: string) => call('/api/profile?pseudo=' + encodeURIComponent(pseudo));
 export const leaderboard = (mode: string) => call('/api/leaderboard?mode=' + encodeURIComponent(mode));
 /** partie contre l'IA terminée : rangée dans l'historique du compte (jamais dans l'Elo) */
 export function reportSolo(map: string, won: boolean, duration: number) { if (token) call('/api/history/solo', { map, won, duration }) }

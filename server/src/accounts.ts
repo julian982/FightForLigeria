@@ -11,7 +11,8 @@ import { randomBytes, scrypt, timingSafeEqual, createHash } from 'node:crypto';
 import { q, dbReady } from './db';
 import { sendMail, layout } from './mail';
 import { cleanPseudo } from './clean';
-import { cleanBlason, randomBlason, ELO, MAPS } from '@ffl/shared';
+import { cleanBlason, randomBlason, ELO, MAPS, seasonInfo, metalOf } from '@ffl/shared';
+import { framesOf, frameOf } from './seasons';
 
 export const TERMS_VERSION = '2026-10';
 /** confirmation de l'adresse email obligatoire avant de se connecter (désactivée tant que l'envoi d'emails n'est pas en place) */
@@ -91,8 +92,8 @@ export const ladderOf = (elo: number, games: number, wins: number) => ({ elo, ga
 const listEnv = (k: string) => String(process.env[k] || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 const ADMIN_EMAILS = listEnv('ADMIN_EMAILS'), ADMIN_PSEUDOS = listEnv('ADMIN_PSEUDOS');
 export const isAdmin = (u: any) => !!u && (ADMIN_EMAILS.includes(String(u.email).toLowerCase()) || ADMIN_PSEUDOS.includes(String(u.pseudo).toLowerCase()));
-const publicUser = (u: any) => ({
-  id: u.id, pseudo: u.pseudo, email: u.email, createdAt: u.created_at, blason: cleanBlason(u.blason), admin: isAdmin(u),
+const publicUser = async (u: any) => ({
+  id: u.id, pseudo: u.pseudo, email: u.email, createdAt: u.created_at, blason: cleanBlason(u.blason), admin: isAdmin(u), frame: await frameOf(u.id),
   r1: ladderOf(u.elo1 ?? ELO.START, u.games1 ?? 0, u.wins1 ?? 0), r2: ladderOf(u.elo2 ?? ELO.START, u.games2 ?? 0, u.wins2 ?? 0),
 });
 async function openSession(userId: number) {
@@ -141,7 +142,7 @@ export async function register(b: any, ip: string): Promise<Res> {
   if (EMAIL_VERIFY) { await sendVerify({ id, pseudo, email }); return ok({ ok: true, pending: true }, 201) }
   const token = await openSession(id);
   const u = (await q(`SELECT * FROM users WHERE id = ?`, [id]))[0];
-  return ok({ ok: true, token, user: publicUser(u) }, 201);
+  return ok({ ok: true, token, user: await publicUser(u) }, 201);
 }
 
 /** lien cliqué dans l'email : confirme l'adresse puis renvoie vers la page du jeu */
@@ -178,7 +179,7 @@ export async function login(b: any, ip: string): Promise<Res> {
     await q(`UPDATE users SET verified_at = UTC_TIMESTAMP() WHERE id = ?`, [u.id]);
   }
   const t = await openSession(u.id);
-  return ok({ token: t, user: publicUser(u) });
+  return ok({ token: t, user: await publicUser(u) });
 }
 
 /** le compte derrière un jeton de session (null si invalide ou expiré). Prolonge la session. */
@@ -195,7 +196,7 @@ export const bearer = (auth: string | null | undefined) => { const m = /^Bearer\
 export async function me(token: string | null): Promise<Res> {
   if (!dbReady()) return unavailable();
   const u = await sessionUser(token);
-  return u ? ok({ user: publicUser(u) }) : err(401, 'Session expirée : reconnecte-toi.', 'session');
+  return u ? ok({ user: await publicUser(u) }) : err(401, 'Session expirée : reconnecte-toi.', 'session');
 }
 export async function logout(token: string | null): Promise<Res> {
   if (!dbReady()) return unavailable();
@@ -284,24 +285,61 @@ export async function soloResult(token: string | null, b: any): Promise<Res> {
   return ok();
 }
 
-/** les dernières parties du compte, avec les autres joueurs de chaque partie */
-export async function history(token: string | null): Promise<Res> {
-  if (!dbReady()) return unavailable();
-  const u = await sessionUser(token); if (!u) return err(401, 'Session expirée : reconnecte-toi.', 'session');
+/** les dernières parties d'un compte (toutes, ou seulement les classées), avec les autres joueurs de chaque partie */
+async function matchesOf(userId: number, rankedOnly: boolean, limit: number) {
   const ms = await q(`SELECT m.id, m.kind, m.mode, m.map, m.duration_s, m.played_at, p.slot, p.won, p.left_game, p.elo_before, p.elo_after
-    FROM match_players p JOIN matches m ON m.id = p.match_id WHERE p.user_id = ? ORDER BY m.id DESC LIMIT 40`, [u.id]);
+    FROM match_players p JOIN matches m ON m.id = p.match_id WHERE p.user_id = ?${rankedOnly ? ` AND m.kind = 'ranked'` : ''} ORDER BY m.id DESC LIMIT ${limit | 0}`, [userId]);
   const others = ms.length ? await q(`SELECT p.match_id, p.slot, p.pseudo, p.ai, p.side, p.user_id, u.blason FROM match_players p LEFT JOIN users u ON u.id = p.user_id
     WHERE p.match_id IN (${ms.map(() => '?').join(',')})`, ms.map((m: any) => m.id)) : [];
   const list = ms.map((m: any) => {
     const mine = others.filter((o: any) => o.match_id === m.id), me = mine.find((o: any) => o.slot === m.slot);
-    const fmt = (o: any) => ({ pseudo: o.pseudo, ai: !!o.ai, blason: o.user_id ? cleanBlason(o.blason) : null });
+    // acc : la place est tenue par un compte, dont on peut ouvrir le profil
+    const fmt = (o: any) => ({ pseudo: o.pseudo, ai: !!o.ai, acc: !!o.user_id, blason: o.user_id ? cleanBlason(o.blason) : null });
     return {
       id: m.id, kind: m.kind, mode: m.mode, map: m.map, duration: m.duration_s, at: m.played_at, won: !!m.won, left: !!m.left_game,
       eloBefore: m.elo_before, eloAfter: m.elo_after,
       allies: mine.filter((o: any) => o.side === me?.side && o.slot !== m.slot).map(fmt), foes: mine.filter((o: any) => o.side !== me?.side).map(fmt),
     };
   });
-  return ok({ matches: list });
+  return list;
+}
+/** les dernières parties du compte connecté */
+export async function history(token: string | null): Promise<Res> {
+  if (!dbReady()) return unavailable();
+  const u = await sessionUser(token); if (!u) return err(401, 'Session expirée : reconnecte-toi.', 'session');
+  return ok({ matches: await matchesOf(u.id, false, 40) });
+}
+/** place d'un joueur placé dans le classement d'un mode (null s'il n'est pas placé) */
+async function placeOf(u: any, n: number) {
+  const elo = u['elo' + n], games = u['games' + n];
+  if (games < ELO.PLACEMENT) return null;
+  return (await q(`SELECT COUNT(*) AS c FROM users WHERE games${n} >= ? AND (elo${n} > ? OR (elo${n} = ? AND (games${n} > ? OR (games${n} = ? AND id < ?))))`,
+    [ELO.PLACEMENT, elo, elo, games, games, u.id]))[0].c + 1;
+}
+/**
+ * le profil public d'un joueur : blason et cadre, rangs de la saison en cours (avec sa place), saisons passées
+ * (rang final, meilleur rang, place, cadre gagné) et dernières parties classées. Ouvert à tous, compte ou non.
+ */
+export async function profile(pseudo: string, token: string | null, ip: string): Promise<Res> {
+  if (!dbReady()) return unavailable();
+  if (limited('profile:' + ip, 120, 60_000)) return tooMany();
+  const u = (await q(`SELECT * FROM users WHERE pseudo = ?${EMAIL_VERIFY ? ' AND verified_at IS NOT NULL' : ''} LIMIT 1`, [String(pseudo || '').trim().slice(0, 24)]))[0];
+  if (!u) return err(404, 'Ce seigneur n\'existe pas, ou son compte a été supprimé.', 'notfound');
+  const viewer = token ? await sessionUser(token) : null;
+  const cur = async (n: number) => ({ ...ladderOf(u['elo' + n], u['games' + n], u['wins' + n]), place: await placeOf(u, n), peak: u['peak' + n] || null });
+  const rows = await q(`SELECT season, mode, elo, peak, games, wins, place FROM season_results WHERE user_id = ? ORDER BY season DESC, mode ASC`, [u.id]);
+  const seasons: any[] = [];
+  for (const r of rows) {
+    let s = seasons.find(x => x.season === r.season);
+    if (!s) { s = { season: r.season, reward: null, modes: {} }; seasons.push(s) }
+    const placed = r.games >= ELO.PLACEMENT && r.peak > 0;
+    s.modes[r.mode] = { ...ladderOf(r.elo, r.games, r.wins), place: r.place, peak: placed ? r.peak : null, peakRank: placed ? ELO.rank(r.peak) : null };
+    if (placed) { const m = metalOf(r.peak); if (!s.reward || m > s.reward.metal) s.reward = { season: r.season, metal: m } }
+  }
+  return ok({
+    pseudo: u.pseudo, blason: cleanBlason(u.blason), frame: seasons.find(s => s.reward)?.reward || null, createdAt: u.created_at, you: !!viewer && viewer.id === u.id,
+    season: seasonInfo(), r1: await cur(1), r2: await cur(2), seasons, matches: await matchesOf(u.id, true, 10),
+  });
 }
 
 /** les 50 meilleurs joueurs placés d'un mode, et la place du joueur connecté */
@@ -318,7 +356,8 @@ export async function leaderboard(token: string | null, mode: string): Promise<R
       [ELO.PLACEMENT, elo, elo, games, games, u.id]))[0].c + 1 : null;
     me = { place, ...ladderOf(elo, games, u['wins' + n]) };
   }
-  return ok({ mode: n === 2 ? '2v2' : '1v1', players: top.map((p: any, i: number) => ({ place: i + 1, pseudo: p.pseudo, blason: cleanBlason(p.blason), ...ladderOf(p.elo, p.games, p.wins), you: !!u && u.id === p.id })), me });
+  const frames = await framesOf(top.map((p: any) => p.id));
+  return ok({ mode: n === 2 ? '2v2' : '1v1', season: seasonInfo(), players: top.map((p: any, i: number) => ({ place: i + 1, pseudo: p.pseudo, blason: cleanBlason(p.blason), frame: frames.get(p.id) || null, ...ladderOf(p.elo, p.games, p.wins), you: !!u && u.id === p.id })), me });
 }
 
 // ---------------- administration ----------------

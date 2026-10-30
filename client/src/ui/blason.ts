@@ -1,5 +1,5 @@
 // Le blason des comptes : dessin en SVG et éditeur (forme, émaux, partition, meuble).
-import { BL_SHAPES, BL_TINCTURES, BL_DIVS, BL_CHARGES, cleanBlason, randomBlason, type Blason } from '@ffl/shared';
+import { BL_SHAPES, BL_TINCTURES, BL_DIVS, BL_CHARGES, cleanBlason, randomBlason, FRAME_METALS, frameName, type Blason, type Frame } from '@ffl/shared';
 
 const COL: Record<string, string> = Object.fromEntries(BL_TINCTURES.map(([id, , c]) => [id, c]));
 const INK = '#1b1610';
@@ -48,21 +48,31 @@ const CHARGE: Record<string, (c: string, h: string) => string> = {
 };
 
 let uid = 0;
-/** le blason complet en SVG (viewBox 100 × 120) */
-export function blasonSvg(b: Partial<Blason> | null | undefined, opts: { cls?: string, title?: string } = {}) {
+/**
+ * le blason complet en SVG (viewBox 100 × 120). Avec un cadre de saison (frame), il est entouré d'un liseré du métal
+ * gagné (bois, pierre, fer, argent, or, rubis) et porte un ruban « S1 » en pointe : le dessin s'élargit un peu.
+ */
+export function blasonSvg(b: Partial<Blason> | null | undefined, opts: { cls?: string, title?: string, frame?: Frame | null } = {}) {
   const bl = cleanBlason(b), id = 'bl' + (uid++), shape = SHAPE_PATH[bl.s];
   const f = COL[bl.f], t = COL[bl.t], k = COL[bl.k];
   // les détails du meuble (portes, trous) prennent l'émail du champ s'il contraste, sinon une encre sombre
   const hole = bl.k === bl.f ? INK : f;
-  const label = opts.title ? `role="img" aria-label="${opts.title.replace(/"/g, '&quot;')}"` : 'aria-hidden="true"';
-  return `<svg class="blason ${opts.cls || ''}" viewBox="0 0 100 120" ${label}>
+  const fr = opts.frame && FRAME_METALS[opts.frame.metal] ? opts.frame : null, mt = fr ? FRAME_METALS[fr.metal] : null;
+  const title = fr ? `${opts.title ? opts.title + ' · ' : ''}cadre ${frameName(fr)}` : opts.title;
+  const label = title ? `role="img" aria-label="${title.replace(/"/g, '&quot;')}"` : 'aria-hidden="true"';
+  // liseré du métal sous le contour, puis ruban « S1 » en pointe
+  const rim = mt ? `<path d="${shape}" fill="none" stroke="url(#${id}m)" stroke-width="11" stroke-linejoin="round"/>` : '';
+  const ribbon = mt ? `<g><path d="M30 111 H70 L66 118 L70 125 H30 L34 118 Z" fill="url(#${id}m)" stroke="${INK}" stroke-width="1.6" stroke-linejoin="round"/>
+      <text x="50" y="121.6" text-anchor="middle" font-family="'Alegreya Sans',sans-serif" font-weight="800" font-size="10" fill="${fr!.metal === 3 || fr!.metal === 4 ? INK : '#fff8e8'}">S${fr!.season}</text></g>` : '';
+  return `<svg class="blason ${fr ? 'framed' : ''} ${opts.cls || ''}" viewBox="${fr ? '-7 -7 114 135' : '0 0 100 120'}" ${label}>
     <defs><clipPath id="${id}c"><path d="${shape}"/></clipPath>
+      ${mt ? `<linearGradient id="${id}m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${mt.light}"/><stop offset=".5" stop-color="${mt.dark}"/><stop offset="1" stop-color="${mt.light}"/></linearGradient>` : ''}
       <linearGradient id="${id}g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient></defs>
     <g clip-path="url(#${id}c)"><rect width="100" height="120" fill="${f}"/>${DIV_SHAPE[bl.d] ? `<g fill="${t}">${DIV_SHAPE[bl.d]}</g>` : ''}
       <g stroke="${INK}" stroke-width="1.4" stroke-linejoin="round">${CHARGE[bl.c](k, hole)}</g>
       <rect width="100" height="120" fill="url(#${id}g)"/></g>
-    <path d="${shape}" fill="none" stroke="${INK}" stroke-width="3.5" stroke-linejoin="round"/>
-    <path d="${shape}" fill="none" stroke="#d9a441" stroke-width="1.2" stroke-linejoin="round" opacity=".55" transform="translate(50 60) scale(.9) translate(-50 -60)"/></svg>`;
+    ${rim}<path d="${shape}" fill="none" stroke="${INK}" stroke-width="3.5" stroke-linejoin="round"/>
+    <path d="${shape}" fill="none" stroke="#d9a441" stroke-width="1.2" stroke-linejoin="round" opacity=".55" transform="translate(50 60) scale(.9) translate(-50 -60)"/>${ribbon}</svg>`;
 }
 
 /** l'éditeur de blason : aperçu et réglages. Renvoie de quoi lire et changer le blason. */

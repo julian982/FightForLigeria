@@ -6,6 +6,7 @@ import { QueueRoom } from './ranked';
 import { apiRouter } from './api';
 import { initDb } from './db';
 import { housekeeping } from './accounts';
+import { checkSeason } from './seasons';
 
 const port = Number(process.env.PORT) || 2567;
 // les comptes (/api/...) passent par le routeur HTTP de Colyseus, sur le même port que les parties
@@ -18,5 +19,5 @@ server.define('ffl', GameRoom).enableRealtimeListing();
 server.define('ranked', QueueRoom);
 await server.listen(port);
 // la base des comptes peut démarrer après le jeu : on s'y connecte en arrière-plan, les parties en invité marchent déjà
-initDb().then(housekeeping);
+initDb().then(() => { housekeeping(); checkSeason() });
 console.log(`FightForLigeria : serveur prêt sur ws://localhost:${port}`);

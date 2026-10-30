@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   loadMap, newGame, MAPS, truceLeft, truceReal, cancelCharge, H1, cleanBlason, randomBlason, BLASON_DEFAULT, queueWindow, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater, laneY,
+  seasonAt, seasonStart, seasonEnd, softReset, metalOf, frameName,
   placeBuilding, finishBuilding, BUILD_T, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
   START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRONS, shotClear, findPath, buildNav, KEEPS, PLAYERS, H, isFoe, onPath, MAP, fireArrow, orderAttack, applyCommand, makeSnapshot, B_TYPES, forfeit, canPlace, GW, GH, identityOf, jobOf, riverY, W,
 } from '../src/index';
@@ -722,5 +723,26 @@ describe('chantiers', () => {
     expect(build('caserne')).toBeNull();
     for (let i = 0; i < 30; i++) expect(recruit(0, 'archer')).toBeNull();
     expect(armySize(0)).toBe(30); expect(recruit(0, 'archer')).toMatch(/30 soldats/);
+  });
+});
+
+describe('saisons classées', () => {
+  it('3 mois chacune, à minuit heure de Paris ; la saison 1 couvre aussi ce qui précède le 1er novembre 2026', () => {
+    expect(new Date(seasonStart(1)).toISOString()).toBe('2026-10-31T23:00:00.000Z');
+    expect(new Date(seasonEnd(1)).toISOString()).toBe('2027-01-31T23:00:00.000Z');
+    expect(new Date(seasonStart(3)).toISOString()).toBe('2027-04-30T22:00:00.000Z'); // heure d'été
+    expect(seasonAt(Date.parse('2026-10-30T12:00:00Z'))).toBe(1);
+    expect(seasonAt(seasonEnd(1) - 1)).toBe(1);
+    expect(seasonAt(seasonEnd(1))).toBe(2);
+    expect(seasonAt(Date.parse('2027-12-25T12:00:00Z'))).toBe(5);
+  });
+  it('soft reset : rapproché de 1000 de moitié, un très bon joueur ne repart pas de Bois', () => {
+    expect(softReset(2000)).toBe(1500); expect(ELO.rank(softReset(2000))).toBe('Fer II');
+    expect(ELO.rank(softReset(2600))).toBe('Argent II');
+    expect(softReset(1000)).toBe(1000); expect(softReset(800)).toBe(900);
+  });
+  it('cadre de blason : famille du meilleur rang', () => {
+    expect(metalOf(950)).toBe(0); expect(metalOf(1150)).toBe(1); expect(metalOf(1900)).toBe(3); expect(metalOf(2100)).toBe(4); expect(metalOf(3000)).toBe(5);
+    expect(frameName({ season: 1, metal: 4 })).toBe('Saison 1 · Or');
   });
 });

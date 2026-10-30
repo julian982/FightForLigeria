@@ -127,7 +127,9 @@ export async function settleRanked(m: { mode: Mode, map: string, duration: numbe
     let d = ELO.delta(avg(side(s.slot)), avg(1 - side(s.slot)), won, r.games);
     if (halved) d = Math.round(d / 2);
     const after = Math.max(0, r.elo + d), before = ladderOf(r.elo, r.games, r.wins), now = ladderOf(after, r.games + 1, r.wins + (won ? 1 : 0));
-    await q(`UPDATE users SET elo${n} = ?, games${n} = games${n} + 1, wins${n} = wins${n} + ? WHERE id = ?`, [after, won ? 1 : 0, s.userId]);
+    // meilleur Elo de la saison, compté une fois placé : il décide du cadre de blason gagné en fin de saison
+    await q(`UPDATE users SET elo${n} = ?, games${n} = games${n} + 1, wins${n} = wins${n} + ?, peak${n} = IF(games${n} >= ?, GREATEST(peak${n}, ?), peak${n}) WHERE id = ?`,
+      [after, won ? 1 : 0, ELO.PLACEMENT, after, s.userId]);
     out[s.slot] = { before: r.elo, after, delta: after - r.elo, games: now.games, wins: now.wins, placed: now.placed, rank: now.rank, tier: now.tier,
       rankBefore: before.rank, tierBefore: before.tier, placedBefore: before.placed, won, halved };
   }

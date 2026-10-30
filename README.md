@@ -209,6 +209,13 @@ Deux classements indépendants, 1v1 et 2v2, avec 6 rangs de 3 divisions chacun :
 
 Le calcul (`shared/src/elo.ts`) est partagé par le simulateur de la page Classement et le serveur.
 
+### Saisons
+
+- **3 mois par saison**, à partir du 1er novembre 2026 à minuit (heure de Paris) : la saison 1 se termine le 1er février 2027, la 2 le 1er mai, etc. (calendrier dans `shared/src/season.ts`). La saison en cours et le nombre de jours restants s'affichent en haut du classement.
+- **Fin de saison** (automatique, vérifiée toutes les 10 minutes par le serveur, en une seule transaction) : chaque joueur garde une trace de la saison (Elo final, meilleur Elo une fois placé, victoires, place au classement), puis son Elo est **rapproché de 1000 de moitié** (soft reset : 2000 devient 1500, soit Fer II) et il rejoue **5 parties de placement**. Un joueur très haut ne repart donc pas de Bois.
+- **Récompense** : un **cadre de blason** du meilleur rang atteint pendant la saison, une fois placé (Saison 1 · Bois, Pierre, Fer, Argent, Or ou Rubis ; le meilleur des deux modes). Le dernier cadre gagné s'affiche autour du blason, sur le profil et dans le classement.
+- **Profils publics** (`#joueur?p=Pseudo`, ouverts à tous) : blason et cadre, rangs de la saison en cours avec la place au classement et le meilleur rang, saisons précédentes (rang final, meilleur rang, place, cadre gagné) et dernières parties classées. On y arrive en cliquant un joueur du classement ou un adversaire de l'historique, ou par « Mon profil public » depuis son compte.
+
 ## Où en est le projet
 
 Prototype jouable en solo contre une IA. La simulation (`shared/`) est isolée du rendu (`client/`) et couverte par des tests automatiques : première étape vers le multijoueur.

@@ -8,7 +8,7 @@ if (!process.env.DB_HOST) { console.log('comptes : pas de base de données (DB_H
 const PORT = 2900 + (Math.random() * 300 | 0), BASE = `http://localhost:${PORT}`;
 // base vide à chaque test
 const admin = await mariadb.createConnection({ host: process.env.DB_HOST, port: +(process.env.DB_PORT || 3306), user: process.env.DB_USER, password: process.env.DB_PASSWORD, database: process.env.DB_NAME });
-for (const t of ['match_players', 'matches', 'email_tokens', 'sessions', 'users', 'schema_version']) await admin.query(`DROP TABLE IF EXISTS ${t}`);
+for (const t of ['season_results', 'meta', 'match_players', 'matches', 'email_tokens', 'sessions', 'users', 'schema_version']) await admin.query(`DROP TABLE IF EXISTS ${t}`);
 const mails = [];
 const srv = spawn(process.execPath, ['dist/index.mjs'], { env: { ...process.env, PORT: String(PORT), API_PUBLIC_URL: BASE, GAME_URL: 'https://jeu.example/', SMTP_HOST: '', EMAIL_VERIFY: '1' }, stdio: ['ignore', 'pipe', 'inherit'] });
 let out = '';

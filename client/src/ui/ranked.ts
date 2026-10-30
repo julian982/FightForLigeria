@@ -6,6 +6,7 @@ import * as Q from '../net/ranked';
 import { setRankedHandlers } from '../net/online';
 import { blasonSvg } from './blason';
 import { badgeSvg } from './rankbadge';
+import { seasonLine, profileHref } from './profile';
 
 const $ = (id: string): any => document.getElementById(id);
 const all = (q: string): any[] => Array.from(document.querySelectorAll(q));
@@ -23,6 +24,7 @@ export function initRanked() {
   let boardReq = 0;
   async function renderBoard() {
     const mode = boardMode, req = ++boardReq, u = A.currentUser(), l = ladderOf(u, mode);
+    $('seasonLine').textContent = seasonLine();
     // ton rang
     if (l) {
       $('meBadge').innerHTML = badgeSvg(l.elo, l.placed).replace(/^<svg[^>]*>|<\/svg>$/g, '');
@@ -33,7 +35,7 @@ export function initRanked() {
       $('mePlace').setAttribute('aria-label', `Parties de placement jouées : ${Math.min(l.games, 5)} sur 5`);
       $('meText').innerHTML = l.placed ? `Tu as joué <b>${l.games}</b> parties classées en ${mode}. Chaque partie fait bouger ton Elo : regarde le simulateur plus bas pour savoir combien tu risques.`
         : `Encore <b>${ELO.PLACEMENT - l.games}</b> partie${ELO.PLACEMENT - l.games > 1 ? 's' : ''} de placement en ${mode} avant d'apparaître dans le classement. Pendant le placement, ton Elo bouge deux fois plus vite.`;
-      $('meBtns').innerHTML = `<a class="go" href="#file">Jouer en classé</a>`;
+      $('meBtns').innerHTML = `<a class="go" href="#file">Jouer en classé</a><a class="go ghost" href="${profileHref(u!.pseudo)}">Mon profil</a>`;
     } else {
       $('meBadge').innerHTML = badgeSvg(ELO.START, false).replace(/^<svg[^>]*>|<\/svg>$/g, '');
       $('meRk').textContent = 'Non classé'; $('meSub').textContent = '0 / 5 parties de placement'; $('mePlace').hidden = false;
@@ -51,9 +53,9 @@ export function initRanked() {
     if (!ps.length) { empty.textContent = `Personne n'est encore placé en ${mode}. Les seigneurs apparaissent ici après leurs ${ELO.PLACEMENT} parties de placement : à toi de jouer !`; return }
     empty.hidden = true;
     board.insertAdjacentHTML('beforeend', ps.map(p => `<div class="board-row${p.you ? ' you' : ''}"><span class="b-place">${p.place}</span>
-      <span class="b-who">${blasonSvg(p.blason)}<b>${esc(p.pseudo)}</b></span><span class="b-rank">${badgeSvg(p.elo, true)}${p.rank}</span><span class="b-elo">${p.elo}</span></div>`).join(''));
+      <a class="b-who" href="${profileHref(p.pseudo)}">${blasonSvg(p.blason, { frame: p.frame })}<b>${esc(p.pseudo)}</b></a><span class="b-rank">${badgeSvg(p.elo, true)}${p.rank}</span><span class="b-elo">${p.elo}</span></div>`).join(''));
     if (r.data.me && r.data.me.place && r.data.me.place > ps.length)
-      board.insertAdjacentHTML('beforeend', `<div class="board-row you"><span class="b-place">${r.data.me.place}</span><span class="b-who">${blasonSvg(u!.blason)}<b>${esc(u!.pseudo)}</b></span><span class="b-rank">${badgeSvg(r.data.me.elo, true)}${r.data.me.rank}</span><span class="b-elo">${r.data.me.elo}</span></div>`);
+      board.insertAdjacentHTML('beforeend', `<div class="board-row you"><span class="b-place">${r.data.me.place}</span><a class="b-who" href="${profileHref(u!.pseudo)}">${blasonSvg(u!.blason, { frame: u!.frame })}<b>${esc(u!.pseudo)}</b></a><span class="b-rank">${badgeSvg(r.data.me.elo, true)}${r.data.me.rank}</span><span class="b-elo">${r.data.me.elo}</span></div>`);
   }
   addEventListener('ffl:rankmode', (e: any) => { boardMode = e.detail; if (view === 'classement') renderBoard() });
 

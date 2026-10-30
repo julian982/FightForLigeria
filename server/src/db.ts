@@ -81,6 +81,26 @@ const MIGRATIONS: string[][] = [
       CONSTRAINT fk_mp_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   ],
+  // 3 : saisons classées (meilleur Elo de la saison, résultats des saisons passées, saison en cours)
+  [
+    // meilleur Elo atteint une fois placé pendant la saison (0 = pas encore placé) : il décide du cadre de blason gagné
+    `ALTER TABLE users ADD COLUMN peak1 SMALLINT NOT NULL DEFAULT 0, ADD COLUMN peak2 SMALLINT NOT NULL DEFAULT 0`,
+    `UPDATE users SET peak1 = IF(games1 >= 5, elo1, 0), peak2 = IF(games2 >= 5, elo2, 0)`,
+    `CREATE TABLE IF NOT EXISTS season_results (
+      season SMALLINT UNSIGNED NOT NULL,
+      user_id INT UNSIGNED NOT NULL,
+      mode ENUM('1v1','2v2') NOT NULL,
+      elo SMALLINT NOT NULL,
+      peak SMALLINT NOT NULL,
+      games INT UNSIGNED NOT NULL,
+      wins INT UNSIGNED NOT NULL,
+      place INT UNSIGNED NULL,
+      PRIMARY KEY (season, user_id, mode),
+      KEY ix_sr_user (user_id, season),
+      CONSTRAINT fk_sr_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    `CREATE TABLE IF NOT EXISTS meta (k VARCHAR(32) NOT NULL PRIMARY KEY, v VARCHAR(255) NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+  ],
 ];
 
 function getPool() {
@@ -120,4 +140,14 @@ export async function initDb(log = console.log) {
 }
 export const dbReady = () => ready;
 export async function q<T = any>(sql: string, params: any[] = []): Promise<T> { return getPool().query(sql, params) as any }
+/** plusieurs requêtes dans une transaction : tout ou rien */
+export async function tx<T>(fn: (q: (sql: string, params?: any[]) => Promise<any>) => Promise<T>): Promise<T> {
+  const c = await getPool().getConnection();
+  try {
+    await c.beginTransaction();
+    const r = await fn((sql, params = []) => c.query(sql, params));
+    await c.commit(); return r;
+  } catch (e) { try { await c.rollback() } catch (_) {} throw e }
+  finally { c.release() }
+}
 export async function closeDb() { if (pool) await pool.end(); pool = null; ready = false }

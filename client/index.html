@@ -240,7 +240,7 @@
     <div class="view" id="v-classement" hidden>
     <section class="rank-sec" aria-labelledby="ranked">
       <div class="rank-head">
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><h2 id="ranked">Classement</h2></div>
+        <div style="display:flex;flex-direction:column;gap:4px"><h2 id="ranked">Classement</h2><p class="season-line" id="seasonLine"></p></div>
         <div class="tabs" role="tablist" aria-label="Mode de classement">
           <button class="tab" role="tab" id="tab1v1" aria-selected="true" aria-controls="rankPanel" data-mode="1v1" type="button">1v1</button>
           <button class="tab" role="tab" id="tab2v2" aria-selected="false" aria-controls="rankPanel" data-mode="2v2" type="button">2v2</button>
@@ -316,6 +316,8 @@
             <li>Quitter une partie classée compte comme une défaite.</li>
             <li>Contre le même adversaire, à partir de la 4<sup>e</sup> partie classée de la journée, les gains et les pertes sont divisés par deux.</li>
             <li>Pas de perte d'Elo pour inactivité.</li>
+            <li><b>Saisons de 3 mois.</b> En fin de saison, ton Elo est rapproché de 1000 de moitié (2000 devient 1500, soit Fer II) et tu rejoues 5 parties de placement : un joueur très haut ne repart pas de Bois.</li>
+            <li><b>Récompense :</b> le cadre de blason du meilleur rang atteint pendant la saison, une fois placé (Saison 1 · Or, par exemple). Il s'affiche autour de ton blason, sur ton profil et dans le classement.</li>
             <li>Les parties privées et contre l'IA ne comptent jamais.</li>
           </ul>
         </div>
@@ -441,7 +443,7 @@
           <div class="pf-id">
             <h3 class="pf-name" id="pfPseudo"></h3>
             <p class="help small">Membre depuis le <span id="pfSince"></span> · <span id="pfEmail"></span> (jamais montré aux autres joueurs)</p>
-            <div class="end-btns"><button class="go ghost" type="button" id="pfEditBl">Modifier mon blason</button><a class="go ghost" href="#parties">Mes parties et mes rangs</a><a class="go ghost" href="#admin" id="pfAdmin" hidden>Administration</a><button class="go ghost" type="button" id="pfLogout">Se déconnecter</button></div>
+            <div class="end-btns"><button class="go ghost" type="button" id="pfEditBl">Modifier mon blason</button><a class="go ghost" href="#parties">Mes parties et mes rangs</a><a class="go ghost" href="#joueur" id="pfPublic">Mon profil public</a><a class="go ghost" href="#admin" id="pfAdmin" hidden>Administration</a><button class="go ghost" type="button" id="pfLogout">Se déconnecter</button></div>
           </div>
         </div>
         <div class="panel" id="pfBlEdit" hidden>
@@ -457,6 +459,30 @@
           <p class="net-msg warn" id="delMsg" role="alert"></p>
           <button class="go danger" type="submit">Supprimer définitivement mon compte</button>
         </form>
+      </div>
+    </section>
+    </div>
+
+    <div class="view" id="v-joueur" hidden>
+    <section class="sub-sec" aria-labelledby="plT">
+      <a class="back" href="#classement">← Classement</a>
+      <p class="net-msg" id="plMsg" role="status"></p>
+      <div class="pf" id="plBody" hidden>
+        <div class="panel pf-head">
+          <div class="pf-bl" id="plBlason"></div>
+          <div class="pf-id">
+            <h2 class="pf-name" id="plT"></h2>
+            <p class="help small" id="plSince"></p>
+            <p class="help small" id="plFrame"></p>
+            <div class="end-btns" id="plBtns"></div>
+          </div>
+        </div>
+        <h3 class="step" id="plSeasonT">Saison en cours</h3>
+        <div class="pf-ranks pf-ranks-row" id="plRanks"></div>
+        <h3 class="step">Saisons précédentes</h3>
+        <div class="ps-list" id="plSeasons"></div>
+        <h3 class="step">Dernières parties classées</h3>
+        <div id="plMatches" class="hist"></div>
       </div>
     </section>
     </div>
