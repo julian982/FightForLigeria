@@ -75,6 +75,7 @@ export function syncScene(dt){
     m.rotation.set(sway,-u.face,-pitch);
     m.material=u.flash>0?VCF:VC;if(u.rig)rigMaterial(u,m.material);
     if(u.cobj){u.cobj.visible=!!u.carry;if(u.carry)u.cobj.geometry=CARRY[u.carry.type]}
+    if(u.hammer)u.hammer.rotation.z=u.working?-.4-Math.abs(Math.sin((u.anim||0)*7))*1.3:-.55;
     const isSel=sel.has(u);
     if(isSel&&!u.ring){u.ring=new THREE.Mesh(RINGGEO,RINGMAT);dyn.add(u.ring)}
     if(u.ring){u.ring.visible=isSel;u.ring.position.set(u.x*S,gh(u.x,u.y)+.06+u.ev,u.y*S)}

@@ -1,6 +1,6 @@
 // La simulation : création de partie, ouvriers, combat, famine, commandes des joueurs.
 // Aucun accès au DOM ni à Three.js : le client lit `G` pour dessiner, et reçoit les événements par `hooks`.
-import { T, GW, GH, W, H, TERR, S, DEF, ARMY_MAX, BUILD_T, STORE_OF, START_RES, RICH_RES, UT, RESN, NEED, STONES, IRONS, ROCKS, RESPAWN, TREE_R, CHARGE_T, AI_ARCHER_RANGE, KEEPS, PLAYERS, sideOf, isFoe, inHalf, STORE_ART, LORD_VS_LORD, TOWER_MAX, WALL_MAX, UP_RANGE, UP_MISS, COVER_DMG, FALL_DMG, TOP_H } from './config';
+import { T, GW, GH, W, H, TERR, S, DEF, ARMY_MAX, BUILD_T, STORE_OF, START_RES, RICH_RES, UT, RESN, NEED, STONES, IRONS, ROCKS, RESPAWN, TREE_R, CHARGE_T, AI_ARCHER_RANGE, KEEPS, PLAYERS, sideOf, isFoe, inHalf, STORE_ART, LORD_VS_LORD, TOWER_MAX, WALL_MAX, UP_RANGE, UP_MISS, COVER_DMG, FALL_DMG, TOP_H, MASON_RESPAWN } from './config';
 import { rawWater, genTrees, gh } from './maps';
 import { dist, dE, rectDist, rectClamp, inRect } from './util';
 import { G, trees, setG, setTrees, hooks } from './state';
@@ -56,6 +56,7 @@ export function newGame(opts: GameOptions = {}) {
     G.teams.push(tm);
     tm.keep = addBuilding(id, 'keep', KEEPS[id].tx, KEEPS[id].ty);
     tm.lord = spawnUnit(id, 'lord', { x: tm.keep.x + (tm.side === 0 ? 110 : -110), y: tm.keep.y });
+    spawnMason(tm);
   }
   buildNav();
   if (opts.rich) for (const tm of G.teams) for (const k in RICH_RES) (k in tm.stash ? tm.stash : tm.res)[k] = RICH_RES[k];
@@ -90,7 +91,8 @@ export function addBuilding(team, type, tx, ty, built = true, withWorker = true)
   if (type === 'escalier') b.dir = stairDir(team, tx, ty);
   G.buildings.push(b); dirtyNav(); if (type !== 'keep' && G.st) G.st[team].built++;
   if (d.store && !(b.build < 1)) unstash(G.teams[team], type);
-  if (withWorker && (d.work || b.build < 1)) spawnWorker(b);
+  // les défenses n'ont pas d'ouvrier à elles : c'est le bâtisseur du joueur qui les construit, l'une après l'autre
+  if (withWorker && !d.def && (d.work || b.build < 1)) spawnWorker(b);
   return b;
 }
 /** le bâtiment est-il debout et terminé (pas un chantier) ? */
@@ -108,6 +110,32 @@ export function finishBuilding(b) {
   if (w) w.spot = null;
   if (isDefense(b)) dirtyNav(); // le chemin de ronde s'agrandit
   G.fx.push({ k: 'built', x: b.x, y: b.y, team: b.team, t: 0, life: .1 });
+}
+// ================= Le bâtisseur =================
+/** le bâtisseur du joueur : un seul à la fois, il attend devant le donjon et construit murs, portes, escaliers et tours */
+function spawnMason(tm) {
+  const sp = stockPt(tm.id), w: any = { kind: 'worker', id: G.uid++, team: tm.id, x: sp.x + (tm.side === 0 ? 30 : -30), y: sp.y + 10, r: 7, hp: 45, maxhp: 45, speed: 80, b: null, mason: true, state: 'idle', carry: null, need: false, flash: 0, dead: false, vx: 0, vy: 0, face: 0 };
+  tm.mason = w; tm.masonT = null; G.workers.push(w); if (tm.starving) setStarve(w, true);
+  return w;
+}
+/** le prochain chantier de défense du joueur : le plus ancien encore à construire (un mur tracé se monte donc dans l'ordre) */
+function nextDefense(team) { let best = null; for (const b of G.buildings) if (b.team === team && !b.dead && b.build < 1 && isDefense(b) && (!best || b.id < best.id)) best = b; return best }
+function updMason(w, dt) {
+  w.working = false;
+  let b = w.b && !w.b.dead && w.b.build < 1 ? w.b : null;
+  if (!b) { if (w.b && w.b.worker === w) w.b.worker = null; b = w.b = nextDefense(w.team); w.spot = null; if (b) b.worker = w }
+  if (!b) {
+    // rien à construire : il attend devant le donjon
+    w.state = 'idle'; const sp = stockPt(w.team), side = sideOf(w.team) === 0 ? 1 : -1;
+    nav(w, sp.x + side * 30, sp.y + 10, dt, 6); return;
+  }
+  w.state = 'build';
+  if (!w.spot || w.spotVer !== navVer) { w.spotVer = navVer; w.spot = doorSpot(b) }
+  if (!nav(w, w.spot.x, w.spot.y, dt, 4)) return;
+  w.face = Math.atan2(b.y - w.y, b.x - w.x); w.working = true; w.anim = (w.anim || 0) + dt;
+  const k = dt / BUILD_T[b.type];
+  b.build = Math.min(1, b.build + k); b.hp = Math.min(b.maxhp, b.hp + b.maxhp * .8 * k);
+  if (b.build >= 1) { b.build = .999999; b.worker = null; finishBuilding(b); w.b = null; w.spot = null }
 }
 function spawnWorker(b) {
   const sp = stockPt(b.team);
@@ -215,7 +243,7 @@ export function hit(e, dmg, showNum, by?: number) {
     else if (e.kind === 'building') { me.lostB++; foe.razed++; if (e.worker && !e.worker.dead) me.lostW++ }
     if (e.kind === 'building') {
       // un bâtisseur de mur ne meurt pas avec un segment : il passe au suivant
-      if (e.worker && !e.worker.site) e.worker.dead = true;
+      if (e.worker && !e.worker.site && !e.worker.mason) e.worker.dead = true;
       const own = e.team, other = by;
       if (STORED[e.type]) {
         const r = G.teams[e.team].res;
@@ -313,6 +341,7 @@ const mainInput = d => Object.keys(d.input).sort((a, b) => d.input[b] - d.input[
 /** porte d'un bâtiment de stockage, gardée en mémoire tant que les obstacles ne changent pas */
 function storeDoor(w, sb) { if (w.destB !== sb || w.destVer !== navVer) { w.dest = doorSpot(sb); w.destB = sb; w.destVer = navVer } return w.dest }
 function updWorker(w, dt) {
+  if (w.mason) return updMason(w, dt);
   w.working = false;
   // le bâtisseur a fini : il rentre au donjon, où il disparaît
   if (w.state === 'home') { const sp = stockPt(w.team); if (nav(w, sp.x, sp.y, dt, 8)) w.dead = true; return }
@@ -472,7 +501,6 @@ export function placeWall(team, type, x0, y0, x1, y1): string | null {
   for (const t of plan.tiles) {
     const b = addBuilding(team, type, t.tx, t.ty, false, false); b.site = site; site.segs.push(b);
   }
-  spawnWorker(site.segs[0]);
   return null;
 }
 /** recrute un soldat à la caserne. Renvoie la raison du refus, ou null. */
@@ -517,7 +545,7 @@ export function demolish(team, b): string | null {
   b.dead = true; b.demolished = true;
   // démolir une réserve ou un grenier : le stock repart dans les charrettes, il reviendra avec le prochain
   if (DEF[b.type].store) { const tm = G.teams[team]; for (const k of STORED[b.type]) { tm.stash[k] += tm.res[k]; tm.res[k] = 0 } }
-  if (b.worker) b.worker.dead = true;
+  if (b.worker && !b.worker.mason) b.worker.dead = true; // le bâtisseur, lui, passe au chantier suivant
   puff(b.x, b.y, 18, .5);
   return null;
 }
@@ -625,11 +653,17 @@ export function update(dt) {
   G.workers = G.workers.filter(w => !w.dead);
   // un ouvrier tué est remplacé après RESPAWN secondes ; le bâtiment est à l'arrêt en attendant
   for (const b of G.buildings) {
-    if (b.dead || !(DEF[b.type].work || b.build < 1) || (b.worker && !b.worker.dead) || G.teams[b.team].out) continue;
+    if (b.dead || isDefense(b) || !(DEF[b.type].work || b.build < 1) || (b.worker && !b.worker.dead) || G.teams[b.team].out) continue;
     // mur tracé d'un coup : un seul bâtisseur pour tout le mur, remplacé par le premier segment encore à construire
     if (b.site && (b.site.segs.find(s => s.build < 1 && !s.dead) !== b || (b.site.worker && !b.site.worker.dead))) continue;
     if (b.respawn == null) { b.respawn = RESPAWN; b.grow = 0; hooks.notify(b.team, (DEF[b.type].work ? 'Ouvrier tué (' : 'Bâtisseur tué (') + DEF[b.type].name.toLowerCase() + ') : un remplaçant arrive dans ' + RESPAWN + ' s', 'warn') }
     b.respawn -= dt; if (b.respawn <= 0) spawnWorker(b);
+  }
+  // le bâtisseur tué revient au bout de MASON_RESPAWN secondes
+  for (const tm of G.teams) {
+    if (tm.out || (tm.mason && !tm.mason.dead)) continue;
+    if (tm.masonT == null) { tm.masonT = MASON_RESPAWN; hooks.notify(tm.id, 'Ton bâtisseur est mort : un nouveau arrive dans ' + MASON_RESPAWN + ' s', 'warn') }
+    tm.masonT -= dt; if (tm.masonT <= 0) spawnMason(tm);
   }
   G.buildings = G.buildings.filter(b => !b.dead);
   G.arrows = G.arrows.filter(a => !a.dead);

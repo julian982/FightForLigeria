@@ -58,4 +58,4 @@ const JOBS: Record<string, [string, string]> = {
   arcs: ['Arcier', 'Arcière'], lances: ['Artisan lancier', 'Artisane lancière'], mine: ['Mineur', 'Mineuse'],
   forge: ['Forgeron', 'Forgeronne'], fleches: ['Flécheur', 'Flécheuse'],
 };
-export const jobOf = (type: string, female: boolean) => (JOBS[type] || ['Ouvrier', 'Ouvrière'])[female ? 1 : 0];
+export const jobOf = (type: string, female: boolean, mason = false) => (mason ? ['Bâtisseur', 'Bâtisseuse'] : JOBS[type] || ['Ouvrier', 'Ouvrière'])[female ? 1 : 0];

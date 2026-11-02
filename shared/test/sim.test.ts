@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   loadMap, newGame, MAPS, truceLeft, truceReal, cancelCharge, H1, cleanBlason, randomBlason, BLASON_DEFAULT, queueWindow, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater, laneY,
   seasonAt, seasonStart, seasonEnd, softReset, metalOf, frameName,
-  placeWall, wallTiles, wallPlan, navGrids, topGrids, topAt, cellOf, DEF, TOWER_MAX, UP_RANGE, COVER_DMG, FALL_DMG, T,
+  placeWall, wallTiles, wallPlan, MASON_RESPAWN, navGrids, topGrids, topAt, cellOf, DEF, TOWER_MAX, UP_RANGE, COVER_DMG, FALL_DMG, T,
   placeBuilding, finishBuilding, BUILD_T, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
   START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRONS, shotClear, findPath, buildNav, KEEPS, PLAYERS, H, isFoe, onPath, MAP, fireArrow, orderAttack, applyCommand, makeSnapshot, B_TYPES, forfeit, canPlace, GW, GH, identityOf, jobOf, riverY, W,
 } from '../src/index';
@@ -79,7 +79,7 @@ describe('économie et stockage', () => {
     loadMap('amboise'); newGame();
     G.teams[0].res.bois = 20;
     expect(build('bucheron')).toBeNull();
-    const w = G.workers.find(w => w.team === 0);
+    const w = G.workers.find(w => w.team === 0 && !w.mason);
     run(20);
     expect(w.noStore).toBe('reserve');
     expect(G.st[0].prod.bois).toBe(0);
@@ -442,7 +442,7 @@ describe('armurerie et ateliers', () => {
     expect(build('reserve')).toBeNull();
     const tm = G.teams[0]; tm.res.bois = 60; tm.res.pierre = 20;
     expect(build('arcs')).toBeNull();
-    const w = G.workers.find(w => w.team === 0 && w.b.type === 'arcs');
+    const w = G.workers.find(w => w.team === 0 && !w.mason && w.b.type === 'arcs');
     const res = G.buildings.find(b => b.team === 0 && b.type === 'reserve');
     run(1);
     expect(w.state).toBe('toFetch');
@@ -465,7 +465,7 @@ describe('armurerie et ateliers', () => {
     expect(build('reserve')).toBeNull();
     const tm = G.teams[0]; tm.res.bois = 50; tm.res.pierre = 20;
     expect(build('forge')).toBeNull(); // fer 2 + bois 3
-    const w = G.workers.find(w => w.team === 0 && w.b.type === 'forge');
+    const w = G.workers.find(w => w.team === 0 && !w.mason && w.b.type === 'forge');
     tm.res.fer = 0; const bois0 = tm.res.bois;
     run(30);
     expect(w.state).toBe('toFetch'); expect(w.need).toBe(true); expect(tm.res.bois).toBe(bois0);
@@ -683,7 +683,7 @@ describe('chantiers', () => {
     expect(build('reserve', true)).toBeNull(); expect(build('grenier', true)).toBeNull();
     for (const t of ['reserve', 'grenier']) expect(G.buildings.find(o => o.team === 0 && o.type === t)!.build).toBeUndefined();
     expect(tm.res.bois).toBe(START_RES.bois); expect(tm.res.ble).toBe(START_RES.ble);
-    expect(G.workers.filter(w => w.team === 0).length).toBe(0);
+    expect(G.workers.filter(w => w.team === 0 && !w.mason).length).toBe(0);
   });
   it('armurerie : un bâtisseur la construit, les armes en attente arrivent à la fin, puis il rentre au donjon', () => {
     setup(); const tm = G.teams[0]; build('reserve'); tm.stash.arc = 2;
@@ -767,14 +767,15 @@ describe('défenses : murs, portes, escaliers, tours', () => {
     expect(wallTiles(10, 10, 13, 7)).toEqual([{ tx: 10, ty: 10 }, { tx: 11, ty: 9 }, { tx: 12, ty: 8 }, { tx: 13, ty: 7 }]);
     expect(wallTiles(0, 0, 60, 0).length).toBe(24);
   });
-  it('un mur tracé d\'un coup : payé par segment, un seul bâtisseur qui monte les segments un par un', () => {
-    setup(); const tm = G.teams[0], r = clearRow(6), bois = tm.res.bois, nw = G.workers.length;
+  it('un mur tracé d\'un coup : payé par segment, monté case par case par le bâtisseur du joueur', () => {
+    setup(); const tm = G.teams[0], r = clearRow(6), bois = tm.res.bois, nw = G.workers.length, mason = tm.mason;
+    expect(mason && mason.mason).toBe(true);
     expect(placeWall(0, 'mur_b', r.tx, r.ty, r.tx + 5, r.ty)).toBeNull();
-    expect(tm.res.bois).toBe(bois - 6 * 3); expect(segs().length).toBe(6); expect(G.workers.length).toBe(nw + 1);
+    expect(tm.res.bois).toBe(bois - 6 * 3); expect(segs().length).toBe(6); expect(G.workers.length).toBe(nw); // pas d'ouvrier de plus : c'est le bâtisseur
     run(12); const done = segs().filter(b => !(b.build < 1)).length; expect(done).toBeGreaterThan(0); expect(done).toBeLessThan(6);
-    expect(G.workers.filter(w => w.team === 0).length).toBe(nw + 1);
+    expect(G.workers.filter(w => w.team === 0).length).toBe(G.workers.filter(w => w.team === 0).length); expect(mason.b && mason.b.type).toBe('mur_b');
     buildAll(); expect(segs().every(b => !(b.build < 1))).toBe(true);
-    run(15); expect(G.workers.filter(w => w.team === 0).length).toBe(nw); // le bâtisseur est rentré
+    run(15); expect(mason.state).toBe('idle'); expect(Math.hypot(mason.x - G.teams[0].keep.x, mason.y - (G.teams[0].keep.by + G.teams[0].keep.bh)) ).toBeLessThan(70); // il attend devant le donjon
     // re-tracer par-dessus : les cases déjà murées sont sautées
     expect(placeWall(0, 'mur_b', r.tx, r.ty, r.tx + 5, r.ty)).toBe('Ce mur existe déjà');
     expect(wallPlan(0, 'mur_p', r.tx, r.ty, r.tx + 7, r.ty).tiles.length).toBe(2);
@@ -848,12 +849,24 @@ describe('défenses : murs, portes, escaliers, tours', () => {
     const l = spawnUnit(1, 'lancier', { x: d.x, y: d.y - 70 }); d.cd = 99; const hp = d.hp; l.order = { type: 'attack', target: d };
     run(4); expect(d.hp).toBe(hp); // il ne l'atteint pas…
   });
-  it('bâtisseur tué : un seul remplaçant revient finir le mur', () => {
-    setup(); const r = clearRow(8), nw = G.workers.filter(w => w.team === 0).length;
+  it('bâtisseur tué : il ne revient qu\'au bout de 40 s, puis finit le mur', () => {
+    setup(); const r = clearRow(8), tm = G.teams[0];
     placeWall(0, 'mur_p', r.tx, r.ty, r.tx + 7, r.ty); run(3);
-    const w = G.workers.find(x => x.site)!; w.dead = true; run(.5);
-    run(RESPAWN + 1); expect(G.workers.filter(x => x.team === 0 && !x.dead).length).toBe(nw + 1);
+    tm.mason.dead = true; run(.5);
+    expect(G.workers.some(x => x.team === 0 && x.mason)).toBe(false);
+    run(MASON_RESPAWN - 2); expect(G.workers.some(x => x.team === 0 && x.mason)).toBe(false); // 40 s d'attente
+    run(3); expect(G.workers.filter(x => x.team === 0 && x.mason).length).toBe(1);
     buildAll(); expect(segs('mur_p').every(b => !(b.build < 1))).toBe(true);
+  });
+  it('un seul bâtisseur par joueur : il construit toutes les défenses, l\'une après l\'autre', () => {
+    setup(); const tm = G.teams[0], r = clearRow(4);
+    expect(G.workers.filter(w => w.team === 0 && w.mason).length).toBe(1);
+    placeWall(0, 'mur_b', r.tx, r.ty, r.tx + 3, r.ty); placeBuilding(0, 'escalier', r.tx, r.ty + 1);
+    const t = findSpot(0, 'tour_b')!; placeBuilding(0, 'tour_b', t.tx, t.ty);
+    expect(G.workers.filter(w => w.team === 0 && w.mason).length).toBe(1);
+    const seen = new Set<string>(); run(200, () => { if (tm.mason.b) seen.add(tm.mason.b.type); return !G.buildings.some(b => b.build < 1 && !b.dead) });
+    expect([...seen].sort()).toEqual(['escalier', 'mur_b', 'tour_b']);
+    expect(G.workers.filter(w => w.team === 0 && w.mason).length).toBe(1);
   });
   it('le seigneur monte en marchant sur l\'escalier, et tire plus loin depuis le mur', () => {
     setup(); const r = clearRow(4), L = G.teams[0].lord;

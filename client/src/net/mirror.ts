@@ -45,13 +45,15 @@ export function applySnapshot(s: Snapshot) {
     (w, r) => { const f = r[9]; w.nx = r[3]; w.ny = r[4]; w.nface = r[5]; w.hp = r[6]; w.maxhp = r[7]; w.carry = r[8] ? { type: CARRY_TYPES[r[8]], input: !!(f & WF.supply) } : null;
       w.working = !!(f & WF.working); w.need = !!(f & WF.need); w.state = f & WF.fetch ? 'toFetch' : w.working ? 'working' : ''; w.idle = !!(f & WF.idle);
       w.noStore = f & WF.noReserve ? 'reserve' : f & WF.noGrenier ? 'grenier' : f & WF.noArmory ? 'armurerie' : null;
-      w.builder = !!(f & WF.builder);
+      w.builder = !!(f & WF.builder); w.mason = !!(f & WF.mason);
       const b = byId.b.get(r[2]); w.b = b; if (b && (!w.builder || b.build < 1)) b.worker = w });
   G.arrows = sync(G.arrows, byId.a, s.a, r => ({ id: r[0], team: r[1], lord: !!r[2], x: r[3], y: r[4], by: r[9] || 0, hs: r[10] || 0, he: r[11] || 0 }),
     (a, r) => { a.x = r[3]; a.y = r[4]; a.vx = r[5]; a.vy = r[6]; a.d = r[7]; a.md = r[8] });
   for (const f of s.fx) G.fx.push(f);
   if (s.fell.length) { const ids = new Set(s.fell); for (const t of trees) if (ids.has(t.id)) { t.wood = 0; hooks.removed(t) } setTrees(trees.filter(t => t.wood > 0)) }
-  s.tm.forEach((t, i) => { const tm = G.teams[i]; tm.res = t.res; tm.stash = t.stash; tm.starving = t.starving; tm.keep = byId.b.get(t.keep) || tm.keep; tm.lord = byId.u.get(t.lord) || tm.lord; tm.out = !!t.out });
+  s.tm.forEach((t, i) => { const tm = G.teams[i]; tm.res = t.res; tm.stash = t.stash; tm.starving = t.starving; tm.keep = byId.b.get(t.keep) || tm.keep; tm.lord = byId.u.get(t.lord) || tm.lord; tm.out = !!t.out;
+    // le bâtisseur du joueur, et le temps avant son retour s'il est mort
+    tm.mason = G.workers.find(w => w.team === i && w.mason) || null; tm.masonT = t.mt || 0 });
   // la charge de l'arc du joueur local reste gérée sur place (pas d'à-coups dus au réseau)
   s.ctrl.forEach((c, i) => { if (i !== ME) { G.ctrl[i].charging = !!c[0]; G.ctrl[i].start = c[1] } });
   if (first) for (const e of [...G.units, ...G.workers]) { e.x = e.nx; e.y = e.ny }

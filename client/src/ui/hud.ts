@@ -84,7 +84,7 @@ export const bldPanel=$('bldPanel');let bldKey='';
 export function renderBldPanel(){
   let b=ui.selB;if(b&&(b.dead||!ui.running)){b=ui.selB=null}
   const site=b&&b.build<1,mine=b&&b.team===ME,dmg=b&&!site&&b.hp<b.maxhp,ref=b?refundOf(b.type):{};
-  const key=b?[b.id,b.team,Math.ceil(b.hp),dmg,site?Math.floor(b.build*100):100].join(','):'';if(key===bldKey)return;bldKey=key;
+  const key=b?[b.id,b.team,Math.ceil(b.hp),dmg,site?Math.floor(b.build*100):100,!!(b.worker&&!b.worker.dead),Math.ceil(G.teams[b.team]?.masonT||0)].join(','):'';if(key===bldKey)return;bldKey=key;
   bldPanel.hidden=!b;if(!b){bldPanel.innerHTML='';return}
   const d=DEF[b.type],gain=Object.entries(ref).map(([k,v])=>'+'+v+' '+RESN[k]).join(', ');
   let act='';
@@ -93,7 +93,7 @@ export function renderBldPanel(){
     act=why?`<p class="why">${why}</p>`:`<button type="button" class="demo">Démolir${gain?' <small>('+gain+')</small>':' <small>(rien à récupérer)</small>'}</button>`;
   }
   bldPanel.innerHTML=`<div class="bp-head"><b>${d.name}</b><button type="button" class="x" aria-label="Fermer">×</button></div>
-    <p class="who">${mine?'Ton bâtiment':'Bâtiment ennemi'}</p>${site?`<p class="hp">En construction : ${Math.floor(b.build*100)} %${b.worker&&!b.worker.dead?'':' · l\'ouvrier arrive'}</p>`:''}${mine?`<div class="bp-hp"><div style="width:${Math.max(0,b.hp/b.maxhp*100)}%"></div></div><p class="hp">Vie ${Math.max(0,Math.ceil(b.hp))} / ${b.maxhp}</p>`:''}${act}`;
+    <p class="who">${mine?'Ton bâtiment':'Bâtiment ennemi'}</p>${site?`<p class="hp">En construction : ${Math.floor(b.build*100)} %${b.worker&&!b.worker.dead?'':DEF[b.type].def?(G.teams[b.team]?.mason&&!G.teams[b.team].mason.dead?' · en attente du bâtisseur':' · le bâtisseur revient dans '+Math.ceil(G.teams[b.team]?.masonT||0)+' s'):' · l\'ouvrier arrive'}</p>`:''}${mine?`<div class="bp-hp"><div style="width:${Math.max(0,b.hp/b.maxhp*100)}%"></div></div><p class="hp">Vie ${Math.max(0,Math.ceil(b.hp))} / ${b.maxhp}</p>`:''}${act}`;
 }
 bldPanel.addEventListener('click',(e:any)=>{
   if(e.target.closest('.x')){ui.selB=null;renderBldPanel();return}
@@ -110,6 +110,8 @@ const WORKSHOP:Record<string,string>={arcs:'à l\'atelier',lances:'à l\'atelier
 const TAKE:Record<string,string>={arcs:'du bois',lances:'du bois',fleches:'du bois',forge:'du fer et du bois'};
 /** ce que fait l'ouvrier, lisible en solo comme en ligne (seuls les drapeaux affichés sont transmis par le réseau) */
 export function workerActivity(w){
+  // le bâtisseur : murs, portes, escaliers et tours, l'un après l'autre ; sinon il attend devant le donjon
+  if(w.mason){const b=w.b;if(!b||b.dead)return 'Attend devant le donjon : aucune défense à construire';return (w.working?'Construit : ':'Se rend sur le chantier : ')+DEF[b.type].name.toLowerCase()}
   const b=w.b;if(!b)return '';
   if(w.noStore==='grenier')return 'Attend un grenier pour ranger son blé';
   if(w.noStore==='armurerie')return 'Attend une armurerie pour ranger '+(WITH[w.carry?.type]||'son arme');
@@ -134,7 +136,7 @@ export function renderWkPanel(){
       <p class="who"></p><div class="bp-hp"><div></div></div><p class="act"></p></div>`;
     wkPanel.querySelector('.bp-head b').textContent=idn.first+' '+idn.last;
   }
-  const job=jobOf(w.b?.type,idn.female),act=mine?workerActivity(w):'',starve=G.teams[w.team]?.starving;
+  const job=jobOf(w.b?.type,idn.female,!!w.mason),act=mine?workerActivity(w):'',starve=G.teams[w.team]?.starving;
   const key=[job,act,Math.ceil(w.hp),w.maxhp,starve].join('|');if(key===wkKey)return;wkKey=key;
   wkPanel.querySelector('.who').textContent=`${job} · ${idn.age} ans${mine?'':foe?' · ennemi':' · allié'}`;
   (wkPanel.querySelector('.bp-hp div') as HTMLElement).style.width=Math.max(0,w.hp/w.maxhp*100)+'%';

@@ -110,7 +110,11 @@ function rigObj(u){
   return m;
 }
 export function unitObj(u){const m=u.kind!=='worker'&&RIG_TYPES.has(u.type)?rigObj(u):mk(u.kind==='worker'?workerGeoOf(u):unitGeo(u.type,u.team),VC);m.rotation.order='YXZ';m.receiveShadow=false;dyn.add(m);u.obj=m;
-  if(u.kind==='worker'){const cm=new THREE.Mesh(CARRY.bois,VC);cm.position.set(0,.98,0);cm.visible=false;cm.castShadow=true;m.add(cm);u.cobj=cm}}
+  if(u.kind==='worker'){const cm=new THREE.Mesh(CARRY.bois,VC);cm.position.set(0,.98,0);cm.visible=false;cm.castShadow=true;m.add(cm);u.cobj=cm}
+  // le bâtisseur tient son marteau à la main (il frappe quand il construit)
+  if(u.mason){const h=new THREE.Group();h.position.set(.03,.27,.2);h.rotation.z=-.55;h.add(mk(HAMMER,VC));m.add(h);u.hammer=h}}
+/** marteau du bâtisseur : manche de bois, tête de fer */
+const HAMMER=merge([[C(.016,.018,.34,5).translate(0,.13,0),0x8a5a2b],[B(.15,.075,.075).translate(.025,.31,0),0x5a5f66],[B(.03,.08,.08).translate(-.06,.31,0),0x3c4046]]);
 export let AGEO=[0,1,2,3].map(t=>merge([[C(.012,.012,.5,4).rotateZ(-Math.PI/2),0xd8c49a],[K(.03,.08,4).rotateZ(-Math.PI/2).translate(.29,0,0),0x9aa1a8],[B(.1,.01,.07).translate(-.21,0,0),TEAMC[t].light],[B(.1,.07,.01).translate(-.21,0,0),TEAMC[t].light]]));
 // applique la couleur choisie à tout le royaume (unités, bâtiments, flèches, territoire)
 export function applyColors(){

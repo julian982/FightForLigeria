@@ -46,6 +46,8 @@ export const DEFENSE_LIST = ['mur_b','mur_p','porte_b','porte_p','escalier','tou
 DEFENSE_LIST.forEach((t, i) => DEF[t].key = String(i + 1));
 /** tours par joueur (bois et pierre confondus), soldats au plus sur une tour, longueur d'un mur tracé d'un coup */
 export const TOWER_MAX = 4, TOWER_CAP = 4, WALL_MAX = 24;
+/** le bâtisseur (un seul par joueur, il construit toutes les défenses) revient 40 s après sa mort */
+export const MASON_RESPAWN = 40;
 /** sur un mur ou une tour : portée des archers (et du seigneur) allongée, flèches ennemies arrêtées par les créneaux,
  *  dégâts réduits pour celles qui passent ; chute quand le mur s'effondre (part de la vie) */
 export const UP_RANGE: Record<string, number> = { mur: 1.15, porte: 1.15, escalier: 1, tour: 1.35 };

@@ -137,7 +137,8 @@ Chaque bâtiment posé est d'abord un **chantier** : son ouvrier part du donjon,
 | 6 | Tour en bois | 60 bois | 800 | 20 s |
 | 7 | Tour en pierre | 70 pierre + 30 bois | 1800 | 30 s |
 
-- **Murs** : on les trace en glissant la souris (droit ou à 45°, 24 cases au plus), dans sa moitié de carte. Un seul bâtisseur part du donjon et monte le mur case par case ; chaque case est praticable dès qu'elle est finie. S'il est tué, un remplaçant revient après le délai habituel. Les cases déjà murées sont sautées quand on retrace par-dessus.
+- **Le bâtisseur** : chaque joueur a un seul bâtisseur (marteau en main), présent dès le début et qui attend devant le donjon. C'est lui qui construit toutes les défenses (murs, portes, escaliers, tours), l'une après l'autre dans l'ordre où on les pose. S'il est tué, un nouveau n'arrive qu'au bout de 40 s ; les chantiers attendent. En cliquant dessus, sa fiche dit « Bâtisseur » et ce qu'il construit.
+- **Murs** : on les trace en glissant la souris (droit ou à 45°, 24 cases au plus), dans sa moitié de carte. Le bâtisseur les monte case par case ; chaque case est praticable dès qu'elle est finie. Les cases déjà murées sont sautées quand on retrace par-dessus.
 - **Chemin de ronde** : on marche sur les murs (créneaux légers sur les côtés libres, raccords entre segments, y compris en diagonale). On y monte uniquement par un **escalier** posé contre un de ses murs ou une de ses tours ; l'escalier ne sert qu'à son camp. Un clic droit sur le dessus d'un mur y envoie les soldats sélectionnés ; le seigneur y monte en marchant sur l'escalier.
 - **Portes** : dans un trou du mur, ou à la place d'un segment. Elles laissent passer son camp (et ses alliés en 2v2), jamais l'ennemi, qui doit les casser.
 - **Tours** : 4 au plus par joueur (bois et pierre confondus), 4 soldats au plus dessus.

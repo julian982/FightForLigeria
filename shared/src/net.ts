@@ -48,7 +48,7 @@ export const CARRY_TYPES = ['', 'bois', 'pierre', 'ble', 'fer', 'arc', 'lance', 
 const r1 = v => Math.round(v * 10) / 10, r2 = v => Math.round(v * 100) / 100;
 /** drapeaux d'un ouvrier, pour l'affichage (au travail, il manque une matière, plus d'arbres, pas de réserve/grenier/armurerie,
  * va chercher ses matières à la réserve, les apporte à l'atelier) */
-export const WF = { working: 1, need: 2, idle: 4, noReserve: 8, noGrenier: 16, fetch: 32, supply: 64, noArmory: 128, builder: 256 };
+export const WF = { working: 1, need: 2, idle: 4, noReserve: 8, noGrenier: 16, fetch: 32, supply: 64, noArmory: 128, builder: 256, mason: 512 };
 
 export interface Snapshot {
   t: number;
@@ -59,7 +59,7 @@ export interface Snapshot {
   /** trêve : fin (temps de jeu) et vitesse de la partie */
   tr?: [number, number];
   /** un par joueur (2 en 1v1, 4 en 2v2) ; `out` : éliminé */
-  tm: { res: any, stash: any, starving: boolean, keep: number, lord: number, out?: boolean }[];
+  tm: { res: any, stash: any, starving: boolean, keep: number, lord: number, out?: boolean, mt?: number }[];
   ctrl: [number, number][];
   /** unités : id, équipe, type, x, y, orientation, vie, vie max, morte, charge de l'arc, élan, éclair */
   u: number[][];
@@ -83,12 +83,12 @@ export function makeSnapshot(fell: number[]): Snapshot {
     sd: G.seed || 0,
     tr: [r1(G.truceEnd || 0), G.truceSpeed || 1],
     bt: G.boats ? G.boats.list.map(b => [b.on ? 1 : 0, r1(b.x), r1(b.y), b.dir, b.looted ? 1 : 0]) : [],
-    tm: G.teams.map(tm => ({ res: tm.res, stash: tm.stash, starving: !!tm.starving, keep: tm.keep.id, lord: tm.lord.id, out: !!tm.out })),
+    tm: G.teams.map(tm => ({ res: tm.res, stash: tm.stash, starving: !!tm.starving, keep: tm.keep.id, lord: tm.lord.id, out: !!tm.out, mt: tm.mason && !tm.mason.dead ? 0 : r1(Math.max(0, tm.masonT || 0)) })),
     ctrl: G.ctrl.map(c => [c.charging ? 1 : 0, r2(c.start)]),
     u: G.units.map(u => [u.id, u.team, U_TYPES.indexOf(u.type), r1(u.x), r1(u.y), r2(u.face), Math.ceil(u.hp), u.maxhp, u.dead ? 1 : 0, r2(u.charge || 0), r2(u.lunge || 0), r2(Math.max(0, u.flash)), u.up ? 1 : 0]),
     w: G.workers.map(w => [w.id, w.team, w.b ? w.b.id : 0, r1(w.x), r1(w.y), r2(w.face), Math.ceil(w.hp), w.maxhp, w.carry ? CARRY_TYPES.indexOf(w.carry.type) : 0,
       (w.working ? WF.working : 0) | (w.need ? WF.need : 0) | (w.idle ? WF.idle : 0) | (w.noStore === 'reserve' ? WF.noReserve : 0) | (w.noStore === 'grenier' ? WF.noGrenier : 0) | (w.noStore === 'armurerie' ? WF.noArmory : 0)
-      | (w.state === 'toFetch' ? WF.fetch : 0) | (w.carry && w.carry.input ? WF.supply : 0) | (w.builder ? WF.builder : 0)]),
+      | (w.state === 'toFetch' ? WF.fetch : 0) | (w.carry && w.carry.input ? WF.supply : 0) | (w.builder ? WF.builder : 0) | (w.mason ? WF.mason : 0)]),
     b: G.buildings.map(b => [b.id, b.team, B_TYPES.indexOf(b.type), b.tx, b.ty, Math.ceil(b.hp), b.maxhp, r2(b.grow || 0), b.respawn == null ? -1 : r1(b.respawn), r2(Math.max(0, b.flash)), b.build < 1 ? r2(b.build) : 1, b.dir ?? -1]),
     a: G.arrows.map(a => [a.id, a.team, a.lord ? 1 : 0, r1(a.x), r1(a.y), r1(a.vx), r1(a.vy), r1(a.d), r1(a.md), (a as any).by || 0, r2((a as any).hs || 0), r2((a as any).he || 0)]),
     fx, fell,
