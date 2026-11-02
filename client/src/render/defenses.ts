@@ -3,7 +3,7 @@
 // créneaux ne bordent que les côtés libres, et deux segments en diagonale sont reliés par un pan de mur.
 // Les hauteurs du chemin de ronde suivent TOP_H (shared/src/config.ts) : c'est là que se tiennent les soldats montés.
 import * as THREE from 'three';
-import { DEF, G, TOP_H } from '@ffl/shared';
+import { DEF, G, TOP_H, stairTop } from '@ffl/shared';
 import { Kit, P, cbox, cyl, cone, arch, teamPal } from './stylized';
 
 // voisins d'un segment : bits N, E, S, O puis diagonales NE, SE, SO, NO
@@ -21,85 +21,95 @@ export function defMask(b: any) {
   return m;
 }
 
-/** merlons le long d'un bord libre (repère du segment : bord à z = -0.5, le long de x) */
-function merlons(k: Kit, wood: boolean, y: number, len = 1, x0 = 0) {
-  if (wood) for (let x = -len / 2 + .07; x < len / 2 - .02; x += .135) { k.add(cyl(.045, .05, .2, 5), k.pick([P.woodM, P.woodD, P.woodL]), x0 + x, y, -.46); k.add(cone(.05, .09, 5), P.woodD, x0 + x, y + .2, -.46) }
-  else for (const x of len > .6 ? [-.25, .25] : [0]) { k.add(k.stone(.24, .22, .13, .015), k.pick([P.tufL, P.tuf]), x0 + x * len, y, -.435) }
+/** épaisseur des murs (une case = 1) : le chemin de ronde est un peu plus étroit que la case */
+export const WALL_T = .7;
+/** créneaux le long d'une face (repère : face le long de x, à z = -off) */
+function merlons(k: Kit, wood: boolean, y: number, len: number, off: number) {
+  if (wood) for (let x = -len / 2 + .06; x < len / 2 - .02; x += .135) { k.add(cyl(.045, .05, .22, 5), k.pick([P.woodM, P.woodD, P.woodL]), x, y, -off + .04); k.add(cone(.05, .1, 5), P.woodD, x, y + .22, -off + .04) }
+  else { const n = Math.max(1, Math.round(len / .42)); for (let i = 0; i < n; i++) k.add(k.stone(.2, .24, .12, .015), k.pick([P.tufL, P.tuf]), -len / 2 + (i + .5) * len / n, y, -off + .06) }
 }
-/** un pan de mur (corps + parements) sur la case, de hauteur H, avec les côtés libres parementés */
-function wallBody(k: Kit, wood: boolean, H: number, mask: number) {
+/** parement d'une face : rondins verticaux (bois) ou assises de tuffeau décalées (pierre), puis ses créneaux */
+function face(k: Kit, wood: boolean, H: number, len: number, off: number) {
   if (wood) {
-    // levée de terre et charpente, habillée de rondins verticaux sur les faces libres, plancher de chemin de ronde
-    k.add(cbox(.96, H - .06, .96, .03), P.woodD, 0, 0, 0);
-    for (const [bit, ry] of [[N, 0], [E, -Math.PI / 2], [S, Math.PI], [Wb, Math.PI / 2]] as [number, number][]) {
-      if (mask & bit) continue;
-      k.at(0, 0, 0, ry, () => { for (let x = -.44; x <= .45; x += .11) { const h = H - .04 + (k.rnd() - .5) * .05; k.add(cyl(.058, .062, h, 6), k.pick([P.woodM, P.woodL, P.woodM, P.woodD]), x, 0, -.47) }
-        k.add(cbox(1.0, .05, .04, .01), P.woodDD, 0, H * .3, -.53); k.add(cbox(1.0, .05, .04, .01), P.woodDD, 0, H * .72, -.53) });
-    }
-    for (let z = -.42; z <= .43; z += .14) k.add(cbox(.98, .05, .13, .01), k.pick([P.woodL, P.woodM]), 0, H - .05, z);
+    for (let x = -len / 2 + .055; x < len / 2; x += .11) k.add(cyl(.058, .062, H - .04 + (k.rnd() - .5) * .05, 6), k.pick([P.woodM, P.woodL, P.woodM, P.woodD]), x, 0, -off + .03);
+    for (const y of [H * .3, H * .72]) k.add(cbox(len, .05, .04, .01), P.woodDD, 0, y, -off - .03);
   } else {
-    // tuffeau : assises de pierres décalées sur les faces libres, dalles du chemin de ronde
-    k.add(cbox(.98, H - .04, .98, .02), P.tufM, 0, 0, 0);
-    for (const [bit, ry] of [[N, 0], [E, -Math.PI / 2], [S, Math.PI], [Wb, Math.PI / 2]] as [number, number][]) {
-      if (mask & bit) continue;
-      k.at(0, 0, 0, ry, () => { const rowH = .2;
-        for (let r = 0; r * rowH < H - .08; r++) { let x = -.5, first = r % 2 ? .13 : 0;
-          while (x < .49) { let len = first || .22 + k.rnd() * .14; first = 0; if (x + len > .5) len = .5 - x; if (len > .05) k.add(k.stone(len - .015, rowH - .015, .06, .012), k.pick([P.tufL, P.tufL, P.tuf, P.tufM]), x + len / 2, r * rowH, -.48); x += len } } });
-    }
-    k.add(cbox(1.0, .05, 1.0, .01), P.tufD, 0, H - .05, 0);
-    for (let i = 0; i < 4; i++) k.add(k.stone(.46, .025, .46, .01), k.pick([P.tuf, P.tufM]), i % 2 ? .24 : -.24, H - .005, i < 2 ? -.24 : .24);
-    k.add(k.stone(1.04, .09, 1.04, .015), P.stoneD, 0, -.02, 0); // soubassement
+    const rowH = .2;
+    for (let r = 0; r * rowH < H - .08; r++) { let x = -len / 2, first = r % 2 ? .13 : 0;
+      while (x < len / 2 - .01) { let l = first || .22 + k.rnd() * .14; first = 0; if (x + l > len / 2) l = len / 2 - x; if (l > .05) k.add(k.stone(l - .015, rowH - .015, .06, .012), k.pick([P.tufL, P.tufL, P.tuf, P.tufM]), x + l / 2, r * rowH, -off + .02); x += l } }
   }
+  merlons(k, wood, H, len, off);
 }
-/** les créneaux du chemin de ronde, sur chaque côté sans voisin */
-function battlements(k: Kit, wood: boolean, H: number, mask: number) {
-  for (const [bit, ry] of [[N, 0], [E, -Math.PI / 2], [S, Math.PI], [Wb, Math.PI / 2]] as [number, number][]) if (!(mask & bit)) k.at(0, 0, 0, ry, () => merlons(k, wood, H));
+/** un tronçon de mur, de longueur len (le long de x) et d'épaisseur t, centré ; faces parementées : [z−, z+, x−, x+] */
+function piece(k: Kit, wood: boolean, H: number, len: number, t: number, faces: boolean[]) {
+  k.add(cbox(len, H - .05, t, .02), wood ? P.woodD : P.tufM, 0, 0, 0);
+  if (!wood) k.add(k.stone(len + .04, .1, t + .06, .015), P.stoneD, 0, -.02, 0); // soubassement
+  // chemin de ronde : planches ou dalles
+  if (wood) for (let x = -len / 2 + .07; x < len / 2; x += .14) k.add(cbox(.13, .05, t + .02, .01), k.pick([P.woodL, P.woodM]), x, H - .05, 0);
+  else k.add(cbox(len + .01, .05, t + .01, .01), P.tufD, 0, H - .05, 0);
+  if (faces[0]) face(k, wood, H, len, t / 2);
+  if (faces[1]) k.at(0, 0, 0, Math.PI, () => face(k, wood, H, len, t / 2));
+  if (faces[2]) k.at(0, 0, 0, Math.PI / 2, () => face(k, wood, H, t, len / 2));
+  if (faces[3]) k.at(0, 0, 0, -Math.PI / 2, () => face(k, wood, H, t, len / 2));
 }
-/** pans de liaison vers les voisins en diagonale (quand les deux cases entre eux sont vides) */
-function diagonals(k: Kit, wood: boolean, H: number, mask: number) {
-  for (const [bit, a, b2, ang] of [[NE, N, E, -Math.PI / 4], [SE, S, E, Math.PI / 4], [SW, S, Wb, 3 * Math.PI / 4], [NW, N, Wb, -3 * Math.PI / 4]] as [number, number, number, number][]) {
-    if (!(mask & bit) || (mask & a) || (mask & b2)) continue;
-    k.at(Math.cos(ang) * .5, 0, Math.sin(ang) * .5, -ang, () => {
-      k.add(cbox(.62, H - .05, .58, .02), wood ? P.woodM : P.tuf, 0, 0, 0);
-      k.add(cbox(.64, .05, .6, .01), wood ? P.woodL : P.tufD, 0, H - .06, 0);
-      for (const s of [-1, 1]) k.at(0, 0, 0, s > 0 ? Math.PI / 2 : -Math.PI / 2, () => merlons(k, wood, H, .55));
-    });
+/**
+ * le mur d'une case : un noyau au centre et un bras vers chaque voisin (droit, ou en diagonale jusqu'à l'angle partagé),
+ * si bien que les segments se raccordent quelle que soit la forme du tracé ; créneaux sur chaque face libre
+ */
+function wallBody(k: Kit, wood: boolean, H: number, mask: number) {
+  const t = WALL_T, L = .5 - t / 2 + .01;
+  const orth = ([[N, 0, -1], [E, 1, 0], [S, 0, 1], [Wb, -1, 0]] as [number, number, number][]).filter(([bit]) => mask & bit);
+  const diag = ([[NE, N, E, -Math.PI / 4], [SE, S, E, Math.PI / 4], [SW, S, Wb, 3 * Math.PI / 4], [NW, N, Wb, -3 * Math.PI / 4]] as [number, number, number, number][])
+    .filter(([bit, a, b2]) => (mask & bit) && !(mask & a) && !(mask & b2));
+  // segment isolé : un petit pan est-ouest
+  const lone = !orth.length && !diag.length;
+  const arms = lone ? [[E, 1, 0], [Wb, -1, 0]] as [number, number, number][] : orth;
+  const has = (bit: number) => arms.some(a => a[0] === bit);
+  piece(k, wood, H, t, t, [!has(N), !has(S), !has(Wb), !has(E)]);
+  for (const [, dx, dz] of arms) {
+    const c = t / 2 + L / 2 - .005;
+    k.at(dx * c, 0, dz * c, dx ? 0 : Math.PI / 2, () => piece(k, wood, H, L, t, [true, true, lone && dx < 0, lone && dx > 0]));
+  }
+  for (const [, , , ang] of diag) {
+    const s0 = t * .3, s1 = .74, len = s1 - s0, c = (s0 + s1) / 2;
+    k.at(Math.cos(ang) * c, 0, Math.sin(ang) * c, -ang, () => piece(k, wood, H, len, t, [true, true, false, false]));
   }
 }
 
 export function buildWall(g: any, b: any) {
   const k = new Kit(b.id * 911 + 7), wood = DEF[b.type].mat === 'bois', H = TOP_H[b.type], mask = b.mask ?? defMask(b);
-  wallBody(k, wood, H, mask); battlements(k, wood, H, mask); diagonals(k, wood, H, mask);
+  wallBody(k, wood, H, mask);
   k.build(g);
 }
 export function buildGate(g: any, b: any) {
-  const k = new Kit(b.id * 577 + 3), wood = DEF[b.type].mat === 'bois', H = TOP_H[b.type], mask = b.mask ?? defMask(b), team = teamPal(b.team);
+  const k = new Kit(b.id * 577 + 3), wood = DEF[b.type].mat === 'bois', H = TOP_H[b.type], mask = b.mask ?? defMask(b), team = teamPal(b.team), t = WALL_T;
   // le passage traverse le mur : nord-sud si le mur court d'est en ouest, sinon est-ouest
   const ns = !!(mask & (E | Wb)) || !(mask & (N | S));
   k.at(0, 0, 0, ns ? 0 : Math.PI / 2, () => {
-    const side = (x: number) => { if (wood) { for (let i = 0; i < 2; i++) k.add(cyl(.07, .075, H + .18, 6), P.woodM, x + (i - .5) * .1, 0, -.4); k.add(cbox(.24, H, .9, .02), P.woodD, x, 0, 0); k.add(cyl(.07, .075, H + .18, 6), P.woodM, x, 0, .4) }
-      else k.add(k.stone(.24, H, 1.0, .02), P.tuf, x, 0, 0) };
-    side(-.38); side(.38);
+    // piliers de part et d'autre du passage
+    for (const x of [-.38, .38]) k.at(x, 0, 0, 0, () => piece(k, wood, H, .24, t + .06, [true, true, x < 0 && !(mask & (ns ? Wb : N)), x > 0 && !(mask & (ns ? E : S))]));
     // linteau et chemin de ronde au-dessus du passage
-    k.add(cbox(1.0, H * .3, 1.0, .02), wood ? P.woodD : P.tufM, 0, H * .7, 0);
-    k.add(cbox(1.0, .05, 1.0, .01), wood ? P.woodL : P.tufD, 0, H - .05, 0);
+    k.add(cbox(.54, H * .3, t, .02), wood ? P.woodD : P.tufM, 0, H * .7, 0);
+    k.add(cbox(.54, .05, t + .01, .01), wood ? P.woodL : P.tufD, 0, H - .05, 0);
     for (const s of [-1, 1]) k.at(0, 0, 0, s > 0 ? 0 : Math.PI, () => {
       // vantaux fermés, cerclés de fer, écu aux couleurs du royaume
-      if (wood) { for (let x = -.24; x <= .25; x += .1) k.add(cbox(.09, H * .68, .05, .01), k.pick([P.woodL, P.woodM]), x, 0, -.36) }
-      else k.add(arch(.52, H * .72, .05), P.woodM, 0, 0, -.36);
-      for (const y of [.18, .45]) k.add(cbox(.54, .04, .02, .005), P.iron, 0, y, -.39);
-      k.add(new THREE.CylinderGeometry(.08, .08, .02, 8), team.main, 0, H * .82, -.505, Math.PI / 2);
-      merlons(k, wood, H);
+      if (wood) { for (let x = -.24; x <= .25; x += .1) k.add(cbox(.09, H * .68, .05, .01), k.pick([P.woodL, P.woodM]), x, 0, -t / 2 + .06) }
+      else k.add(arch(.52, H * .72, .05), P.woodM, 0, 0, -t / 2 + .06);
+      for (const y of [.2, .55, .9]) if (y < H * .68) k.add(cbox(.54, .04, .02, .005), P.iron, 0, y, -t / 2 + .03);
+      k.add(new THREE.CylinderGeometry(.08, .08, .02, 8), team.main, 0, H * .84, -t / 2 - .005, Math.PI / 2);
+      merlons(k, wood, H, .54, t / 2);
     });
   });
   k.build(g);
 }
 export function buildStair(g: any, b: any) {
-  const k = new Kit(b.id * 313 + 5), H = TOP_H.escalier, n = 6, dir = b.dir ?? 0;
+  const k = new Kit(b.id * 313 + 5), H = stairTop(b), n = Math.max(6, Math.round(H / .16)), dir = b.dir ?? 0;
   // marches de bois qui montent vers le mur (repère : montée vers -z), sur deux limons et des poteaux
   k.at(0, 0, 0, -dir * Math.PI / 2, () => {
-    for (let i = 0; i < n; i++) { const h = H * (i + 1) / n, z = .5 - (i + .5) / n; k.add(cbox(.74, .06, 1 / n + .01, .01), k.pick([P.woodL, P.woodM]), 0, h - .06, z); k.add(cbox(.7, h - .06, .04, .005), P.woodD, 0, 0, z + .5 / n - .02) }
-    for (const x of [-.4, .4]) { const len = Math.hypot(1, H); k.add(cbox(.06, .1, len, .01), P.woodDD, x, H / 2 - .05, 0, Math.atan2(H, 1)); k.add(cyl(.035, .035, H + .25, 5), P.woodD, x, 0, -.45); k.add(cbox(.04, .04, len, .005), P.woodM, x, H / 2 + .28, 0, Math.atan2(H, 1)) }
+    // la rampe déborde un peu sur la case du mur, dont le chemin de ronde est plus étroit que la case
+    const Lr = 1 + (.5 - WALL_T / 2), zc = .5 - Lr / 2, ang = Math.atan2(H, Lr), len = Math.hypot(Lr, H);
+    for (let i = 0; i < n; i++) { const h = H * (i + 1) / n, z = .5 - (i + .5) * Lr / n; k.add(cbox(.74, .06, Lr / n + .01, .01), k.pick([P.woodL, P.woodM]), 0, h - .06, z); k.add(cbox(.7, h - .06, .04, .005), P.woodD, 0, 0, z + .5 * Lr / n - .02) }
+    for (const x of [-.4, .4]) { k.add(cbox(.06, .1, len, .01), P.woodDD, x, H / 2 - .05, zc, ang); k.add(cyl(.035, .035, H + .25, 5), P.woodD, x, 0, -.45); k.add(cbox(.04, .04, len, .005), P.woodM, x, H / 2 + .28, zc, ang) }
   });
   k.build(g);
 }

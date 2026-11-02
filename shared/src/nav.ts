@@ -52,12 +52,17 @@ function room(e, b) {
   return n < TOWER_CAP;
 }
 /** hauteur (3D) du dessus sous un point : chemin de ronde, plateforme de tour, ou rampe d'escalier (selon sa pente) */
+/** hauteur en haut d'un escalier : celle du mur ou de la tour contre lequel il monte */
+export function stairTop(b) {
+  const d = b.dir ?? 0, [dx, dy] = [[0, -1], [1, 0], [0, 1], [-1, 0]][d], o = defAt((b.tx + dx + .5) * T, (b.ty + dy + .5) * T);
+  return o && o.type !== 'escalier' ? TOP_H[o.type] : TOP_H.escalier;
+}
 export function topHeight(x, y) {
   const b = defAt(x, y); if (!b) return 0;
   if (b.type !== 'escalier') return TOP_H[b.type] || 0;
   // rampe : du sol (côté opposé au mur) jusqu'au chemin de ronde (côté mur)
   const d = b.dir ?? 0, fx = (x - b.bx) / b.bw, fy = (y - b.by) / b.bh, k = d === 0 ? fy : d === 1 ? 1 - fx : d === 2 ? 1 - fy : fx;
-  return TOP_H.escalier * Math.max(0, Math.min(1, 1 - k));
+  return stairTop(b) * Math.max(0, Math.min(1, 1 - k));
 }
 
 export function solidAt(x, y, inf = 0, side?: number) {

@@ -52,7 +52,7 @@ export const UP_RANGE: Record<string, number> = { mur: 1.15, porte: 1.15, escali
 export const UP_MISS: Record<string, number> = { mur: .35, porte: .35, escalier: 0, tour: .5 };
 export const COVER_DMG = .75, FALL_DMG = .15;
 /** hauteur du chemin de ronde (unités 3D) : là où se tiennent les soldats montés */
-export const TOP_H: Record<string, number> = { mur_b: .95, mur_p: 1.05, porte_b: .95, porte_p: 1.05, escalier: .95, tour_b: 1.75, tour_p: 2.0 };
+export const TOP_H: Record<string, number> = { mur_b: 1.43, mur_p: 1.58, porte_b: 1.43, porte_p: 1.58, escalier: 1.43, tour_b: 2.63, tour_p: 3.0 };
 // stockage : le blé va au grenier, bois/pierre/fer à la réserve, les armes à l'armurerie, les flèches (celles du seigneur) au donjon
 export const STORE_OF: Record<string, string> = {ble:'grenier',bois:'reserve',pierre:'reserve',fer:'reserve',arc:'armurerie',lance:'armurerie',epee:'armurerie'};
 /** article pour les messages : « une réserve », « un grenier », « une armurerie » */

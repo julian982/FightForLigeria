@@ -133,7 +133,7 @@ Chaque bâtiment posé est d'abord un **chantier** : son ouvrier part du donjon,
 | 2 | Mur en pierre (tuffeau) | 4 pierre + 1 bois par case | 700 | 5 s par case |
 | 3 | Porte en bois | 12 bois | 400 | 6 s |
 | 4 | Porte en pierre | 15 pierre + 5 bois | 900 | 8 s |
-| 5 | Escalier (bois) | 8 bois | 200 | 4 s |
+| 5 | Escalier (bois) | 8 bois | 200 | 4 s (il monte à la hauteur du mur ou de la tour) |
 | 6 | Tour en bois | 60 bois | 800 | 20 s |
 | 7 | Tour en pierre | 70 pierre + 30 bois | 1800 | 30 s |
 
