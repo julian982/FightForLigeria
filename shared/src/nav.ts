@@ -66,7 +66,8 @@ export function topHeight(x, y) {
 }
 
 export function solidAt(x, y, inf = 0, side?: number) {
-  for (const b of G.buildings) { if (b.dead || (side !== undefined && passFor(b, side))) continue; for (const q of b.blocks) if (inRect(x, y, q) || (inf > 0 && rectDist(x, y, q) < inf)) return b }
+  // un chantier (bâtiment pas encore fini) ne bloque ni le passage ni les flèches
+  for (const b of G.buildings) { if (b.dead || b.build < 1 || (side !== undefined && passFor(b, side))) continue; for (const q of b.blocks) if (inRect(x, y, q) || (inf > 0 && rectDist(x, y, q) < inf)) return b }
   const R = TREE_R + inf, tt = treesNear(x, y, t => Math.abs(t.x - x) < R && Math.abs(t.y - y) < R && dist(x, y, t.x, t.y) < R); if (tt) return tt;
   for (const st of ROCKS) if (dist(x, y, st.x, st.y) < st.r * .9 + inf) return st;
   if (wHit(x, y, inf + 4)) return RIVER;
@@ -81,7 +82,7 @@ export function buildNav() {
   };
   const markB = (g, b) => { for (const q of b.blocks) mark(g, q.bx, q.by, q.bx + q.bw, q.by + q.bh, (x, y) => inRect(x, y, q) || rectDist(x, y, q) < inf) };
   defMap.clear();
-  for (const b of G.buildings) { if (b.dead) continue; if (isDefense(b)) { for (let i = 0; i < DEF[b.type].w; i++) for (let j = 0; j < DEF[b.type].h; j++) defMap.set(tileKey(b.tx + i, b.ty + j), b) } else markB(base, b) }
+  for (const b of G.buildings) { if (b.dead) continue; if (isDefense(b)) { for (let i = 0; i < DEF[b.type].w; i++) for (let j = 0; j < DEF[b.type].h; j++) defMap.set(tileKey(b.tx + i, b.ty + j), b) } else if (!(b.build < 1)) markB(base, b) }
   for (const t of trees) if (t.wood > 0) mark(base, t.x - TREE_R, t.y - TREE_R, t.x + TREE_R, t.y + TREE_R, (x, y) => dist(x, y, t.x, t.y) < TREE_R + inf);
   for (const st of ROCKS) { const R = st.r * .9; mark(base, st.x - R, st.y - R, st.x + R, st.y + R, (x, y) => dist(x, y, st.x, st.y) < R + inf) }
   for (let cy = 0; cy < NH; cy++) for (let cx = 0; cx < NW; cx++) { const i = cy * NW + cx; if (!base[i] && wHit(cx * NC + NC / 2, cy * NC + NC / 2, inf + 4)) base[i] = 1 }
@@ -89,7 +90,7 @@ export function buildNav() {
   const defs = G.buildings.filter(b => !b.dead && isDefense(b));
   for (const s of [0, 1]) {
     // au sol : murs et tours bloquent tout le monde ; portes et escaliers terminés laissent passer leur camp
-    for (const b of defs) if (!passFor(b, s)) markB(navGrids[s], b);
+    for (const b of defs) if (!(b.build < 1) && !passFor(b, s)) markB(navGrids[s], b);
     // en haut : le dessus des défenses terminées du camp
     const top = topGrids[s], st = stairGrids[s]; top.fill(1); st.fill(0);
     for (const b of defs) { if (b.build < 1 || sideOf(b.team) !== s) continue;
@@ -174,7 +175,7 @@ export function pushOut(e) {
   for (let k = 0; k < 3; k++) {
     treesNear(e.x, e.y, t => { pushCirc(e, t.x, t.y, TREE_R + r); return false });
     for (const st of ROCKS) pushCirc(e, st.x, st.y, st.r * .9 + r);
-    for (const b of G.buildings) { if (b.dead || passFor(b, side) || Math.abs(b.x - e.x) > b.bw / 2 + r + 2 || Math.abs(b.y - e.y) > b.bh / 2 + r + 2) continue; for (const q of b.blocks) pushRect(e, q, r, side) }
+    for (const b of G.buildings) { if (b.dead || b.build < 1 || passFor(b, side) || Math.abs(b.x - e.x) > b.bw / 2 + r + 2 || Math.abs(b.y - e.y) > b.bh / 2 + r + 2) continue; for (const q of b.blocks) pushRect(e, q, r, side) }
   }
   // l'eau : on revient à la dernière position sûre, en glissant sur un axe si possible
   if (wHit(e.x, e.y, r)) { if (e.sx !== undefined) { if (!wHit(e.sx, e.y, r)) e.x = e.sx; else if (!wHit(e.x, e.sy, r)) e.y = e.sy; else { e.x = e.sx; e.y = e.sy } } }

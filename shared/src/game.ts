@@ -108,7 +108,7 @@ export function finishBuilding(b) {
   if (next) { w.b = next; next.worker = w; b.worker = null }
   else if (w && w.builder) { w.state = 'home'; b.worker = null }
   if (w) w.spot = null;
-  if (isDefense(b)) dirtyNav(); // le chemin de ronde s'agrandit
+  dirtyNav(); // fini, il devient un obstacle (et, pour une défense, le chemin de ronde s'agrandit)
   G.fx.push({ k: 'built', x: b.x, y: b.y, team: b.team, t: 0, life: .1 });
 }
 // ================= Le bâtisseur =================
@@ -264,7 +264,8 @@ export function hit(e, dmg, showNum, by?: number) {
 /** peut-il viser cette cible ? Au corps à corps, il faut être au même niveau (sol ou chemin de ronde) ;
  *  les flèches n'abîment pas les défenses (murs, portes, escaliers, tours) : seuls lanciers et spadassins les cassent */
 function canTarget(u, t) {
-  if (u.type === 'archer') return !(t.kind === 'building' && isDefense(t));
+  // les flèches n'atteignent pas un chantier (elles le traversent) : seuls les soldats au corps à corps l'abîment
+  if (u.type === 'archer') return !(t.kind === 'building' && (isDefense(t) || t.build < 1));
   if (t.kind === 'building') return !u.up;
   return !!t.up === !!u.up;
 }
@@ -618,7 +619,7 @@ export function update(dt) {
       if (on) dm = Math.max(1, Math.round(dm * COVER_DMG));
       if (a.lord) lordHit(a, dm); hit(e, dm, a.lord, a.team); impact(a, 'chair'); a.dead = true; break } }
     if (!a.dead) for (const w of G.workers) { if (!isFoe(w.team, a.team) || w.dead) continue; if (dE(a, w) < w.r + 3) { if (a.lord) lordHit(a, a.dmg); hit(w, a.dmg, a.lord, a.team); impact(a, 'chair'); a.dead = true; break } }
-    if (!a.dead) for (const b of G.buildings) { if (b.dead) continue;
+    if (!a.dead) for (const b of G.buildings) { if (b.dead || b.build < 1) continue; // les flèches traversent les chantiers
       const def = isDefense(b);
       // en hauteur, la flèche passe par-dessus les murs et les tours
       if (def && a.high) continue;

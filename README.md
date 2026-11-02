@@ -108,7 +108,7 @@ Clavier et souris requis.
 
 ### Bâtiments
 
-Chaque bâtiment posé est d'abord un **chantier** : son ouvrier part du donjon, le construit sur place, puis y travaille. Seules la réserve et le grenier sont posés instantanément (le stock de départ arrive aussitôt). L'armurerie et la caserne, sans métier, reçoivent un bâtisseur qui rentre au donjon une fois le travail fini. Un chantier ne sert à rien tant qu'il n'est pas terminé, il peut être attaqué ou démoli, et si l'ouvrier est tué, un remplaçant vient finir.
+Chaque bâtiment posé est d'abord un **chantier** : son ouvrier part du donjon, le construit sur place, puis y travaille. Seules la réserve et le grenier sont posés instantanément (le stock de départ arrive aussitôt). L'armurerie et la caserne, sans métier, reçoivent un bâtisseur qui rentre au donjon une fois le travail fini. Un chantier ne sert à rien tant qu'il n'est pas terminé, il ne bloque ni le passage ni les flèches (défenses comprises : un mur en chantier ne protège pas encore), seuls les soldats au corps à corps peuvent l'abîmer, il peut être démoli, et si l'ouvrier est tué, un remplaçant vient finir.
 
 | Touche | Bâtiment | Coût | Construction | Produit |
 |---|---|---|---|---|
