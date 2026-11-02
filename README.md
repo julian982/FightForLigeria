@@ -125,6 +125,26 @@ Chaque bâtiment posé est d'abord un **chantier** : son ouvrier part du donjon,
 | ) | Forge | 20 bois · 20 pierre | 16 s | 1 épée pour 2 fer et 3 bois |
 | = | Armurerie | 5 bois | 8 s | Stocke arcs, lances et épées |
 
+### Défenses (onglet « Défenses », touche B)
+
+| Touche | Défense | Coût | Vie | Construction |
+|---|---|---|---|---|
+| 1 | Mur en bois | 3 bois par case | 250 | 3 s par case |
+| 2 | Mur en pierre (tuffeau) | 4 pierre + 1 bois par case | 700 | 5 s par case |
+| 3 | Porte en bois | 12 bois | 400 | 6 s |
+| 4 | Porte en pierre | 15 pierre + 5 bois | 900 | 8 s |
+| 5 | Escalier (bois) | 8 bois | 200 | 4 s |
+| 6 | Tour en bois | 60 bois | 800 | 20 s |
+| 7 | Tour en pierre | 70 pierre + 30 bois | 1800 | 30 s |
+
+- **Murs** : on les trace en glissant la souris (droit ou à 45°, 24 cases au plus), dans sa moitié de carte. Un seul bâtisseur part du donjon et monte le mur case par case ; chaque case est praticable dès qu'elle est finie. S'il est tué, un remplaçant revient après le délai habituel. Les cases déjà murées sont sautées quand on retrace par-dessus.
+- **Chemin de ronde** : on marche sur les murs (créneaux légers sur les côtés libres, raccords entre segments, y compris en diagonale). On y monte uniquement par un **escalier** posé contre un de ses murs ou une de ses tours ; l'escalier ne sert qu'à son camp. Un clic droit sur le dessus d'un mur y envoie les soldats sélectionnés ; le seigneur y monte en marchant sur l'escalier.
+- **Portes** : dans un trou du mur, ou à la place d'un segment. Elles laissent passer son camp (et ses alliés en 2v2), jamais l'ennemi, qui doit les casser.
+- **Tours** : 4 au plus par joueur (bois et pierre confondus), 4 soldats au plus dessus.
+- **Combat en hauteur** : un archer sur un mur tire 15 % plus loin, sur une tour 35 % plus loin (le seigneur aussi), par-dessus les murs. Les créneaux arrêtent les flèches ennemies (35 % sur un mur, 50 % sur une tour), et celles qui passent font 25 % de dégâts en moins. Au corps à corps, on ne frappe pas ce qui est sur un mur : il faut monter ou casser le mur. Si un segment s'effondre, ceux qui sont dessus tombent et perdent 15 % de leur vie.
+- **Qui casse les défenses** : seuls les lanciers et les spadassins ; les flèches (archers et seigneur) s'y plantent. Bloqués par un mur sans passage, lanciers et spadassins attaquent d'eux-mêmes la défense la plus proche (une porte d'abord).
+- **IA** : elle pose une tour en bois devant son donjon (puis une deuxième), avec son escalier, et y poste deux archers par tour.
+
 ### Unités (30 soldats maximum)
 
 Sans ordre, tes soldats tiennent leur position : ils ne poursuivent personne et ne frappent que ce qui est à leur portée (tir pour les archers, contact pour les lanciers et spadassins).

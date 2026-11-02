@@ -8,6 +8,11 @@ export const ui = {
   running: false,
   /** type de bâtiment en cours de placement */
   placing: null as string | null,
+  /** tracé d'un mur : case de départ (bouton gauche enfoncé) et plan calculé pour l'aperçu */
+  wallStart: null as null | { tx: number, ty: number },
+  wallPlan: null as any,
+  /** onglet de la barre de construction : bâtiments ou défenses */
+  buildTab: 'b' as 'b' | 'd',
   /** sélection au cadre (coordonnées écran du coin de départ) */
   box: null as null | { sx: number, sy: number },
   /** bâtiment sélectionné (fenêtre d'info / démolition) */

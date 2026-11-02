@@ -2,8 +2,8 @@
 import { T, TERR, DEF, ARMY_MAX, AI_ORDER, STONES, IRONS, sideOf, isFoe } from './config';
 import { dist, dE } from './util';
 import { G, trees, hooks } from './state';
-import { nav, pushOut, shotClear, freePoint } from './nav';
-import { addBuilding, spawnUnit, afford, pay, canPlace, nearestTree, fireArrow, truceLeft, isBuilt } from './game';
+import { nav, pushOut, shotClear, freePoint, topPoint, isDefense } from './nav';
+import { addBuilding, spawnUnit, afford, pay, canPlace, nearestTree, fireArrow, truceLeft, isBuilt, placeBuilding } from './game';
 
 /** seigneur piloté par l'IA : reste près de chez lui, tire sur ce qui approche */
 export function updAiLord(team, dt) {
@@ -61,20 +61,62 @@ export function aiTick(p, dt) {
   const A = G.ai[p], tm = G.teams[p]; A.t += dt; if (A.t < 1.5) return; A.t = 0;
   for (const st of ['reserve', 'grenier', 'armurerie']) if (A.i > Math.max(2, AI_ORDER.indexOf(st)) && !G.buildings.some(b => b.team === p && b.type === st && !b.dead) && afford(tm, st)) { const sp = findSpot(p, st); if (sp) { pay(tm, st); addBuilding(p, st, sp.tx, sp.ty, false) } }
   if (A.i < AI_ORDER.length) { const type = AI_ORDER[A.i]; if (afford(tm, type)) { const s = findSpot(p, type); if (s) { pay(tm, type); addBuilding(p, type, s.tx, s.ty, false) } A.i++ } }
-  else { const cap = { bucheron: 5, ferme: 4, carriere: 2, arcs: 2, lances: 2 }; for (const type of ['bucheron', 'ferme', 'arcs', 'lances', 'carriere']) { const n = G.buildings.filter(b => b.team === p && b.type === type).length; if (n < cap[type] && afford(tm, type)) { const s = findSpot(p, type); if (s) { pay(tm, type); addBuilding(p, type, s.tx, s.ty, false) } break } } }
+  // une tour à poser : l'IA met son bois de côté au lieu de s'agrandir
+  else if (!towerWanted(p)) { const cap = { bucheron: 5, ferme: 4, carriere: 2, arcs: 2, lances: 2 }; for (const type of ['bucheron', 'ferme', 'arcs', 'lances', 'carriere']) { const n = G.buildings.filter(b => b.team === p && b.type === type).length; if (n < cap[type] && afford(tm, type)) { const s = findSpot(p, type); if (s) { pay(tm, type); addBuilding(p, type, s.tx, s.ty, false) } break } } }
   const cas = G.buildings.find(b => b.team === p && b.type === 'caserne' && isBuilt(b));
   if (cas) { const at = { x: cas.x, y: cas.by + cas.bh + 14 };
     const armyN = () => G.units.filter(u => u.team === p && u.type !== 'lord' && !u.dead).length;
     while (tm.res.arc > 0 && armyN() < ARMY_MAX) { tm.res.arc--; spawnUnit(p, 'archer', at) }
     while (tm.res.lance > 0 && armyN() < ARMY_MAX) { tm.res.lance--; spawnUnit(p, 'lancier', at) }
     while (tm.res.epee > 0 && armyN() < ARMY_MAX) { tm.res.epee--; spawnUnit(p, 'spadassin', at) } }
+  // une fois la caserne lancée, l'IA pense à ses défenses
+  if (A.i > AI_ORDER.indexOf('caserne')) aiDefense(p, A);
   const tgt = targetLord(p); if (!tgt) return;
   const L0 = tgt.lord;
   const army = G.units.filter(u => u.team === p && u.type !== 'lord' && !u.dead);
-  const idle = army.filter(u => !u.order);
+  // les archers postés sur une tour ne partent pas à l'attaque
+  const idle = army.filter(u => !u.order && !u.post);
   if (G.t >= A.next && idle.length >= A.wave) { A.next = G.t + 100;
     idle.forEach((u, i) => { const q = freePoint(L0.x + (i % 4 - 1.5) * 26, L0.y + ((i / 4 | 0) - 1) * 26); u.order = { type: 'amove', x: q.x, y: q.y, ai: true } });
     A.wave = Math.min(14, A.wave + 2); hooks.notify(tgt.id, "L'ennemi lance une attaque", "warn");
   }
   for (const u of army) if (u.order && u.order.ai) { u.order.x = L0.x + (Math.random() - .5) * 60; u.order.y = L0.y + (Math.random() - .5) * 60 }
+}
+
+/**
+ * défenses de l'IA, volontairement simples : une tour en bois devant le donjon (côté ennemi), puis une deuxième plus tard,
+ * chacune avec son escalier ; deux archers montent sur chaque tour terminée et y restent en poste.
+ */
+/** l'IA veut-elle une tour de plus ? (une après 3 min 20, une deuxième après 7 min) */
+function towerWanted(p) {
+  const n = G.buildings.filter(b => b.team === p && !b.dead && DEF[b.type].def === 'tour').length;
+  return G.ai[p].i > AI_ORDER.indexOf('caserne') && n < (G.t > 420 ? 2 : G.t > 200 ? 1 : 0);
+}
+function aiDefense(p, A) {
+  const tm = G.teams[p], k = tm.keep, dir = sideOf(p) === 0 ? 1 : -1;
+  const towers = G.buildings.filter(b => b.team === p && !b.dead && DEF[b.type].def === 'tour');
+  if (towerWanted(p) && tm.res.bois >= DEF.tour_b.cost.bois) {
+    for (let i = 0; i < 40; i++) {
+      const cx = k.x + dir * (170 + Math.random() * 120), cy = k.y + (towers.length ? 1 : -1) * (40 + Math.random() * 120);
+      const tx = Math.round(cx / T - 1), ty = Math.round(cy / T - 1);
+      if (!canPlace(p, 'tour_b', tx, ty)) { pay(tm, 'tour_b'); addBuilding(p, 'tour_b', tx, ty, false); return }
+    }
+  }
+  for (const t of towers) {
+    // escalier contre la tour, côté donjon d'abord
+    const hasStair = G.buildings.some(b => b.team === p && !b.dead && b.type === 'escalier' && b.tx >= t.tx - 1 && b.tx <= t.tx + 2 && b.ty >= t.ty - 1 && b.ty <= t.ty + 2);
+    if (!hasStair && afford(tm, 'escalier')) {
+      const back = dir > 0 ? t.tx - 1 : t.tx + 2, front = dir > 0 ? t.tx + 2 : t.tx - 1;
+      const spots = [[back, t.ty], [back, t.ty + 1], [t.tx, t.ty + 2], [t.tx + 1, t.ty + 2], [t.tx, t.ty - 1], [t.tx + 1, t.ty - 1], [front, t.ty]];
+      for (const [x, y] of spots) if (!placeBuilding(p, 'escalier', x, y)) break;
+      continue;
+    }
+    if (!isBuilt(t) || !G.buildings.some(b => b.team === p && b.type === 'escalier' && isBuilt(b) && b.tx >= t.tx - 1 && b.tx <= t.tx + 2 && b.ty >= t.ty - 1 && b.ty <= t.ty + 2)) continue;
+    const posted = G.units.filter(u => u.team === p && !u.dead && u.post === t.id);
+    if (posted.length >= 2) continue;
+    const free = G.units.filter(u => u.team === p && !u.dead && u.type === 'archer' && !u.order && !u.post).sort((a, b) => dist(a.x, a.y, t.x, t.y) - dist(b.x, b.y, t.x, t.y));
+    for (const u of free.slice(0, 2 - posted.length)) { const q = topPoint(t.x + (Math.random() - .5) * 30, t.y + (Math.random() - .5) * 30, sideOf(p)) || { x: t.x, y: t.y }; u.post = t.id; u.order = { type: 'move', x: q.x, y: q.y } }
+  }
+  // tour tombée : ses archers redeviennent disponibles
+  for (const u of G.units) if (u.team === p && u.post && !G.buildings.some(b => b.id === u.post && !b.dead)) u.post = 0;
 }

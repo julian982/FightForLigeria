@@ -1,11 +1,12 @@
 // Les modèles low poly : arbres, bâtiments, unités, flèches, objets portés.
 // ---- Arbres ----
 import * as THREE from 'three';
-import { G, S, gh, identityOf, isFoe } from '@ffl/shared';
+import { DEF, G, S, gh, identityOf, isFoe } from '@ffl/shared';
 import { B, C, I, K, M, TEAMC, TM, VC, boxM, cylM, companion, dyn, gableGeo, merge, mk, teamColor, tr } from './engine';
 import { terrRing } from './world';
 import { personGeo, workerGeo, workerKey, rigGeo, clearRigCache, RIG_TYPES, SHOULDER, ARM_LEN } from './people';
 import { buildKeep, buildHut, buildQuarry, buildBarracks, buildReserve, buildGranary, buildFarm, buildArmory, buildBowyer, buildSpearmaker, buildFletcher, buildMine, buildForge } from './stylized';
+import { buildWall, buildGate, buildStair, buildTower, defMask } from './defenses';
 import { ME } from '../state';
 /** peuplier : une colonne de feuillage faite de boules déformées, sur un tronc fin */
 function poplar(){
@@ -58,8 +59,11 @@ export const BUILD:Record<string,(g:any,b:any)=>void>={
   fleches:buildFletcher,
   forge:buildForge,
   caserne:buildBarracks,
+  mur_b:buildWall,mur_p:buildWall,porte_b:buildGate,porte_p:buildGate,escalier:buildStair,tour_b:buildTower,tour_p:buildTower,
 };
 export function buildingObj(b){
+  // les murs et les portes se raccordent à leurs voisins (le maillage est refait quand un voisin apparaît ou tombe)
+  if(DEF[b.type].def)b.mask=defMask(b);
   const g=new THREE.Group();b.flags=[];BUILD[b.type](g,b);
   g.position.set(b.x*S,Math.min(gh(b.x,b.y),gh(b.bx,b.by),gh(b.bx+b.bw,b.by),gh(b.bx,b.by+b.bh),gh(b.bx+b.bw,b.by+b.bh)),b.y*S);b.rise=b.type==='keep'?1:0;g.scale.y=b.rise?1:.05;
   dyn.add(g);b.obj=g;

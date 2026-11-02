@@ -33,10 +33,17 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 .group.grow{flex:1}
 .group h3{margin:0;font-family:var(--f-display);font-weight:400;font-size:15px;color:var(--gold);letter-spacing:.03em}
 .btns{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
-#buildBtns{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));overflow:visible;max-width:900px}
-#buildBtns .btn{min-width:0}
-#buildBtns .n,#buildBtns .c{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-#buildBtns .btn{padding-right:6px}
+#buildBtns,#defBtns{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));overflow:visible;max-width:900px}
+#defBtns{grid-template-columns:repeat(4,minmax(0,1fr))}
+#buildBtns .btn,#defBtns .btn{min-width:0}
+#buildBtns .n,#buildBtns .c,#defBtns .n,#defBtns .c{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+#buildBtns .btn,#defBtns .btn{padding-right:6px}
+#defBtns[hidden],#buildBtns[hidden]{display:none}
+.bt-tabs{display:flex;gap:4px}
+.bt-tab{all:unset;cursor:pointer;font-family:var(--f-display);font-size:15px;color:var(--muted);padding:1px 10px 3px;border-radius:3px 3px 0 0;border-bottom:2px solid transparent;letter-spacing:.03em}
+.bt-tab[aria-selected=true]{color:var(--gold);border-bottom-color:var(--gold)}
+.bt-tab:hover{color:var(--text)}.bt-tab:focus-visible{outline:2px solid var(--gold)}
+.bt-tab kbd{font-size:10px;opacity:.7}
 .ci{display:inline-flex;align-items:center;gap:3px;margin-right:8px}
 .ci i{width:8px;height:8px;border-radius:2px;display:inline-block}
 .btn{position:relative;flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:96px;padding:6px 9px 6px 26px;background:var(--wood2);border:1px solid var(--rule);border-radius:3px;color:var(--text);font:inherit;text-align:left;cursor:pointer;transition:border-color .12s,background .12s}

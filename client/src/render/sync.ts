@@ -1,10 +1,11 @@
 // Synchronise la scène 3D avec l'état de la simulation, image par image.
 // Les maillages sont créés à la demande : la simulation ne connaît pas Three.js.
 import * as THREE from 'three';
-import { DEF, G, S, T, W, H, afford, canPlace, gh, isFoe, stockPt, trees, truceLeft } from '@ffl/shared';
+import { DEF, G, S, T, W, H, afford, canPlace, gh, isFoe, stockPt, trees, truceLeft, defAt, topHeight, wallPlan, TOP_H, upRange } from '@ffl/shared';
 import { B, C, CAM_D, I, ISO, M, SUN_OFF, VC, VCF, boxM, camT, camera, dyn, mk, scene, sun } from './engine';
 import { birdsTakeOff, life } from './life';
 import { AGEO, CARRY, RINGGEO, RINGMAT, STUMPGEO, arrowObj, buildingObj, treeObj, unitObj } from './models';
+import { defMask } from './defenses';
 import { groundMesh, halfShade, terrRing } from './world';
 import { updSmoke } from './stylized';
 import { animRig, scanShots, rigMaterial } from './bowanim';
@@ -33,6 +34,8 @@ export const aimEnd=new THREE.Mesh(new THREE.RingGeometry(.18,.26,20).rotateX(-M
 export const ghost:any=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshBasicMaterial({color:0x79c06a,transparent:true,opacity:.35,depthWrite:false}));
 export const ghostRange:any=new THREE.Mesh(new THREE.RingGeometry(280*S-.05,280*S,96).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.35,depthWrite:false}));
 for(const m of [aimLine,aimEnd,ghost,ghostRange]){m.visible=false;scene.add(m)}
+/** cases fantômes du mur en train d'être tracé */
+const wallGhosts:any[]=[];
 aimLine.material.depthTest=false;ghostRange.material.depthTest=false;aimLine.renderOrder=aimEnd.renderOrder=ghostRange.renderOrder=5;
 export function ghostTile(){const d=DEF[ui.placing];return{tx:Math.round(mouse.wx/T-d.w/2),ty:Math.round(mouse.wy/T-d.h/2)}}
 /** pendant la trêve : un rideau de lumière dorée au milieu de la carte, que personne ne franchit */
@@ -45,6 +48,14 @@ function updTruceWall(){
   // il pulse doucement, puis s'efface pendant la dernière seconde
   truceWall.material.opacity=(.3+.1*Math.sin(performance.now()/350))*Math.min(1,left);
 }
+/** hauteur d'une unité au-dessus du sol (lissée dans u.ev) : chemin de ronde, plateforme de tour ou rampe d'escalier */
+export function elevOf(u,dt=0){
+  const b=defAt(u.x,u.y);let h=0;
+  if(b&&b.type==='escalier')h=topHeight(u.x,u.y);
+  else if(u.up)h=b?topHeight(u.x,u.y):(u.ev||0); // au bord du chemin de ronde : on garde la hauteur
+  if(u.ev===undefined||!dt)u.ev=h;else u.ev+=(h-u.ev)*Math.min(1,dt*12);
+  return u.ev;
+}
 export function syncScene(dt){
   const t=G.t;updTruceWall();
   ensureObjs();
@@ -52,11 +63,13 @@ export function syncScene(dt){
   for(const u of [...G.units,...G.workers]){
     const m=u.obj;if(!m)continue;
     const sp=Math.hypot(u.vx||0,u.vy||0);u.ph=(u.ph||0)+dt*Math.min(sp,140)*.11;
-    if(u.dead){u.dT=(u.dT||0)+dt;m.position.set(u.x*S,gh(u.x,u.y)+.05,u.y*S);m.rotation.set(0,-u.face,-Math.min(1,u.dT*2.5)*Math.PI/2);if(u.ring)u.ring.visible=false;if(u.rig)animRig(u,dt,now);continue}
+    // hauteur : sur le chemin de ronde, une tour, ou en train de gravir un escalier (lissée pour monter sans à-coup)
+    elevOf(u,dt);
+    if(u.dead){u.dT=(u.dT||0)+dt;m.position.set(u.x*S,gh(u.x,u.y)+.05+u.ev,u.y*S);m.rotation.set(0,-u.face,-Math.min(1,u.dT*2.5)*Math.PI/2);if(u.ring)u.ring.visible=false;if(u.rig)animRig(u,dt,now);continue}
     let bob=sp>5?Math.abs(Math.sin(u.ph))*.06:0,sway=sp>5?Math.sin(u.ph*2)*.07:0,pitch=0;
     if(u.working){bob=Math.abs(Math.sin((u.anim||0)*7))*.04;pitch=Math.sin((u.anim||0)*7)*.25}
     const l=u.lunge?u.lunge/.15*.14:0;
-    m.position.set(u.x*S+Math.cos(u.face)*l,gh(u.x,u.y)+bob,u.y*S+Math.sin(u.face)*l);
+    m.position.set(u.x*S+Math.cos(u.face)*l,gh(u.x,u.y)+bob+u.ev,u.y*S+Math.sin(u.face)*l);
     // archers et seigneurs : arc animé ; en bandant, le buste part légèrement en arrière
     if(u.rig)pitch+=animRig(u,dt,now);
     m.rotation.set(sway,-u.face,-pitch);
@@ -64,16 +77,19 @@ export function syncScene(dt){
     if(u.cobj){u.cobj.visible=!!u.carry;if(u.carry)u.cobj.geometry=CARRY[u.carry.type]}
     const isSel=sel.has(u);
     if(isSel&&!u.ring){u.ring=new THREE.Mesh(RINGGEO,RINGMAT);dyn.add(u.ring)}
-    if(u.ring){u.ring.visible=isSel;u.ring.position.set(u.x*S,gh(u.x,u.y)+.06,u.y*S)}
+    if(u.ring){u.ring.visible=isSel;u.ring.position.set(u.x*S,gh(u.x,u.y)+.06+u.ev,u.y*S)}
   }
-  for(const a of G.arrows){if(!a.obj)continue;const p=Math.min(1,a.d/a.md),h=.55+a.peak*4*p*(1-p)-.45*p,dh=(a.peak*4*(1-2*p)-.45)/(a.md*S);
+  // une flèche tirée d'un mur (ou vers un mur) part de (ou arrive à) la hauteur du chemin de ronde
+  for(const a of G.arrows){if(!a.obj)continue;const p=Math.min(1,a.d/a.md),hs=a.hs||0,he=a.he||0,h=.55+a.peak*4*p*(1-p)-.45*p+hs*(1-p)+he*p,dh=(a.peak*4*(1-2*p)-.45+he-hs)/(a.md*S);
     a.obj.position.set(a.x*S,h+gh(a.x,a.y),a.y*S);a.obj.rotation.set(0,-Math.atan2(a.vy,a.vx),Math.atan(dh))}
   for(const f of G.fx){const p=f.t/f.life;if(!f.obj&&f.k!=='num')fxObj(f);if(!f.obj)continue;
     if(f.k==='puff'){f.obj.scale.setScalar(f.r*(.5+p));f.obj.position.y=f.h+p*.4;f.obj.material.opacity=.7*(1-p)}
     else if(f.k==='loot'){const t=f.t;for(const m of f.obj.children){const u=m.userData;const y=u.vy*t-4.9*t*t;m.position.set(u.vx*t,Math.max(-.6,y),u.vz*t);m.rotation.set(u.sx*t,0,u.sz*t);if(y<-.45){const k=Math.max(0,1-(-.45-y)*3);m.scale.setScalar(k)}}}
     else if(f.k==='stuck'&&!f.set){f.set=1;const h=(f.h===undefined?.08:f.h)+gh(f.x,f.y);f.obj.position.set(f.x*S,h,f.y*S);f.obj.rotation.set(0,-f.a,f.h===undefined?-.5:-.1)}}
   for(const b of G.buildings){
-    const g=b.obj;if(!g)continue;
+    let g=b.obj;if(!g)continue;
+    // un mur ou une porte dont un voisin apparaît ou tombe : on refait son maillage pour le raccorder
+    if(b.mask!==undefined&&DEF[b.type].w===1&&(G.t*4|0)!==b.maskT){b.maskT=G.t*4|0;const m=defMask(b);if(m!==b.mask){const r=b.rise;dyn.remove(g);buildingObj(b);b.rise=r;g=b.obj;g.scale.y=.05+.95*(b.build<1?r:1)}}
     // un chantier sort de terre au rythme de la construction ; terminé, il monte jusqu'en haut
     const site=b.build<1,top=site?.08+.92*b.build:1;
     if(b.rise<top||site){b.rise=Math.min(top,b.rise+dt*1.8);g.scale.y=.05+.95*(site?b.rise:1-Math.pow(1-b.rise,3))}
@@ -108,13 +124,21 @@ export function syncScene(dt){
   }
   const L=G.teams[ME].lord;
   const showAim=ui.running&&!L.dead&&G.ctrl[ME].charging;aimLine.visible=aimEnd.visible=showAim;
-  if(showAim){const md=(200+520*L.charge)*S,c=Math.cos(L.face),s=Math.sin(L.face);aimLine.scale.x=Math.max(.1,md-.4);aimLine.position.set(L.x*S+c*(md/2+.2),gh(L.x,L.y)+.12,L.y*S+s*(md/2+.2));aimLine.rotation.y=-L.face;aimEnd.position.set(L.x*S+c*md,gh(L.x+c*md*T,L.y+s*md*T)+.1,L.y*S+s*md);aimLine.material.opacity=.3+L.charge*.5}
+  if(showAim){const md=(200+520*L.charge)*S*upRange(L),c=Math.cos(L.face),s=Math.sin(L.face);aimLine.scale.x=Math.max(.1,md-.4);aimLine.position.set(L.x*S+c*(md/2+.2),gh(L.x,L.y)+.12+(L.ev||0),L.y*S+s*(md/2+.2));aimLine.rotation.y=-L.face;aimEnd.position.set(L.x*S+c*md,gh(L.x+c*md*T,L.y+s*md*T)+.1,L.y*S+s*md);aimLine.material.opacity=.3+L.charge*.5}
   ghost.visible=ghostRange.visible=false;
   // en posant un bâtiment : sa moitié s'éclaire, celle d'en face s'assombrit (la mine, elle, se pose au centre)
   const placing=!!ui.placing&&ui.running&&ui.placing!=='mine';
   terrRing.forEach((m,id)=>{if(m)m.visible=placing&&id===ME});
   halfShade.forEach((m,side)=>{if(m)m.visible=placing&&side!==(ME&1)});
-  if(ui.placing&&ui.running){
+  for(const m of wallGhosts)m.visible=false;
+  if(ui.placing&&ui.running&&DEF[ui.placing].def==='mur'){
+    // tracé d'un mur : une case fantôme par segment (rouge là où ça bloque), coût total affiché par l'overlay
+    const g=ghostTile(),st=ui.wallStart||g,plan=wallPlan(ME,ui.placing,st.tx,st.ty,g.tx,g.ty),tm=G.teams[ME],rich=Object.keys(plan.cost).every(k=>tm.res[k]>=plan.cost[k]);
+    ui.wallPlan=plan;
+    plan.tiles.forEach((t,i)=>{let m=wallGhosts[i];if(!m){m=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshBasicMaterial({color:0x79c06a,transparent:true,opacity:.38,depthWrite:false}));scene.add(m);wallGhosts[i]=m}
+      m.visible=true;m.scale.set(.96,TOP_H[ui.placing],.96);m.position.set(t.tx+.5,gh((t.tx+.5)*T,(t.ty+.5)*T)+TOP_H[ui.placing]/2,t.ty+.5);m.material.color.setHex(!t.err&&rich?0x79c06a:0xe3634f)});
+  }
+  else if(ui.placing&&ui.running){
     const d=DEF[ui.placing],g=ghostTile(),ok=!canPlace(ME,ui.placing,g.tx,g.ty)&&afford(G.teams[ME],ui.placing);
     ghost.visible=true;ghost.scale.set(d.w,.9,d.h);ghost.position.set(g.tx+d.w/2,gh((g.tx+d.w/2)*T,(g.ty+d.h/2)*T)+.45,g.ty+d.h/2);ghost.material.color.setHex(ok?0x79c06a:0xe3634f);
     if(ui.placing==='bucheron'){ghostRange.visible=true;ghostRange.position.set(g.tx+1,gh((g.tx+1)*T,(g.ty+1)*T)+.15,g.ty+1)}
@@ -154,7 +178,13 @@ export function onRemoved(e){
 export function onReset(){while(dyn.children.length)dyn.remove(dyn.children[0]);marks.length=0}
 // repères d'ordre (anneau qui s'élargit là où on a cliqué) : purement locaux
 export const marks=[];
-export function addMark(x,y){const m=new THREE.Mesh(RINGGEO,new THREE.MeshBasicMaterial({color:0xffe9a8,transparent:true,depthWrite:false}));m.position.set(x*S,gh(x,y)+.07,y*S);dyn.add(m);marks.push({t:0,life:.5,obj:m})}
+/** le point du dessus d'une défense sous le curseur (chemin de ronde, plateforme de tour), en coordonnées du jeu */
+export function pickTop(){
+  const objs=G.buildings.filter(b=>b.obj&&!b.dead&&DEF[b.type].def&&b.type!=='escalier').map(b=>b.obj);if(!objs.length)return null;
+  V2.set(mouse.sx/view.VW*2-1,-(mouse.sy/view.VH)*2+1);ray.setFromCamera(V2,camera);
+  const h=ray.intersectObjects(objs,true)[0];return h?{x:h.point.x*T,y:h.point.z*T}:null;
+}
+export function addMark(x,y){const m=new THREE.Mesh(RINGGEO,new THREE.MeshBasicMaterial({color:0xffe9a8,transparent:true,depthWrite:false}));const d=defAt(x,y);m.position.set(x*S,gh(x,y)+.07+(d&&d.type!=='escalier'&&!(d.build<1)?TOP_H[d.type]:0),y*S);dyn.add(m);marks.push({t:0,life:.5,obj:m})}
 export function updMarks(dt){
   for(const f of marks){f.t+=dt;const p=Math.min(1,f.t/f.life);f.obj.scale.setScalar(1+p*1.5);f.obj.material.opacity=1-p;if(f.t>=f.life){dyn.remove(f.obj);f.obj.material.dispose()}}
   for(let i=marks.length-1;i>=0;i--)if(marks[i].t>=marks[i].life)marks.splice(i,1);

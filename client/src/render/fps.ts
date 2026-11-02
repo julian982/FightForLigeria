@@ -34,7 +34,7 @@ export function updateFps() {
   if (L.dead || !ui.running) { exitFps(); return }
   if (L.obj) L.obj.visible = false;
   fpsCam.aspect = view.VW / view.VH; fpsCam.updateProjectionMatrix();
-  const x = L.x * S, z = L.y * S, y = gh(L.x, L.y) + 1.05, cy = Math.cos(view.fpsYaw), sy = Math.sin(view.fpsYaw), cp = Math.cos(view.fpsPitch);
+  const x = L.x * S, z = L.y * S, y = gh(L.x, L.y) + 1.05 + (L.ev || 0), cy = Math.cos(view.fpsYaw), sy = Math.sin(view.fpsYaw), cp = Math.cos(view.fpsPitch);
   fpsCam.position.set(x + cy * .12, y, z + sy * .12);
   look.set(x + cy * cp * 10, y + Math.sin(view.fpsPitch) * 10, z + sy * cp * 10);
   fpsCam.lookAt(look);

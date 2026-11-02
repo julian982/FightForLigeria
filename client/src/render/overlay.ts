@@ -29,8 +29,8 @@ export function drawOverlay(){
   const sw=ui.selW;if(sw&&!sw.dead){const c=toScreen(sw.x,sw.y,.02),rx=14*z,ry=rx*Math.max(.35,Math.sin(view.pitch));
     octx.strokeStyle='#ffe08a';octx.lineWidth=2;octx.beginPath();octx.ellipse(c.x,c.y,rx,ry,0,0,Math.PI*2);octx.stroke()}
   for(const u of G.units){if(u.dead)continue;const lord=u.type==='lord';if(!lord&&u.hp>=u.maxhp)continue;
-    const p=toScreen(u.x,u.y,lord?1.35:1.05);if(!lord||!isFoe(u.team,ME))bar(p.x,p.y,(lord?38:22)*z,u.hp/u.maxhp,TEAMC[u.team].m);
-    if(lord&&u.charge>0){const q=toScreen(u.x,u.y,.5);octx.strokeStyle=u.charge>=1?'#ffe08a':'#e3b54e';octx.lineWidth=3;octx.beginPath();octx.arc(q.x,q.y,22*z,-Math.PI/2,-Math.PI/2+u.charge*Math.PI*2);octx.stroke()}}
+    const p=toScreen(u.x,u.y,(lord?1.35:1.05)+(u.ev||0));if(!lord||!isFoe(u.team,ME))bar(p.x,p.y,(lord?38:22)*z,u.hp/u.maxhp,TEAMC[u.team].m);
+    if(lord&&u.charge>0){const q=toScreen(u.x,u.y,.5+(u.ev||0));octx.strokeStyle=u.charge>=1?'#ffe08a':'#e3b54e';octx.lineWidth=3;octx.beginPath();octx.arc(q.x,q.y,22*z,-Math.PI/2,-Math.PI/2+u.charge*Math.PI*2);octx.stroke()}}
   for(const w of G.workers)if(w.hp<w.maxhp){const p=toScreen(w.x,w.y,.95);bar(p.x,p.y,16*z,w.hp/w.maxhp,TEAMC[w.team].m)}
   octx.font='700 13px "Alegreya Sans", sans-serif';octx.textAlign='center';octx.lineWidth=3;octx.strokeStyle='rgba(0,0,0,.65)';
   for(const b of G.buildings){
@@ -42,7 +42,12 @@ export function drawOverlay(){
   for(const b of G.buildings)if(b.team===ME&&b.respawn!=null&&!b.dead){const p=toScreen(b.x,b.y,2.1);idleBadge(p.x,p.y,Math.ceil(b.respawn),z)}
   octx.font='800 16px "Alegreya Sans", sans-serif';
   for(const f of G.fx)if(f.k==='num'){const p=toScreen(f.x,f.y,f.h),q=f.t/f.life;octx.globalAlpha=1-q;octx.fillStyle='#fff1c9';octx.strokeText(f.v,p.x,p.y-q*24);octx.fillText(f.v,p.x,p.y-q*24);octx.globalAlpha=1}
-  if(ui.placing&&ui.running){const d=DEF[ui.placing],g=ghostTile(),err=canPlace(ME,ui.placing,g.tx,g.ty),tm=G.teams[ME],ok=!err&&afford(tm,ui.placing);
+  // tracé d'un mur : nombre de cases et coût, ou ce qui bloque
+  if(ui.placing&&ui.running&&DEF[ui.placing].def==='mur'&&ui.wallPlan){const pl=ui.wallPlan,tm=G.teams[ME],g=ghostTile(),lack=Object.keys(pl.cost).filter(k=>tm.res[k]<pl.cost[k]);
+    const cost=Object.entries(pl.cost).map(([k,v])=>v+' '+RESN[k]).join(' · '),n=pl.tiles.length;
+    const s=pl.err||(lack.length?'Il manque '+lack.map(k=>(pl.cost[k]-tm.res[k])+' '+RESN[k]).join(', '):ui.wallStart?`${n} case${n>1?'s':''} · ${cost}`:`${DEF[ui.placing].name} : glisse pour tracer (${cost} la case)`),p=toScreen((g.tx+.5)*T,(g.ty+.5)*T,1.6);
+    octx.font='700 14px "Alegreya Sans", sans-serif';octx.fillStyle=!pl.err&&!lack.length?'#e9ffd9':'#ffb3a6';octx.strokeText(s,p.x,p.y);octx.fillText(s,p.x,p.y)}
+  else if(ui.placing&&ui.running){const d=DEF[ui.placing],g=ghostTile(),err=canPlace(ME,ui.placing,g.tx,g.ty),tm=G.teams[ME],ok=!err&&afford(tm,ui.placing);
     const s=err||(!afford(tm,ui.placing)?'Il manque '+missing(tm,ui.placing):d.name),p=toScreen((g.tx+d.w/2)*T,(g.ty+d.h/2)*T,1.3);
     octx.font='700 14px "Alegreya Sans", sans-serif';octx.fillStyle=ok?'#e9ffd9':'#ffb3a6';octx.strokeText(s,p.x,p.y);octx.fillText(s,p.x,p.y)}
   if(ui.box){const x=Math.min(ui.box.sx,mouse.sx),y=Math.min(ui.box.sy,mouse.sy),w=Math.abs(mouse.sx-ui.box.sx),h=Math.abs(mouse.sy-ui.box.sy);

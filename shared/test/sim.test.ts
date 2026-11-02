@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   loadMap, newGame, MAPS, truceLeft, truceReal, cancelCharge, H1, cleanBlason, randomBlason, BLASON_DEFAULT, queueWindow, update, setHooks, G, trees, MAP_IDS, walkWater, rawWater, laneY,
   seasonAt, seasonStart, seasonEnd, softReset, metalOf, frameName,
+  placeWall, wallTiles, wallPlan, navGrids, topGrids, topAt, cellOf, DEF, TOWER_MAX, UP_RANGE, COVER_DMG, FALL_DMG, T,
   placeBuilding, finishBuilding, BUILD_T, recruit, startCharge, releaseCharge, steer, orderMove, spawnUnit, hit, findSpot, addBuilding,
   START_ARROWS, RESPAWN, UT, ELO, armySize, rangeOf, demolish, START_RES, STONES, IRONS, shotClear, findPath, buildNav, KEEPS, PLAYERS, H, isFoe, onPath, MAP, fireArrow, orderAttack, applyCommand, makeSnapshot, B_TYPES, forfeit, canPlace, GW, GH, identityOf, jobOf, riverY, W,
 } from '../src/index';
@@ -744,5 +745,137 @@ describe('saisons classées', () => {
   it('cadre de blason : famille du meilleur rang', () => {
     expect(metalOf(950)).toBe(0); expect(metalOf(1150)).toBe(1); expect(metalOf(1900)).toBe(3); expect(metalOf(2100)).toBe(4); expect(metalOf(3000)).toBe(5);
     expect(frameName({ season: 1, metal: 4 })).toBe('Saison 1 · Or');
+  });
+});
+
+describe('défenses : murs, portes, escaliers, tours', () => {
+  function setup() { loadMap('amboise'); newGame({ ai: [false, false] }); G.truceEnd = 0; for (const tm of G.teams) { tm.res.bois = 2000; tm.res.pierre = 2000 } G.teams[1].lord.x = 3000 }
+  /** une rangée de n cases libres dans la moitié de l'équipe 0, près du donjon */
+  function clearRow(n: number, type = 'mur_b') {
+    for (let ty = 14; ty < 32; ty++) for (let tx = 12; tx < 36 - n; tx++) {
+      let ok = true; for (let i = -1; i <= n && ok; i++) for (const dy of [-1, 0, 1]) if (canPlace(0, type, tx + i, ty + dy)) ok = false;
+      if (ok) return { tx, ty };
+    }
+    throw new Error('pas de place');
+  }
+  const segs = (type?: string) => G.buildings.filter(b => b.team === 0 && !b.dead && (type ? b.type === type : DEF[b.type].def === 'mur'));
+  function buildAll() { run(200, () => !G.buildings.some(b => b.build < 1 && !b.dead)) }
+
+  it('tracé : droit ou à 45°, 24 cases au plus', () => {
+    expect(wallTiles(10, 10, 15, 11).map(t => t.ty)).toEqual([10, 10, 10, 10, 10, 10]);
+    expect(wallTiles(10, 10, 11, 14).map(t => t.tx)).toEqual([10, 10, 10, 10, 10]);
+    expect(wallTiles(10, 10, 13, 7)).toEqual([{ tx: 10, ty: 10 }, { tx: 11, ty: 9 }, { tx: 12, ty: 8 }, { tx: 13, ty: 7 }]);
+    expect(wallTiles(0, 0, 60, 0).length).toBe(24);
+  });
+  it('un mur tracé d\'un coup : payé par segment, un seul bâtisseur qui monte les segments un par un', () => {
+    setup(); const tm = G.teams[0], r = clearRow(6), bois = tm.res.bois, nw = G.workers.length;
+    expect(placeWall(0, 'mur_b', r.tx, r.ty, r.tx + 5, r.ty)).toBeNull();
+    expect(tm.res.bois).toBe(bois - 6 * 3); expect(segs().length).toBe(6); expect(G.workers.length).toBe(nw + 1);
+    run(12); const done = segs().filter(b => !(b.build < 1)).length; expect(done).toBeGreaterThan(0); expect(done).toBeLessThan(6);
+    expect(G.workers.filter(w => w.team === 0).length).toBe(nw + 1);
+    buildAll(); expect(segs().every(b => !(b.build < 1))).toBe(true);
+    run(15); expect(G.workers.filter(w => w.team === 0).length).toBe(nw); // le bâtisseur est rentré
+    // re-tracer par-dessus : les cases déjà murées sont sautées
+    expect(placeWall(0, 'mur_b', r.tx, r.ty, r.tx + 5, r.ty)).toBe('Ce mur existe déjà');
+    expect(wallPlan(0, 'mur_p', r.tx, r.ty, r.tx + 7, r.ty).tiles.length).toBe(2);
+  });
+  it('pierre plus solide que le bois ; seuls lanciers et spadassins les abîment', () => {
+    expect(DEF.mur_p.hp).toBeGreaterThan(DEF.mur_b.hp); expect(DEF.tour_p.hp).toBeGreaterThan(DEF.tour_b.hp);
+    setup(); const r = clearRow(3);
+    placeWall(0, 'mur_b', r.tx, r.ty, r.tx + 2, r.ty); buildAll();
+    const w = segs()[1], hp = w.hp;
+    const a = spawnUnit(1, 'archer', { x: w.x, y: w.y + 150 }); orderAttack(1, [a], w); expect(a.order).toBeNull();
+    a.cd = 0; run(4); expect(w.hp).toBe(hp); // les flèches s'y plantent
+    const l = spawnUnit(1, 'lancier', { x: w.x, y: w.y + 60 }); orderAttack(1, [l], w); run(6); expect(w.hp).toBeLessThan(hp);
+  });
+  it('porte : on la pose dans le mur ; elle laisse passer son camp, pas l\'ennemi', () => {
+    setup(); const r = clearRow(5);
+    placeWall(0, 'mur_b', r.tx, r.ty, r.tx + 4, r.ty); buildAll();
+    const mid = segs().find(b => b.tx === r.tx + 2)!;
+    expect(placeBuilding(0, 'porte_b', r.tx + 2, r.ty)).toBeNull();
+    expect(mid.dead).toBe(true); buildAll(); update(DT);
+    const c = cellOf((r.tx + 2) * T + 12, r.ty * T + 20), w = cellOf(r.tx * T + 20, r.ty * T + 20);
+    expect(navGrids[0][c]).toBe(0); expect(navGrids[1][c]).toBe(1); expect(navGrids[0][w]).toBe(1); expect(navGrids[1][w]).toBe(1);
+  });
+  it('escalier : contre un mur seulement ; on monte sur le chemin de ronde et on en redescend', () => {
+    setup(); const r = clearRow(5);
+    expect(placeBuilding(0, 'escalier', r.tx, r.ty + 3)).toMatch(/contre un de tes murs/);
+    placeWall(0, 'mur_b', r.tx, r.ty, r.tx + 4, r.ty);
+    expect(placeBuilding(0, 'escalier', r.tx, r.ty + 1)).toBeNull();
+    buildAll(); update(DT);
+    const u = spawnUnit(0, 'lancier', { x: (r.tx + 2) * T, y: (r.ty + 3) * T });
+    orderMove(0, [u], (r.tx + 4) * T + 20, r.ty * T + 20);
+    run(20, () => !u.order);
+    expect(u.up).toBe(true); expect(topAt(u.x, u.y, 0)).toBeTruthy();
+    orderMove(0, [u], (r.tx + 2) * T, (r.ty + 4) * T);
+    run(20, () => !u.order);
+    expect(u.up).toBeFalsy(); expect(Math.abs(u.y - (r.ty + 4) * T)).toBeLessThan(30);
+    // l'ennemi ne monte pas par cet escalier : la case lui est fermée
+    expect(navGrids[1][cellOf(r.tx * T + 20, (r.ty + 1) * T + 20)]).toBe(1);
+  });
+  it('tours : 4 au plus (bois et pierre confondus), 4 soldats au plus dessus, portée allongée', () => {
+    setup(); const placed: any[] = [];
+    for (let i = 0; i < 40 && placed.length < 4; i++) { const s = findSpot(0, i % 2 ? 'tour_p' : 'tour_b'); if (s && !placeBuilding(0, i % 2 ? 'tour_p' : 'tour_b', s.tx, s.ty)) placed.push(s) }
+    expect(placed.length).toBe(4);
+    expect(canPlace(0, 'tour_b', KEEPS[0].tx + 6, KEEPS[0].ty)).toMatch(/4 tours/);
+    const t = G.buildings.find(b => b.team === 0 && b.type === 'tour_b')!;
+    expect(placeBuilding(0, 'escalier', t.tx - 1, t.ty) && placeBuilding(0, 'escalier', t.tx + 2, t.ty) && placeBuilding(0, 'escalier', t.tx, t.ty + 2) && placeBuilding(0, 'escalier', t.tx, t.ty - 1)).toBeNull();
+    buildAll(); update(DT);
+    const archers = [0, 1, 2, 3, 4].map(i => spawnUnit(0, 'archer', { x: t.x + (i - 2) * 25, y: t.y + 130 }));
+    orderMove(0, archers, t.x, t.y);
+    run(30, () => archers.every(a => !a.order));
+    const onTop = archers.filter(a => a.up && topAt(a.x, a.y, 0) === t);
+    expect(onTop.length).toBe(4);
+    expect(rangeOf(onTop[0]).range).toBeCloseTo(UT.archer.range * UP_RANGE.tour, 3);
+  });
+  it('créneaux : une partie des flèches ennemies est arrêtée, les autres font 25 % de dégâts en moins ; chute si le mur tombe', () => {
+    setup(); const r = clearRow(4);
+    placeWall(0, 'mur_p', r.tx, r.ty, r.tx + 3, r.ty); placeBuilding(0, 'escalier', r.tx, r.ty + 1); buildAll(); update(DT);
+    const u = spawnUnit(0, 'spadassin', { x: (r.tx + 1) * T, y: (r.ty + 3) * T }); u.maxhp = u.hp = 1e6;
+    orderMove(0, [u], (r.tx + 3) * T + 20, r.ty * T + 20); run(20, () => !u.order); expect(u.up).toBe(true);
+    let hits = 0, n = 300;
+    for (let i = 0; i < n; i++) { const hp = u.hp; G.arrows.push({ id: 9e5 + i, team: 1, x: u.x, y: u.y + 30, vx: 0, vy: -470, d: 0, md: 200, dmg: 20, lord: false, z: 0, high: true, hs: 0, he: 1 } as any); update(DT); update(DT); if (u.hp < hp) { hits++; expect(hp - u.hp).toBe(Math.ceil(20 * .5 * COVER_DMG) > 0 ? Math.max(1, Math.round(Math.ceil(20 * .5) * COVER_DMG)) : 1) } }
+    expect(hits / n).toBeGreaterThan(.5); expect(hits / n).toBeLessThan(.8);
+    // le segment sous lui s'effondre : il tombe et se blesse
+    const under = G.buildings.find(b => b.team === 0 && !b.dead && b.tx === Math.floor(u.x / T) && b.ty === Math.floor(u.y / T))!;
+    G.arrows = []; u.maxhp = u.hp = 400; hit(under, 1e6, false, 1); run(.2);
+    expect(u.up).toBeFalsy(); expect(u.hp).toBe(400 - Math.ceil(400 * FALL_DMG));
+  });
+  it('au corps à corps, on ne frappe pas ce qui est sur un mur ; bloqué par un mur, on l\'attaque', () => {
+    setup(); const r = clearRow(3);
+    placeWall(0, 'mur_b', r.tx, r.ty, r.tx + 2, r.ty); placeBuilding(0, 'escalier', r.tx, r.ty + 1); buildAll(); update(DT);
+    const d = spawnUnit(0, 'archer', { x: (r.tx + 1) * T, y: (r.ty + 3) * T }); orderMove(0, [d], (r.tx + 2) * T + 20, r.ty * T + 20); run(20, () => !d.order); expect(d.up).toBe(true);
+    const l = spawnUnit(1, 'lancier', { x: d.x, y: d.y - 70 }); d.cd = 99; const hp = d.hp; l.order = { type: 'attack', target: d };
+    run(4); expect(d.hp).toBe(hp); // il ne l'atteint pas…
+  });
+  it('bâtisseur tué : un seul remplaçant revient finir le mur', () => {
+    setup(); const r = clearRow(8), nw = G.workers.filter(w => w.team === 0).length;
+    placeWall(0, 'mur_p', r.tx, r.ty, r.tx + 7, r.ty); run(3);
+    const w = G.workers.find(x => x.site)!; w.dead = true; run(.5);
+    run(RESPAWN + 1); expect(G.workers.filter(x => x.team === 0 && !x.dead).length).toBe(nw + 1);
+    buildAll(); expect(segs('mur_p').every(b => !(b.build < 1))).toBe(true);
+  });
+  it('le seigneur monte en marchant sur l\'escalier, et tire plus loin depuis le mur', () => {
+    setup(); const r = clearRow(4), L = G.teams[0].lord;
+    placeWall(0, 'mur_b', r.tx, r.ty, r.tx + 3, r.ty); placeBuilding(0, 'escalier', r.tx + 1, r.ty + 1); buildAll(); update(DT);
+    L.x = (r.tx + 1.5) * T; L.y = (r.ty + 3.5) * T; L.sx = undefined;
+    steer(0, 0, -1, null); run(2); steer(0, 0, 0, null);
+    expect(L.up).toBe(true);
+    steer(0, 1, 0, null); run(.6); steer(0, 0, 0, null);
+    // sur le chemin de ronde (au bord près : on peut longer le parapet)
+    expect(L.up).toBe(true); expect(topAt(L.x, L.y, 0) || topAt(L.x, L.y + 7, 0)).toBeTruthy();
+    // il ne descend pas en sautant du mur : seulement par l'escalier
+    steer(0, 0, 1, null); run(1); expect(L.up).toBe(true);
+    const n = G.arrows.length; L.cd = 0; G.teams[0].res.fleche = 5; startCharge(0); run(1.2); releaseCharge(0);
+    expect(G.arrows.length).toBe(n + 1); expect(G.arrows[n].high).toBe(true); expect(G.arrows[n].md).toBeCloseTo(720 * 1.15, 3);
+  });
+  it('réseau : la commande de mur, la hauteur des soldats et le sens des escaliers partent dans l\'instantané', () => {
+    setup(); const r = clearRow(3);
+    expect(applyCommand(0, { c: 'wall', type: 'mur_b', x0: r.tx, y0: r.ty, x1: r.tx + 2, y1: r.ty })).toBeNull();
+    expect(applyCommand(0, { c: 'place', type: 'mur_b', tx: r.tx, ty: r.ty + 4 })).toBeNull(); // un mur ne se pose qu'en tracé
+    expect(segs().length).toBe(3);
+    expect(applyCommand(0, { c: 'place', type: 'escalier', tx: r.tx, ty: r.ty + 1 })).toBeNull();
+    const s = makeSnapshot([]); const st = s.b.find(b => B_TYPES[b[2]] === 'escalier')!; expect(st[11]).toBe(0);
+    expect(s.u[0].length).toBe(13);
   });
 });

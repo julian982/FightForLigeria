@@ -331,6 +331,7 @@
       <p class="g-note">Le plus simple pour débuter : lance le <b>Tutoriel</b> depuis la page Jouer. Il te fait poser chaque bâtiment, un par un, sans adversaire.</p>
       <p class="g-note"><b>La trêve</b> : chaque partie (en ligne, contre l'IA ou classée) commence par 20 secondes sans combat. Personne ne peut blesser l'ennemi ni franchir le milieu de la carte : profite-en pour lancer ton village. Une cloche sonne la fin de la trêve.</p>
       <p class="g-note"><b>Les chantiers</b> : chaque bâtiment posé est construit par son ouvrier, qui part du donjon (de 8 à 16 secondes selon le bâtiment). Seuls la réserve et le grenier apparaissent tout de suite. Il ne sert à rien tant que le chantier n'est pas fini : la barre dorée montre l'avancement.</p>
+      <p class="g-note"><b>Les défenses</b> (onglet Défenses, touche <kbd>B</kbd>) : trace des murs de bois ou de pierre en glissant la souris, ajoute des portes (elles ne s'ouvrent qu'à ton camp), un escalier pour monter sur le chemin de ronde, et jusqu'à 4 tours. En hauteur, tes archers tirent plus loin et les créneaux arrêtent une partie des flèches ennemies. Seuls les lanciers et les spadassins cassent les murs.</p>
       <div class="guide">
         <article class="g">
           <h3>Ton seigneur</h3>
@@ -668,7 +669,7 @@
   <div id="selBar" hidden></div>
   <div id="bldPanel" hidden></div>
   <div id="wkPanel" hidden></div>
-  <div class="group grow"><h3>Construire</h3><div class="btns" id="buildBtns"></div></div>
+  <div class="group grow"><div class="bt-tabs" role="tablist" aria-label="Construction"><button type="button" class="bt-tab" role="tab" data-tab="b" aria-selected="true">Construire</button><button type="button" class="bt-tab" role="tab" data-tab="d" aria-selected="false">Défenses <kbd>B</kbd></button></div><div class="btns" id="buildBtns"></div><div class="btns" id="defBtns" hidden></div></div>
   <div class="group"><h3>Caserne</h3><div class="btns">
     <button class="btn" id="bArcher" type="button"><kbd>R</kbd><span class="n">Archer</span><span class="c">1 arc</span></button>
     <button class="btn" id="bLancier" type="button"><kbd>T</kbd><span class="n">Lancier</span><span class="c">1 lance</span></button>

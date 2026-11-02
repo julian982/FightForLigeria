@@ -1,5 +1,5 @@
 // Le bandeau du haut (ressources, vie du seigneur) et celui du bas (bâtiments, recrutement).
-import { BUILD_LIST, DEF, G, RESN, truceReal, STORE_OF, afford, armySize, identityOf, isFoe, jobOf, missing, refundOf } from '@ffl/shared';
+import { BUILD_LIST, DEFENSE_LIST, TOWER_MAX, DEF, G, RESN, truceReal, STORE_OF, afford, armySize, identityOf, isFoe, jobOf, missing, refundOf } from '@ffl/shared';
 import { TEAMC } from '../render/engine';
 import { portraitSvg } from './portrait';
 import { unitShot } from '../render/unitshot';
@@ -27,7 +27,17 @@ export const bb=$('buildBtns');
 for(const t of BUILD_LIST){const d=DEF[t],b=document.createElement('button');b.className='btn';b.type='button';b.dataset.b=t;
   b.title=d.name+" : "+costStr(d.cost);b.innerHTML=`<kbd>${d.key}</kbd><span class="n">${SHORT[t]||d.name}</span><span class="c">${costHtml(d.cost)}</span>`;
   b.addEventListener('click',()=>selectBuild(t));bb.appendChild(b)}
-export function selectBuild(t){if(!ui.running)return;ui.placing=ui.placing===t?null:t;if(ui.placing)playSfx('choix',.6,0,.97+Math.random()*.06);ui.selB=null;ui.selW=null;act.cancel();refreshHud()}
+// onglet « Défenses » : murs (à tracer), portes, escalier, tours (4 au plus)
+const DEF_SHORT={mur_b:'Mur de bois',mur_p:'Mur de pierre',porte_b:'Porte de bois',porte_p:'Porte de pierre',escalier:'Escalier',tour_b:'Tour de bois',tour_p:'Tour de pierre'};
+const DEF_HINT={mur_b:'à tracer en glissant, prix par case',mur_p:'à tracer en glissant, prix par case',porte_b:'dans un trou du mur, ou à la place d\'un segment',porte_p:'dans un trou du mur, ou à la place d\'un segment',escalier:'contre un mur ou une tour : pour y monter',tour_b:'4 tours au plus',tour_p:'4 tours au plus'};
+export const db=$('defBtns');
+for(const t of DEFENSE_LIST){const d=DEF[t],b=document.createElement('button');b.className='btn';b.type='button';b.dataset.b=t;
+  b.title=`${d.name} : ${costStr(d.cost)}${d.def==='mur'?' par case':''} · ${DEF_HINT[t]}`;b.innerHTML=`<kbd>${d.key}</kbd><span class="n">${DEF_SHORT[t]}</span><span class="c">${costHtml(d.cost)}${d.def==='mur'?'<small>/case</small>':''}</span>`;
+  b.addEventListener('click',()=>selectBuild(t));db.appendChild(b)}
+/** onglet de la barre de construction : « b » (bâtiments) ou « d » (défenses) */
+export function setBuildTab(tab:'b'|'d'){ui.buildTab=tab;bb.hidden=tab!=='b';db.hidden=tab!=='d';for(const x of document.querySelectorAll<HTMLElement>('.bt-tab'))x.setAttribute('aria-selected',String(x.dataset.tab===tab));refreshHud()}
+for(const x of document.querySelectorAll<HTMLElement>('.bt-tab'))x.addEventListener('click',()=>{setBuildTab(x.dataset.tab as any);x.blur()});
+export function selectBuild(t){if(!ui.running)return;ui.placing=ui.placing===t?null:t;ui.wallStart=null;if(ui.placing)playSfx('choix',.6,0,.97+Math.random()*.06);ui.selB=null;ui.selW=null;act.cancel();refreshHud()}
 export function askRecruit(type){
   if(!ui.running)return;
   const err=act.recruit(type);if(err){toast(err);return}
@@ -44,6 +54,8 @@ export function refreshHud(){
   const sh=tm.stash;setChip('cBois',r.bois,false,sh.bois);setChip('cPierre',r.pierre,false,sh.pierre);setChip('cBle',r.ble,r.ble<=0&&sh.ble<=0,sh.ble);setChip('cFer',r.fer,false,sh.fer);setChip('cArc',r.arc,false,sh.arc||0);setChip('cLance',r.lance,false,sh.lance||0);setChip('cEpee',r.epee,false,sh.epee||0);setChip('cFleche',r.fleche,r.fleche<=2);
   setChip('cArmy',armySize(ME));
   for(const b of bb.children){const t=b.dataset.b,missing=DEF[t].store&&!G.buildings.some(o=>o.team===ME&&o.type===t&&!o.dead);b.classList.toggle('poor',!afford(tm,t)||!!(DEF[t].store&&!missing));b.classList.toggle('active',ui.placing===t);b.classList.toggle('need',!!missing)}
+  const towers=G.buildings.filter(o=>o.team===ME&&!o.dead&&DEF[o.type].def==='tour').length;
+  for(const b of db.children){const t=b.dataset.b;b.classList.toggle('poor',!afford(tm,t)||(DEF[t].def==='tour'&&towers>=TOWER_MAX));b.classList.toggle('active',ui.placing===t)}
   const cas=G.buildings.some(b=>b.team===ME&&b.type==='caserne'&&!b.dead&&!(b.build<1));
   $('bArcher').classList.toggle('poor',!cas||r.arc<1);$('bLancier').classList.toggle('poor',!cas||r.lance<1);$('bSpad').classList.toggle('poor',!cas||r.epee<1);
   const L=tm.lord,el=$('hpP');el.querySelector('b').textContent=Math.max(0,Math.ceil(L.hp));el.querySelector('.fill').style.width=Math.max(0,L.hp/L.maxhp*100)+'%';

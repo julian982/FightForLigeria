@@ -25,14 +25,34 @@ export const DEF: Record<string, any> = {
   mine:    {name:'Mine de fer',w:2,h:2,cost:{bois:30,pierre:15},hp:300,key:7,work:12,out:['fer',1]},
   forge:   {name:'Forge',w:2,h:2,cost:{bois:20,pierre:20},hp:260,key:8,work:30,out:['epee',1],input:{fer:2,bois:3}},
   fleches: {name:'Atelier de flèches',w:2,h:2,cost:{bois:12},hp:180,key:9,work:10,out:['fleche',4],input:{bois:2}},
+  // ---- défenses (onglet « Défenses ») : def = rôle, mat = matériau. Seuls lanciers et spadassins les abîment. ----
+  mur_b:   {name:'Mur en bois',w:1,h:1,cost:{bois:3},hp:250,def:'mur',mat:'bois'},
+  mur_p:   {name:'Mur en pierre',w:1,h:1,cost:{pierre:4,bois:1},hp:700,def:'mur',mat:'pierre'},
+  porte_b: {name:'Porte en bois',w:1,h:1,cost:{bois:12},hp:400,def:'porte',mat:'bois'},
+  porte_p: {name:'Porte en pierre',w:1,h:1,cost:{pierre:15,bois:5},hp:900,def:'porte',mat:'pierre'},
+  escalier:{name:'Escalier',w:1,h:1,cost:{bois:8},hp:200,def:'escalier',mat:'bois'},
+  tour_b:  {name:'Tour en bois',w:2,h:2,cost:{bois:60},hp:800,def:'tour',mat:'bois'},
+  tour_p:  {name:'Tour en pierre',w:2,h:2,cost:{pierre:70,bois:30},hp:1800,def:'tour',mat:'pierre'},
 };
 export const ARMY_MAX = 30;
 /** temps de construction de chaque bâtiment (secondes de travail de l'ouvrier, une fois arrivé sur le chantier).
  *  La réserve et le grenier n'en ont pas : ils sont posés tout de suite, pour que le stock de départ arrive aussitôt. */
-export const BUILD_T: Record<string, number> = { armurerie: 8, bucheron: 8, fleches: 8, carriere: 10, ferme: 10, arcs: 12, lances: 12, mine: 14, caserne: 16, forge: 16 };
+export const BUILD_T: Record<string, number> = { mur_b: 3, mur_p: 5, porte_b: 6, porte_p: 8, escalier: 4, tour_b: 20, tour_p: 30, armurerie: 8, bucheron: 8, fleches: 8, carriere: 10, ferme: 10, arcs: 12, lances: 12, mine: 14, caserne: 16, forge: 16 };
 export const BUILD_LIST = ['reserve','grenier','bucheron','carriere','ferme','fleches','arcs','lances','caserne','mine','forge','armurerie'];
 export const BUILD_KEYS = ['1','2','3','4','5','6','7','8','9','0',')','='];
 BUILD_LIST.forEach((t, i) => DEF[t].key = BUILD_KEYS[i]);
+/** l'onglet « Défenses » : mêmes touches 1 à 7 quand il est ouvert */
+export const DEFENSE_LIST = ['mur_b','mur_p','porte_b','porte_p','escalier','tour_b','tour_p'];
+DEFENSE_LIST.forEach((t, i) => DEF[t].key = String(i + 1));
+/** tours par joueur (bois et pierre confondus), soldats au plus sur une tour, longueur d'un mur tracé d'un coup */
+export const TOWER_MAX = 4, TOWER_CAP = 4, WALL_MAX = 24;
+/** sur un mur ou une tour : portée des archers (et du seigneur) allongée, flèches ennemies arrêtées par les créneaux,
+ *  dégâts réduits pour celles qui passent ; chute quand le mur s'effondre (part de la vie) */
+export const UP_RANGE: Record<string, number> = { mur: 1.15, porte: 1.15, escalier: 1, tour: 1.35 };
+export const UP_MISS: Record<string, number> = { mur: .35, porte: .35, escalier: 0, tour: .5 };
+export const COVER_DMG = .75, FALL_DMG = .15;
+/** hauteur du chemin de ronde (unités 3D) : là où se tiennent les soldats montés */
+export const TOP_H: Record<string, number> = { mur_b: .95, mur_p: 1.05, porte_b: .95, porte_p: 1.05, escalier: .95, tour_b: 1.75, tour_p: 2.0 };
 // stockage : le blé va au grenier, bois/pierre/fer à la réserve, les armes à l'armurerie, les flèches (celles du seigneur) au donjon
 export const STORE_OF: Record<string, string> = {ble:'grenier',bois:'reserve',pierre:'reserve',fer:'reserve',arc:'armurerie',lance:'armurerie',epee:'armurerie'};
 /** article pour les messages : « une réserve », « un grenier », « une armurerie » */

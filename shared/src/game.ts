@@ -1,10 +1,10 @@
 // La simulation : création de partie, ouvriers, combat, famine, commandes des joueurs.
 // Aucun accès au DOM ni à Three.js : le client lit `G` pour dessiner, et reçoit les événements par `hooks`.
-import { T, GW, GH, W, H, TERR, S, DEF, ARMY_MAX, BUILD_T, STORE_OF, START_RES, RICH_RES, UT, RESN, NEED, STONES, IRONS, ROCKS, RESPAWN, TREE_R, CHARGE_T, AI_ARCHER_RANGE, KEEPS, PLAYERS, sideOf, isFoe, inHalf, STORE_ART, LORD_VS_LORD } from './config';
+import { T, GW, GH, W, H, TERR, S, DEF, ARMY_MAX, BUILD_T, STORE_OF, START_RES, RICH_RES, UT, RESN, NEED, STONES, IRONS, ROCKS, RESPAWN, TREE_R, CHARGE_T, AI_ARCHER_RANGE, KEEPS, PLAYERS, sideOf, isFoe, inHalf, STORE_ART, LORD_VS_LORD, TOWER_MAX, WALL_MAX, UP_RANGE, UP_MISS, COVER_DMG, FALL_DMG, TOP_H } from './config';
 import { rawWater, genTrees, gh } from './maps';
 import { dist, dE, rectDist, rectClamp, inRect } from './util';
 import { G, trees, setG, setTrees, hooks } from './state';
-import { navDirty, navVer, dirtyNav, blocksOf, solidAt, buildNav, freePoint, nav, pushOut, shotClear, treesNear } from './nav';
+import { navDirty, navVer, dirtyNav, blocksOf, solidAt, buildNav, freePoint, nav, pushOut, shotClear, treesNear, isDefense, defAt, topAt, topNear, topPoint, topHeight } from './nav';
 import { aiTick, updAiLord } from './ai';
 import { newBoats, updBoat, boatHit, lootBoat } from './boat';
 
@@ -81,14 +81,16 @@ function unstash(tm, type) { for (const k of STORED[type]) { tm.res[k] += tm.sta
  * et le construit sur place ; il ne sert à rien tant qu'il n'est pas fini. Les bâtiments sans métier (armurerie, caserne)
  * reçoivent un bâtisseur, qui rentre au donjon une fois le travail fini. La réserve et le grenier sont instantanés (pas de BUILD_T).
  */
-export function addBuilding(team, type, tx, ty, built = true) {
+export function addBuilding(team, type, tx, ty, built = true, withWorker = true) {
   const d = DEF[type];
   const b: any = { kind: 'building', id: G.nid++, team, type, tx, ty, bx: tx * T, by: ty * T, bw: d.w * T, bh: d.h * T, hp: d.hp, maxhp: d.hp, flash: 0, worker: null, dead: false, grow: 0 };
   b.x = b.bx + b.bw / 2; b.y = b.by + b.bh / 2; b.blocks = blocksOf(b);
   if (!built && type !== 'keep' && BUILD_T[type]) { b.build = 0; b.hp = Math.ceil(d.hp * .2) }
+  // escalier : il monte vers la défense voisine (0 = vers le nord, 1 = l'est, 2 = le sud, 3 = l'ouest)
+  if (type === 'escalier') b.dir = stairDir(team, tx, ty);
   G.buildings.push(b); dirtyNav(); if (type !== 'keep' && G.st) G.st[team].built++;
   if (d.store && !(b.build < 1)) unstash(G.teams[team], type);
-  if (d.work || b.build < 1) spawnWorker(b);
+  if (withWorker && (d.work || b.build < 1)) spawnWorker(b);
   return b;
 }
 /** le bâtiment est-il debout et terminé (pas un chantier) ? */
@@ -98,14 +100,20 @@ export function finishBuilding(b) {
   if (!(b.build < 1)) return;
   b.build = 1; b.hp = Math.max(b.hp, b.maxhp);
   if (DEF[b.type].store) unstash(G.teams[b.team], b.type);
-  const w = b.worker; if (w && w.builder) { w.state = 'home'; b.worker = null }
+  const w = b.worker;
+  // mur tracé d'un coup : le même bâtisseur passe au segment suivant
+  const next = w && w.site ? w.site.segs.find(s => s.build < 1 && !s.dead) : null;
+  if (next) { w.b = next; next.worker = w; b.worker = null }
+  else if (w && w.builder) { w.state = 'home'; b.worker = null }
   if (w) w.spot = null;
+  if (isDefense(b)) dirtyNav(); // le chemin de ronde s'agrandit
   G.fx.push({ k: 'built', x: b.x, y: b.y, team: b.team, t: 0, life: .1 });
 }
 function spawnWorker(b) {
   const sp = stockPt(b.team);
   const w = { kind: 'worker', id: G.uid++, team: b.team, x: sp.x, y: sp.y, r: 7, hp: 30, maxhp: 30, speed: 76, b, state: 'toWork', timer: 0, carry: null, tree: null, need: false, flash: 0, dead: false, vx: 0, vy: 0, face: 0, builder: !DEF[b.type].work };
   b.worker = w; b.respawn = null; G.workers.push(w); if (G.teams[b.team].starving) setStarve(w, true);
+  if (b.site) { (w as any).site = b.site; b.site.worker = w }
 }
 function setStarve(e, on) {
   if (e.baseHp === undefined) e.baseHp = e.maxhp;
@@ -133,8 +141,12 @@ export function canPlace(team, type, tx, ty): string | null {
   // on construit où on veut dans sa moitié de carte ; seule la mine va sur le gisement de fer du centre
   if (type !== 'mine' && !inHalf(team, x, w)) return 'Hors de ta moitié de carte';
   if (d.store && G.buildings.some(o => o.team === team && o.type === type && !o.dead)) return 'Tu as déjà ' + STORE_ART[type];
-  for (const b of G.buildings) if (!b.dead && x < b.bx + b.bw && x + w > b.bx && y < b.by + b.bh && y + h > b.by) return 'Emplacement occupé';
-  for (const e of [...G.units, ...G.workers]) if (!e.dead && e.x > x - e.r && e.x < x + w + e.r && e.y > y - e.r && e.y < y + h + e.r) return 'Des personnes sont sur l\'emplacement';
+  if (d.def === 'tour' && G.buildings.filter(o => o.team === team && !o.dead && DEF[o.type].def === 'tour').length >= TOWER_MAX) return 'Tu as déjà ' + TOWER_MAX + ' tours : c\'est le maximum';
+  if (d.def === 'escalier' && stairDir(team, tx, ty) < 0) return 'Un escalier se pose contre un de tes murs ou une de tes tours';
+  // une porte se pose dans un trou du mur, ou à la place d'un segment de mur (qui disparaît)
+  const swap = d.def === 'porte' ? ownWall(team, tx, ty) : null;
+  for (const b of G.buildings) if (!b.dead && b !== swap && x < b.bx + b.bw && x + w > b.bx && y < b.by + b.bh && y + h > b.by) return 'Emplacement occupé';
+  for (const e of [...G.units, ...G.workers]) if (!e.dead && !(swap && e.up) && e.x > x - e.r && e.x < x + w + e.r && e.y > y - e.r && e.y < y + h + e.r) return 'Des personnes sont sur l\'emplacement';
   const sp = stockPt(team); if (sp.x > x - 30 && sp.x < x + w + 30 && sp.y > y - 10 && sp.y < y + h + 24) return 'Laisse libre l\'entrée du donjon';
   for (const t of trees) { if (t.wood <= 0) continue; if (rectDist(t.x, t.y, { bx: x, by: y, bw: w, bh: h }) < TREE_R + 4) return 'Des arbres gênent' }
   if (type === 'carriere') { if (!STONES.some(s => dist(cx, cy, s.x, s.y) < s.r - 10)) return 'La carrière se pose sur un gisement de pierre' }
@@ -155,20 +167,32 @@ function doorSpot(b) {
 
 // ================= Combat =================
 export function fireArrow(team, x, y, ang, charge) {
-  const sp = 380 + 560 * charge, md = 200 + 520 * charge, dmg = Math.round(10 + 50 * charge);
-  const a = { team, x: x + Math.cos(ang) * 15, y: y + Math.sin(ang) * 15, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, d: 0, md, dmg, lord: true, z: charge };
+  // le seigneur sur un mur ou une tour tire plus loin, par-dessus les créneaux
+  const L = G.teams[team] && G.teams[team].lord, up = !!(L && L.up && dE(L, { x, y }) < 2), k = up ? upRange(L) : 1;
+  const sp = 380 + 560 * charge, md = (200 + 520 * charge) * k, dmg = Math.round(10 + 50 * charge);
+  const a: any = { team, x: x + Math.cos(ang) * 15, y: y + Math.sin(ang) * 15, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, d: 0, md, dmg, lord: true, z: charge, high: up, hs: up ? topHeight(x, y) : 0, he: 0 };
   (a as any).id = G.aid++; G.arrows.push(a); G.st[team].shot++;
 }
 /** une flèche touche une cible (pour le bruitage : « chair » ou « bois ») ; les flèches plantées ou tombées au sol ont l'effet « stuck » */
 function impact(a, m: string) { G.fx.push({ k: 'hit', x: a.x, y: a.y, m, lord: a.lord, t: 0, life: .2 }) }
 function lordHit(a, dmg) { const s = G.st[a.team]; s.hit++; s.dmg += dmg; s.longest = Math.max(s.longest, a.d) }
 /** portée et rayon de détection d'une unité (les archers de l'IA voient et tirent plus loin) */
-export function rangeOf(u) { const s = UT[u.type], k = u.type === 'archer' && G.ctrl[u.team].ai ? AI_ARCHER_RANGE : 1; return { range: s.range * k, aggro: Math.max(s.aggro, s.range * k + 50) } }
+export function rangeOf(u) {
+  const s = UT[u.type], k = (u.type === 'archer' && G.ctrl[u.team].ai ? AI_ARCHER_RANGE : 1) * (u.type === 'archer' ? upRange(u) : 1);
+  return { range: s.range * k, aggro: Math.max(s.aggro, s.range * k + 50) };
+}
+/** sur un mur (+15 %) ou une tour (+35 %), on tire plus loin */
+export function upRange(u) { if (!u.up) return 1; const b = topNear(u.x, u.y, sideOf(u.team), 8) || defAt(u.x, u.y); return b ? UP_RANGE[DEF[b.type].def] || 1 : 1 }
+/** la défense sur laquelle se tient une unité montée (pour les créneaux) */
+function standOn(e) { return e.up ? topNear(e.x, e.y, sideOf(e.team), 8) || defAt(e.x, e.y) : null }
 function unitArrow(u, t) {
   const s = UT.archer, sp = 470, p = t.kind === 'building' ? rectClamp(u.x, u.y, t) : { x: t.x, y: t.y };
   const d = dist(u.x, u.y, p.x, p.y), tt = d / sp, px = p.x + (t.vx || 0) * tt * .7, py = p.y + (t.vy || 0) * tt * .7;
   const ang = Math.atan2(py - u.y, px - u.x) + (Math.random() - .5) * .08; u.face = ang;
-  const a = { team: u.team, x: u.x + Math.cos(ang) * 10, y: u.y + Math.sin(ang) * 10, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, d: 0, md: Math.min(rangeOf(u).range + 60, d + 40), dmg: s.dmg, lord: false, z: 0, by: u.id };
+  // en hauteur (archer sur un mur, ou cible sur un mur) : la flèche passe par-dessus les défenses
+  const tup = t.kind === 'unit' && !!t.up;
+  const a = { team: u.team, x: u.x + Math.cos(ang) * 10, y: u.y + Math.sin(ang) * 10, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, d: 0, md: Math.min(rangeOf(u).range + 60, d + 40), dmg: s.dmg, lord: false, z: 0, by: u.id,
+    high: !!u.up || tup, hs: u.up ? topHeight(u.x, u.y) : 0, he: tup ? topHeight(t.x, t.y) : 0 };
   (a as any).id = G.aid++; G.arrows.push(a);
 }
 /** nuage de poussière (effet visuel, sans incidence sur le jeu) */
@@ -190,7 +214,8 @@ export function hit(e, dmg, showNum, by?: number) {
     else if (e.kind === 'worker') { me.lostW++; foe.killW++ }
     else if (e.kind === 'building') { me.lostB++; foe.razed++; if (e.worker && !e.worker.dead) me.lostW++ }
     if (e.kind === 'building') {
-      if (e.worker) e.worker.dead = true;
+      // un bâtisseur de mur ne meurt pas avec un segment : il passe au suivant
+      if (e.worker && !e.worker.site) e.worker.dead = true;
       const own = e.team, other = by;
       if (STORED[e.type]) {
         const r = G.teams[e.team].res;
@@ -198,25 +223,46 @@ export function hit(e, dmg, showNum, by?: number) {
         hooks.notify(own, ({ grenier: 'Ton grenier est détruit : tout ton blé est perdu !', reserve: 'Ta réserve est détruite : bois, pierre et fer perdus !', armurerie: 'Ton armurerie est détruite : arcs, lances et épées perdus !' })[e.type], 'warn');
         if (other != null) hooks.notify(other, ({ grenier: 'Grenier ennemi détruit : l\'ennemi n\'a plus de blé', reserve: 'Réserve ennemie détruite', armurerie: 'Armurerie ennemie détruite : ses armes sont perdues' })[e.type], '');
       }
-      for (let i = 0; i < 9; i++) puff(e.bx + Math.random() * e.bw, e.by + Math.random() * e.bh, 14, .4 + Math.random());
-      hooks.notify(own, 'Tu as perdu : ' + DEF[e.type].name.toLowerCase(), 'warn');
-      if (other != null) hooks.notify(other, 'Détruit : ' + DEF[e.type].name.toLowerCase(), '');
+      for (let i = 0; i < (isDefense(e) && e.bw < 60 ? 4 : 9); i++) puff(e.bx + Math.random() * e.bw, e.by + Math.random() * e.bh, 14, .4 + Math.random());
+      dirtyNav();
+      // un segment de mur, une porte ou un escalier qui tombe : pas de message (il y en aurait des dizaines), sauf la brèche
+      const def = DEF[e.type].def;
+      if (!def || def === 'tour') { hooks.notify(own, 'Tu as perdu : ' + DEF[e.type].name.toLowerCase(), 'warn'); if (other != null) hooks.notify(other, 'Détruit : ' + DEF[e.type].name.toLowerCase(), '') }
+      else if (def !== 'escalier' && !(G.breach && G.t - (G.breach[own] ?? -99) < 20)) { (G.breach ||= {})[own] = G.t; hooks.notify(own, 'Brèche dans tes défenses : ' + DEF[e.type].name.toLowerCase() + ' détruit' + (def === 'porte' ? 'e' : ''), 'warn') }
     }
     else puff(e.x, e.y, e.r + 4);
   }
 }
+/** peut-il viser cette cible ? Au corps à corps, il faut être au même niveau (sol ou chemin de ronde) ;
+ *  les flèches n'abîment pas les défenses (murs, portes, escaliers, tours) : seuls lanciers et spadassins les cassent */
+function canTarget(u, t) {
+  if (u.type === 'archer') return !(t.kind === 'building' && isDefense(t));
+  if (t.kind === 'building') return !u.up;
+  return !!t.up === !!u.up;
+}
 function nearestEnemy(u, radius) {
   let best = null, bs = radius;
-  for (const e of G.units) { if (!isFoe(e.team, u.team) || e.dead) continue; const d = dE(u, e) - e.r; if (d < bs) { bs = d; best = e } }
-  for (const w of G.workers) { if (!isFoe(w.team, u.team) || w.dead) continue; const d = dE(u, w) + 30; if (d < bs) { bs = d; best = w } }
-  for (const b of G.buildings) { if (!isFoe(b.team, u.team) || b.dead || b.type === 'keep') continue; const d = rectDist(u.x, u.y, b) + 70; if (d < bs) { bs = d; best = b } }
+  for (const e of G.units) { if (!isFoe(e.team, u.team) || e.dead || !canTarget(u, e)) continue; const d = dE(u, e) - e.r; if (d < bs) { bs = d; best = e } }
+  for (const w of G.workers) { if (!isFoe(w.team, u.team) || w.dead || !canTarget(u, w)) continue; const d = dE(u, w) + 30; if (d < bs) { bs = d; best = w } }
+  // les défenses ne sont attaquées d'elles-mêmes que si elles barrent la route (voir engage)
+  for (const b of G.buildings) { if (!isFoe(b.team, u.team) || b.dead || b.type === 'keep' || isDefense(b) || !canTarget(u, b)) continue; const d = rectDist(u.x, u.y, b) + 70; if (d < bs) { bs = d; best = b } }
+  return best;
+}
+/** la défense ennemie la plus proche (une porte d'abord), pour faire une brèche quand le chemin est barré */
+function wallInWay(u, radius) {
+  let best = null, bs = radius;
+  for (const b of G.buildings) { if (!isFoe(b.team, u.team) || b.dead || !isDefense(b)) continue; const d = rectDist(u.x, u.y, b) - (DEF[b.type].def === 'porte' ? 60 : 0) + (DEF[b.type].def === 'tour' ? 80 : 0); if (d < bs) { bs = d; best = b } }
   return best;
 }
 function edgeDist(u, t) { return t.kind === 'building' ? rectDist(u.x, u.y, t) : dE(u, t) - t.r - u.r }
 function engage(u, t, dt) {
   const s = UT[u.type], d = edgeDist(u, t), range = rangeOf(u).range;
   if (u.noLos > 0) u.noLos -= dt;
-  if (d > range || u.noLos > 0) { const p = t.kind === 'building' ? rectClamp(u.x, u.y, t) : t; nav(u, p.x, p.y, dt, 0) }
+  // chemin barré par des murs (aucun passage) : lanciers et spadassins s'attaquent à la défense la plus proche
+  if (u.type !== 'archer' && !u.up && u.blockedT != null && G.t - u.blockedT < 1.5 && !(t.kind === 'building' && isDefense(t))) {
+    const w = wallInWay(u, 320); if (w) t = w }
+  const dd = t.kind === 'building' ? rectDist(u.x, u.y, t) : d;
+  if (dd > range || u.noLos > 0) { const p = t.kind === 'building' ? rectClamp(u.x, u.y, t) : t; nav(u, p.x, p.y, dt, 0) }
   else if (!strike(u, t)) u.noLos = .7;
 }
 /** frappe ou tire sur une cible déjà à portée, sans bouger. Renvoie false si un obstacle cache la cible. */
@@ -224,7 +270,7 @@ function strike(u, t) {
   const s = UT[u.type];
   u.face = Math.atan2(t.y - u.y, t.x - u.x);
   if (u.cd > 0) return true;
-  if (u.type === 'archer') { const p = t.kind === 'building' ? rectClamp(u.x, u.y, t) : t; if (!shotClear(u.x, u.y, p.x, p.y, t)) return false }
+  if (u.type === 'archer') { const p = t.kind === 'building' ? rectClamp(u.x, u.y, t) : t; if (!shotClear(u.x, u.y, p.x, p.y, t, !!u.up || !!t.up)) return false }
   u.cd = s.cd * (.9 + Math.random() * .2);
   if (u.type === 'archer') unitArrow(u, t);
   else { hit(t, s.dmg, false, u.team); u.lunge = .15 }
@@ -233,8 +279,8 @@ function strike(u, t) {
 /** l'ennemi le plus proche déjà à portée (et visible pour un archer) */
 function enemyInRange(u) {
   const range = rangeOf(u).range; let best = null, bd = range;
-  const consider = t => { const d = edgeDist(u, t); if (d > bd) return;
-    if (u.type === 'archer') { const p = t.kind === 'building' ? rectClamp(u.x, u.y, t) : t; if (!shotClear(u.x, u.y, p.x, p.y, t)) return }
+  const consider = t => { if (!canTarget(u, t)) return; const d = edgeDist(u, t); if (d > bd) return;
+    if (u.type === 'archer') { const p = t.kind === 'building' ? rectClamp(u.x, u.y, t) : t; if (!shotClear(u.x, u.y, p.x, p.y, t, !!u.up || !!t.up)) return }
     bd = d; best = t };
   for (const e of G.units) if (isFoe(e.team, u.team) && !e.dead) consider(e);
   for (const w of G.workers) if (isFoe(w.team, u.team) && !w.dead) consider(w);
@@ -246,10 +292,11 @@ function updUnit(u, dt) {
   const aggro = rangeOf(u).aggro, o = u.order;
   if (o && o.type === 'move') { if (nav(u, o.x, o.y, dt, 5)) { u.order = null; u.guard = { x: u.x, y: u.y } } return }
   // cible abattue (par lui ou par un autre) : il continue jusqu'à l'endroit où elle est tombée, en combattant en chemin
-  if (o && o.type === 'attack') { if (o.target.dead) { u.order = { type: 'amove', x: o.target.x, y: o.target.y }; return } engage(u, o.target, dt); return }
+  // cible inaccessible au corps à corps (montée sur un mur) : il va au pied du mur, prêt à frapper ce qui passe
+  if (o && o.type === 'attack') { if (o.target.dead || !canTarget(u, o.target)) { u.order = { type: 'amove', x: o.target.x, y: o.target.y }; return } engage(u, o.target, dt); return }
   if (o && o.type === 'amove') { const e = nearestEnemy(u, aggro); if (e) { engage(u, e, dt); return } if (nav(u, o.x, o.y, dt, 12)) { u.order = null; u.guard = { x: u.x, y: u.y } } return }
-  // soldats du joueur : ils tiennent leur poste comme des tourelles et ne frappent que ce qui est à portée
-  if (!G.ctrl[u.team].ai) {
+  // soldats du joueur (et archers postés sur une tour par l'IA) : ils tiennent leur poste comme des tourelles et ne frappent que ce qui est à portée
+  if (!G.ctrl[u.team].ai || u.post) {
     const t = enemyInRange(u);
     if (t) strike(u, t);
     else if (dist(u.x, u.y, u.guard.x, u.guard.y) > 8) nav(u, u.guard.x, u.guard.y, dt, 8, .8);
@@ -266,11 +313,13 @@ const mainInput = d => Object.keys(d.input).sort((a, b) => d.input[b] - d.input[
 /** porte d'un bâtiment de stockage, gardée en mémoire tant que les obstacles ne changent pas */
 function storeDoor(w, sb) { if (w.destB !== sb || w.destVer !== navVer) { w.dest = doorSpot(sb); w.destB = sb; w.destVer = navVer } return w.dest }
 function updWorker(w, dt) {
-  const b = w.b; if (!b || b.dead) { w.dead = true; return }
-  const tm = G.teams[w.team], d = DEF[b.type], eff = 1;
   w.working = false;
   // le bâtisseur a fini : il rentre au donjon, où il disparaît
   if (w.state === 'home') { const sp = stockPt(w.team); if (nav(w, sp.x, sp.y, dt, 8)) w.dead = true; return }
+  // son segment de mur a disparu (détruit, remplacé par une porte) : il passe au suivant, ou rentre
+  if (w.site && (!w.b || w.b.dead)) { const next = w.site.segs.find(s => s.build < 1 && !s.dead); if (next) { w.b = next; next.worker = w; w.spot = null } else { w.state = 'home'; return } }
+  const b = w.b; if (!b || b.dead) { w.dead = true; return }
+  const tm = G.teams[w.team], d = DEF[b.type], eff = 1;
   // chantier : l'ouvrier va sur place et construit le bâtiment avant d'y travailler
   if (b.build < 1) {
     if (!w.spot || w.spotVer !== navVer) { w.spotVer = navVer; w.spot = doorSpot(b) }
@@ -377,7 +426,54 @@ export function placeBuilding(team, type, tx, ty): string | null {
   const tm = G.teams[team], err = canPlace(team, type, tx, ty);
   if (err) return err;
   if (!afford(tm, type)) return 'Il manque ' + missing(tm, type);
+  // la porte remplace le segment de mur sur lequel on la pose
+  const swap = DEF[type].def === 'porte' ? ownWall(team, tx, ty) : null;
+  if (swap) { swap.dead = true; swap.swapped = true; dirtyNav() }
   pay(tm, type); addBuilding(team, type, tx, ty, false); return null;
+}
+/** le segment de mur (en pierre ou en bois) de l'équipe sur cette case */
+function ownWall(team, tx, ty) { return G.buildings.find(o => o.team === team && !o.dead && DEF[o.type].def === 'mur' && o.tx === tx && o.ty === ty) || null }
+/** sens d'un escalier posé en tx, ty : vers la première défense voisine de l'équipe (nord, est, sud, ouest), ou -1 */
+export function stairDir(team, tx, ty) {
+  const dirs = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+  for (let i = 0; i < 4; i++) { const [dx, dy] = dirs[i], X = tx + dx, Y = ty + dy;
+    if (G.buildings.some(o => o.team === team && !o.dead && isDefense(o) && o.type !== 'escalier' && X >= o.tx && X < o.tx + DEF[o.type].w && Y >= o.ty && Y < o.ty + DEF[o.type].h)) return i }
+  return -1;
+}
+/** les cases d'un mur tracé de (x0, y0) à (x1, y1) : droit, ou en diagonale à 45°, WALL_MAX cases au plus */
+export function wallTiles(x0, y0, x1, y1) {
+  let dx = x1 - x0, dy = y1 - y0;
+  if (Math.abs(dx) >= 2 * Math.abs(dy)) dy = 0; else if (Math.abs(dy) >= 2 * Math.abs(dx)) dx = 0; else { const n = Math.max(Math.abs(dx), Math.abs(dy)); dx = Math.sign(dx) * n; dy = Math.sign(dy) * n }
+  const n = Math.min(WALL_MAX - 1, Math.max(Math.abs(dx), Math.abs(dy))), sx = Math.sign(dx), sy = Math.sign(dy), out = [];
+  for (let i = 0; i <= n; i++) out.push({ tx: x0 + sx * i, ty: y0 + sy * i });
+  return out;
+}
+/** ce que coûterait et où buterait un mur tracé : cases à construire (celles déjà murées sont sautées), coût, refus éventuel */
+export function wallPlan(team, type, x0, y0, x1, y1) {
+  const tiles = wallTiles(x0, y0, x1, y1), todo = [], cost: Record<string, number> = {}; let err: string | null = null, bad: any = null;
+  for (const t of tiles) {
+    if (G.buildings.some(o => o.team === team && !o.dead && isDefense(o) && o.type !== 'escalier' && t.tx >= o.tx && t.tx < o.tx + DEF[o.type].w && t.ty >= o.ty && t.ty < o.ty + DEF[o.type].h)) continue;
+    const e = canPlace(team, type, t.tx, t.ty); if (e && !err) { err = e; bad = t }
+    todo.push({ ...t, err: e });
+  }
+  for (const t of todo) for (const k in DEF[type].cost) cost[k] = (cost[k] || 0) + DEF[type].cost[k];
+  if (!todo.length && !err) err = 'Ce mur existe déjà';
+  return { tiles: todo, cost, err, bad };
+}
+/** trace un mur (bois ou pierre) d'un seul coup : un seul bâtisseur le monte, segment par segment. Renvoie le refus, ou null. */
+export function placeWall(team, type, x0, y0, x1, y1): string | null {
+  if (!DEF[type] || DEF[type].def !== 'mur') return 'Ce n\'est pas un mur';
+  const tm = G.teams[team], plan = wallPlan(team, type, x0 | 0, y0 | 0, x1 | 0, y1 | 0);
+  if (plan.err) return plan.err;
+  const lack = Object.keys(plan.cost).filter(k => tm.res[k] < plan.cost[k]);
+  if (lack.length) return 'Il manque ' + lack.map(k => (plan.cost[k] - tm.res[k]) + ' ' + RESN[k]).join(', ');
+  for (const k in plan.cost) tm.res[k] -= plan.cost[k];
+  const site = { id: G.nid, segs: [] as any[], worker: null };
+  for (const t of plan.tiles) {
+    const b = addBuilding(team, type, t.tx, t.ty, false, false); b.site = site; site.segs.push(b);
+  }
+  spawnWorker(site.segs[0]);
+  return null;
 }
 /** recrute un soldat à la caserne. Renvoie la raison du refus, ou null. */
 /** pourquoi on ne peut pas recruter ce soldat (ou null si c'est possible) */
@@ -398,7 +494,10 @@ export function recruit(team, type): string | null {
 export function orderMove(team, units, x, y) {
   const sel = units.filter(u => u.team === team && !u.dead && u.type !== 'lord');
   const n = sel.length, cols = Math.ceil(Math.sqrt(n)), sp = 24;
-  sel.forEach((u, i) => { const cx = i % cols, cy = i / cols | 0, p = freePoint(x + (cx - (cols - 1) / 2) * sp, y + (cy - (Math.ceil(n / cols) - 1) / 2) * sp, u.r); u.order = { type: 'move', x: p.x, y: p.y } });
+  // sur un de ses murs : chacun prend une place sur le chemin de ronde (on y monte par un escalier)
+  const top = topAt(x, y, sideOf(team));
+  sel.forEach((u, i) => { const cx = i % cols, cy = i / cols | 0, ox = x + (cx - (cols - 1) / 2) * sp, oy = y + (cy - (Math.ceil(n / cols) - 1) / 2) * sp;
+    const p = top ? topPoint(ox, oy, sideOf(team)) || { x, y } : freePoint(ox, oy, u.r, sideOf(team)); u.order = { type: 'move', x: p.x, y: p.y } });
 }
 /** ordonne d'attaquer une cible (unité, ouvrier ou bâtiment ennemi) */
 /** remboursement d'une démolition : la moitié du coût, arrondie en dessous */
@@ -424,14 +523,15 @@ export function demolish(team, b): string | null {
 }
 export function orderAttack(team, units, target) {
   if (!target || !isFoe(target.team, team)) return;
-  for (const u of units) if (u.team === team && !u.dead && u.type !== 'lord') u.order = { type: 'attack', target };
+  // les archers n'abîment pas les défenses : ils ignorent cet ordre (lanciers et spadassins y vont)
+  for (const u of units) if (u.team === team && !u.dead && u.type !== 'lord' && !(u.type === 'archer' && target.kind === 'building' && isDefense(target))) u.order = { type: 'attack', target };
 }
 
 // ================= Boucle =================
 function separate() {
   const us = G.units;
   for (let i = 0; i < us.length; i++) { const a = us[i]; if (a.dead) continue;
-    for (let j = i + 1; j < us.length; j++) { const b = us[j]; if (b.dead) continue;
+    for (let j = i + 1; j < us.length; j++) { const b = us[j]; if (b.dead || !!a.up !== !!b.up) continue;
       const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy), min = a.r + b.r;
       if (d < min && d > .01) { const p = (min - d) / 2, nx = dx / d, ny = dy / d; a.x -= nx * p; a.y -= ny * p; b.x += nx * p; b.y += ny * p } } }
 }
@@ -475,17 +575,28 @@ export function update(dt) {
   updBoat(dt);
   separate();
   for (const u of G.units) if (!u.dead) pushOut(u);
+  // mur effondré sous des soldats : ils tombent et se blessent
+  for (const u of G.units) if (u.fallen) { u.fallen = false; if (!u.dead) hit(u, Math.ceil(u.maxhp * FALL_DMG), true) }
   truceWall();
   for (const [e, x, y] of pos) { e.vx = (e.x - x) / dt; e.vy = (e.y - y) / dt }
   for (const a of G.arrows) {
     a.x += a.vx * dt; a.y += a.vy * dt; a.d += Math.hypot(a.vx, a.vy) * dt;
     // les flèches traversent les alliés sans les blesser
-    for (const e of G.units) { if (!isFoe(e.team, a.team) || e.dead) continue; if (dE(a, e) < e.r + 3) { const dm = e.type === 'spadassin' ? Math.ceil(a.dmg * .5) : a.lord && e.type === 'lord' ? Math.round(a.dmg * LORD_VS_LORD) : a.dmg; if (a.lord) lordHit(a, dm); hit(e, dm, a.lord, a.team); impact(a, 'chair'); a.dead = true; break } }
+    for (const e of G.units) { if (!isFoe(e.team, a.team) || e.dead) continue; if (dE(a, e) < e.r + 3) {
+      // sur un mur ou une tour, les créneaux arrêtent une partie des flèches ; celles qui passent font moins mal
+      const on = standOn(e);
+      if (on && Math.random() < (UP_MISS[DEF[on.type].def] || 0)) { a.dead = true; a.stick = TOP_H[on.type] || .9; impact(a, 'bois'); break }
+      let dm = e.type === 'spadassin' ? Math.ceil(a.dmg * .5) : a.lord && e.type === 'lord' ? Math.round(a.dmg * LORD_VS_LORD) : a.dmg;
+      if (on) dm = Math.max(1, Math.round(dm * COVER_DMG));
+      if (a.lord) lordHit(a, dm); hit(e, dm, a.lord, a.team); impact(a, 'chair'); a.dead = true; break } }
     if (!a.dead) for (const w of G.workers) { if (!isFoe(w.team, a.team) || w.dead) continue; if (dE(a, w) < w.r + 3) { if (a.lord) lordHit(a, a.dmg); hit(w, a.dmg, a.lord, a.team); impact(a, 'chair'); a.dead = true; break } }
     if (!a.dead) for (const b of G.buildings) { if (b.dead) continue;
-      // les flèches du seigneur n'abîment pas les bâtiments : elles s'y plantent (seuls les archers les attaquent)
-      if (isFoe(b.team, a.team) && b.type !== 'keep' && !a.lord && a.x > b.bx && a.x < b.bx + b.bw && a.y > b.by && a.y < b.by + b.bh) { const dm = Math.ceil(a.dmg * .4); if (a.lord) lordHit(a, dm); hit(b, dm, a.lord, a.team); impact(a, 'bois'); a.dead = true; break }
-      if (b.blocks.some(q => inRect(a.x, a.y, q))) { a.dead = true; a.stick = .5; break } }
+      const def = isDefense(b);
+      // en hauteur, la flèche passe par-dessus les murs et les tours
+      if (def && a.high) continue;
+      // les flèches du seigneur n'abîment pas les bâtiments : elles s'y plantent (seuls les archers les attaquent) ; aucune flèche n'abîme une défense
+      if (!def && isFoe(b.team, a.team) && b.type !== 'keep' && !a.lord && a.x > b.bx && a.x < b.bx + b.bw && a.y > b.by && a.y < b.by + b.bh) { const dm = Math.ceil(a.dmg * .4); if (a.lord) lordHit(a, dm); hit(b, dm, a.lord, a.team); impact(a, 'bois'); a.dead = true; break }
+      if (b.blocks.some(q => inRect(a.x, a.y, q))) { a.dead = true; a.stick = def ? Math.min(.8, (TOP_H[b.type] || .9) * .6) : .5; break } }
     // les gabarres : seule une flèche de seigneur compte, et chacune ne lâche sa cargaison qu'une fois par partie
     if (!a.dead && a.lord) { const gb = boatHit(a); if (gb) { a.dead = true; G.fx.push({ k: 'hit', x: a.x, y: a.y, m: 'bois', lord: true, t: 0, life: .2 }); lootBoat(gb, a.team) } }
     if (!a.dead && treesNear(a.x, a.y, t => Math.abs(t.x - a.x) < TREE_R && Math.abs(t.y - a.y) < TREE_R && dist(a.x, a.y, t.x, t.y) < TREE_R)) { a.dead = true; a.stick = .55 }
@@ -515,6 +626,8 @@ export function update(dt) {
   // un ouvrier tué est remplacé après RESPAWN secondes ; le bâtiment est à l'arrêt en attendant
   for (const b of G.buildings) {
     if (b.dead || !(DEF[b.type].work || b.build < 1) || (b.worker && !b.worker.dead) || G.teams[b.team].out) continue;
+    // mur tracé d'un coup : un seul bâtisseur pour tout le mur, remplacé par le premier segment encore à construire
+    if (b.site && (b.site.segs.find(s => s.build < 1 && !s.dead) !== b || (b.site.worker && !b.site.worker.dead))) continue;
     if (b.respawn == null) { b.respawn = RESPAWN; b.grow = 0; hooks.notify(b.team, (DEF[b.type].work ? 'Ouvrier tué (' : 'Bâtisseur tué (') + DEF[b.type].name.toLowerCase() + ') : un remplaçant arrive dans ' + RESPAWN + ' s', 'warn') }
     b.respawn -= dt; if (b.respawn <= 0) spawnWorker(b);
   }

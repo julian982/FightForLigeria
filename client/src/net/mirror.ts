@@ -1,6 +1,7 @@
 // Le miroir de la partie en ligne : on reconstruit `G` à partir des instantanés du serveur,
 // avec les mêmes objets d'une image à l'autre (le rendu y accroche ses maillages), et on lisse les mouvements.
-import { B_TYPES, CARRY_TYPES, DEF, G, Snapshot, T, UT, U_TYPES, WF, blocksOf, genTrees, hooks, newCtrl, newStats, setG, setTrees, trees } from '@ffl/shared';
+import { B_TYPES, CARRY_TYPES, DEF, G, Snapshot, T, UT, U_TYPES, WF, blocksOf, genTrees, hooks, newCtrl, newStats, setG, setTrees, trees, dirtyNav, buildNav, navDirty } from '@ffl/shared';
+let defKey = '';
 import { online } from './act';
 import { ME } from '../state';
 
@@ -33,16 +34,20 @@ export function applySnapshot(s: Snapshot) {
   G.buildings = sync(G.buildings, byId.b, s.b, r => {
     const type = B_TYPES[r[2]], d = DEF[type], b: any = { kind: 'building', id: r[0], team: r[1], type, tx: r[3], ty: r[4], bx: r[3] * T, by: r[4] * T, bw: d.w * T, bh: d.h * T, dead: false, worker: null };
     b.x = b.bx + b.bw / 2; b.y = b.by + b.bh / 2; b.blocks = blocksOf(b); return b;
-  }, (b, r) => { b.hp = r[5]; b.maxhp = r[6]; b.grow = r[7]; b.respawn = r[8] < 0 ? null : r[8]; b.flash = r[9]; b.build = r[10] == null || r[10] >= 1 ? undefined : r[10] });
+  }, (b, r) => { b.hp = r[5]; b.maxhp = r[6]; b.grow = r[7]; b.respawn = r[8] < 0 ? null : r[8]; b.flash = r[9]; b.build = r[10] == null || r[10] >= 1 ? undefined : r[10]; b.dir = r[11] == null || r[11] < 0 ? undefined : r[11] });
+  // les défenses (murs, portes, escaliers, tours) changent : on remet à jour la carte du chemin de ronde
+  const dk = G.buildings.map(b => b.id + (b.build < 1 ? 's' : '')).join(',');
+  if (dk !== defKey) { defKey = dk; dirtyNav() }
+  if (navDirty) buildNav();
   G.units = sync(G.units, byId.u, s.u, r => ({ kind: 'unit', id: r[0], team: r[1], type: U_TYPES[r[2]], r: UT[U_TYPES[r[2]]].r, x: r[3], y: r[4], face: r[5], vx: 0, vy: 0 }),
-    (u, r) => { u.nx = r[3]; u.ny = r[4]; u.nface = r[5]; u.hp = r[6]; u.maxhp = r[7]; u.dead = !!r[8]; u.charge = r[9]; u.lunge = r[10]; u.flash = r[11] });
+    (u, r) => { u.nx = r[3]; u.ny = r[4]; u.nface = r[5]; u.hp = r[6]; u.maxhp = r[7]; u.dead = !!r[8]; u.charge = r[9]; u.lunge = r[10]; u.flash = r[11]; u.up = !!r[12] });
   G.workers = sync(G.workers, byId.w, s.w, r => ({ kind: 'worker', id: r[0], team: r[1], r: 7, x: r[3], y: r[4], face: r[5], vx: 0, vy: 0 }),
     (w, r) => { const f = r[9]; w.nx = r[3]; w.ny = r[4]; w.nface = r[5]; w.hp = r[6]; w.maxhp = r[7]; w.carry = r[8] ? { type: CARRY_TYPES[r[8]], input: !!(f & WF.supply) } : null;
       w.working = !!(f & WF.working); w.need = !!(f & WF.need); w.state = f & WF.fetch ? 'toFetch' : w.working ? 'working' : ''; w.idle = !!(f & WF.idle);
       w.noStore = f & WF.noReserve ? 'reserve' : f & WF.noGrenier ? 'grenier' : f & WF.noArmory ? 'armurerie' : null;
       w.builder = !!(f & WF.builder);
       const b = byId.b.get(r[2]); w.b = b; if (b && (!w.builder || b.build < 1)) b.worker = w });
-  G.arrows = sync(G.arrows, byId.a, s.a, r => ({ id: r[0], team: r[1], lord: !!r[2], x: r[3], y: r[4], by: r[9] || 0 }),
+  G.arrows = sync(G.arrows, byId.a, s.a, r => ({ id: r[0], team: r[1], lord: !!r[2], x: r[3], y: r[4], by: r[9] || 0, hs: r[10] || 0, he: r[11] || 0 }),
     (a, r) => { a.x = r[3]; a.y = r[4]; a.vx = r[5]; a.vy = r[6]; a.d = r[7]; a.md = r[8] });
   for (const f of s.fx) G.fx.push(f);
   if (s.fell.length) { const ids = new Set(s.fell); for (const t of trees) if (ids.has(t.id)) { t.wood = 0; hooks.removed(t) } setTrees(trees.filter(t => t.wood > 0)) }

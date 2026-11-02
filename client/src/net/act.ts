@@ -1,6 +1,6 @@
 // Les actions du joueur local. En solo elles agissent directement sur la simulation ;
 // en ligne elles partent au serveur (après une vérification locale pour afficher tout de suite les erreurs).
-import { G, truceError, afford, canPlace, cancelCharge, demolish, demolishError, missing, orderAttack, orderMove, placeBuilding, recruit, recruitError, releaseCharge, startCharge, steer } from '@ffl/shared';
+import { G, truceError, afford, canPlace, placeWall, wallPlan, cancelCharge, demolish, demolishError, missing, orderAttack, orderMove, placeBuilding, recruit, recruitError, releaseCharge, startCharge, steer } from '@ffl/shared';
 import { ME } from '../state';
 
 /** la connexion en cours (null en solo) */
@@ -32,6 +32,14 @@ export const act = {
     if (!online()) return placeBuilding(ME, type, tx, ty);
     const err = canPlace(ME, type, tx, ty) || (!afford(G.teams[ME], type) ? 'Il manque ' + missing(G.teams[ME], type) : null);
     if (!err) send({ c: 'place', type, tx, ty });
+    return err;
+  },
+  /** trace un mur (bois ou pierre) d'une case à l'autre */
+  wall(type: string, x0: number, y0: number, x1: number, y1: number): string | null {
+    if (!online()) return placeWall(ME, type, x0, y0, x1, y1);
+    const p = wallPlan(ME, type, x0, y0, x1, y1), tm = G.teams[ME], lack = Object.keys(p.cost).filter(k => tm.res[k] < p.cost[k]);
+    const err = p.err || (lack.length ? 'Il manque ' + lack.map(k => (p.cost[k] - tm.res[k]) + ' ' + k).join(', ') : null);
+    if (!err) send({ c: 'wall', type, x0, y0, x1, y1 });
     return err;
   },
   recruit(type: string): string | null {

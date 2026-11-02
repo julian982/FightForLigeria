@@ -1,11 +1,11 @@
 // Clavier et souris : ZQSD + arc pour le seigneur, placement des bâtiments, sélection et ordres.
-import { BUILD_LIST, G, S, isFoe } from '@ffl/shared';
+import { BUILD_LIST, DEFENSE_LIST, DEF, G, S, isFoe, topAt, sideOf } from '@ffl/shared';
 import { act } from '../net/act';
 import { cv } from '../render/engine';
 import { enterFps, exitFps, fpsLook } from '../render/fps';
-import { addMark, ghostTile, screenToWorld, toScreen } from '../render/sync';
+import { addMark, ghostTile, screenToWorld, toScreen, pickTop } from '../render/sync';
 import { $, ME, keys, mouse, sel, tilt, ui, view } from '../state';
-import { askRecruit, refreshHud, selectBuild, toast } from './hud';
+import { askRecruit, refreshHud, selectBuild, setBuildTab, toast } from './hud';
 import { playSfx } from '../audio';
 export function setMouse(e){mouse.sx=e.clientX;mouse.sy=e.clientY;mouse.in=true;const w=screenToWorld(mouse.sx,mouse.sy);mouse.wx=w.x;mouse.wy=w.y}
 cv.addEventListener('contextmenu',e=>e.preventDefault());
@@ -20,22 +20,32 @@ cv.addEventListener('mousedown',e=>{
   setMouse(e);if(!ui.running)return;
   if(e.button===1){e.preventDefault();view.rotDrag={x:e.clientX,y:e.clientY};return}
   if(e.button===0){
+    // un mur se trace : bouton enfoncé sur la première case, relâché sur la dernière
+    if(ui.placing&&DEF[ui.placing].def==='mur'){ui.wallStart=ghostTile();return}
     if(ui.placing){tryPlace(e.shiftKey);return}
     // clic simple : un soldat ; glisser : encadrer plusieurs soldats
     ui.box={sx:mouse.sx,sy:mouse.sy};
   }else if(e.button===2){
-    if(ui.placing){ui.placing=null;refreshHud();return}
+    if(ui.placing){ui.placing=null;ui.wallStart=null;refreshHud();return}
     orderSelected();
   }
 });
-addEventListener('mouseup',e=>{if(e.button!==0)return;if(ui.fps){releaseShot();return}if(ui.box){selectBox(e.shiftKey||e.ctrlKey||e.metaKey);ui.box=null}});
+addEventListener('mouseup',e=>{if(e.button!==0)return;if(ui.fps){releaseShot();return}if(ui.wallStart){placeWallLine(e.shiftKey);return}if(ui.box){selectBox(e.shiftKey||e.ctrlKey||e.metaKey);ui.box=null}});
+/** fin du tracé d'un mur : on le pose (Maj : on garde l'outil pour tracer le suivant) */
+export function placeWallLine(keep){
+  const st=ui.wallStart,g=ghostTile();ui.wallStart=null;if(!st||!ui.placing)return;
+  const err=act.wall(ui.placing,st.tx,st.ty,g.tx,g.ty);
+  if(err){toast(err);return}
+  playSfx('pose',.75,0,.96+Math.random()*.08);
+  if(!keep)ui.placing=null;refreshHud();
+}
 export function tryPlace(keep){
   const g=ghostTile(),err=act.place(ui.placing,g.tx,g.ty);
   if(err){toast(err);return}
   playSfx('pose',.75,0,.96+Math.random()*.08);
   if(!keep)ui.placing=null;refreshHud();
 }
-export function pickNear(list,maxPx){let best=null,bd=maxPx;for(const e of list){const p=toScreen(e.x,e.y,.4),d=Math.hypot(p.x-mouse.sx,p.y-mouse.sy);if(d<bd){bd=d;best=e}}return best}
+export function pickNear(list,maxPx){let best=null,bd=maxPx;for(const e of list){const p=toScreen(e.x,e.y,.4+(e.ev||0)),d=Math.hypot(p.x-mouse.sx,p.y-mouse.sy);if(d<bd){bd=d;best=e}}return best}
 export function selectBox(add){
   const x0=Math.min(ui.box.sx,mouse.sx),x1=Math.max(ui.box.sx,mouse.sx),y0=Math.min(ui.box.sy,mouse.sy),y1=Math.max(ui.box.sy,mouse.sy);
   const mine=G.units.filter(u=>u.team===ME&&u.type!=='lord'&&!u.dead);
@@ -46,7 +56,7 @@ export function selectBox(add){
     if(!u){const w=pickNear(G.workers.filter(w=>!w.dead),18*view.ppu/46);if(w){sel.clear();ui.selW=w;return}}
     // clic sur un bâtiment (sans soldat dessous) : fenêtre d'info
     if(!u){const b=G.buildings.find(b=>!b.dead&&mouse.wx>b.bx&&mouse.wx<b.bx+b.bw&&mouse.wy>b.by&&mouse.wy<b.by+b.bh);if(b){sel.clear();ui.selB=b;return}}}
-  else pick=mine.filter(u=>{const p=toScreen(u.x,u.y,.4);return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1});
+  else pick=mine.filter(u=>{const p=toScreen(u.x,u.y,.4+(u.ev||0));return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1});
   if(!add||!pick.length)sel.clear();
   for(const u of pick)sel.add(u);
 }
@@ -67,8 +77,10 @@ export function orderSelected(){
   const units=[...sel];if(!units.length)return;
   const tgt=targetUnderMouse();
   if(tgt){act.attack(units,tgt);addMark(tgt.x,tgt.y);return}
-  act.move(units,mouse.wx,mouse.wy);
-  addMark(mouse.wx,mouse.wy);
+  // clic sur le dessus d'un de ses murs ou d'une de ses tours : on y fait monter les soldats (par un escalier)
+  const top=pickTop(),side=sideOf(ME),p=top&&topAt(top.x,top.y,side)?top:{x:mouse.wx,y:mouse.wy};
+  act.move(units,p.x,p.y);
+  addMark(p.x,p.y);
 }
 addEventListener('keydown',(e:any)=>{
   // en train d'écrire (discussion, pseudo, code…) : les touches ne pilotent pas le jeu
@@ -86,7 +98,10 @@ addEventListener('keydown',(e:any)=>{
   // V : vue seigneur, rien d'autre que le tir à l'arc tant qu'on y est
   if(e.code==='KeyV'){if(ui.fps)exitFps();else enterFps();return}
   if(ui.fps){if(e.code==='Escape')exitFps();return}
+  // B : passer de l'onglet des bâtiments à celui des défenses ; les chiffres choisissent dans l'onglet ouvert
+  if(e.code==='KeyB'){setBuildTab(ui.buildTab==='b'?'d':'b');return}
   const m=/^(?:Digit|Numpad)([0-9])$/.exec(e.code);
+  if(m&&ui.buildTab==='d'){const t=DEFENSE_LIST[+m[1]-1];if(t)selectBuild(t);return}
   if(m){selectBuild(BUILD_LIST[m[1]==='0'?9:+m[1]-1]);return}
   if(e.code==='Minus'){selectBuild(BUILD_LIST[10]);return}
   if(e.code==='Equal'){selectBuild(BUILD_LIST[11]);return}

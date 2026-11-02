@@ -2,7 +2,7 @@
 // Tout est ici pour que le serveur, le client et les tests parlent exactement la même langue.
 import { DEF, NEED } from './config';
 import { G } from './state';
-import { steer, startCharge, releaseCharge, cancelCharge, placeBuilding, recruit, orderMove, orderAttack, demolish } from './game';
+import { steer, startCharge, releaseCharge, cancelCharge, placeBuilding, placeWall, recruit, orderMove, orderAttack, demolish } from './game';
 
 export type Cmd =
   | { c: 'steer', dx: number, dy: number, ax?: number, ay?: number }
@@ -31,7 +31,8 @@ export function applyCommand(team: number, m: any): string | null {
     case 'charge': return startCharge(team);
     case 'release': releaseCharge(team); return null;
     case 'cancel': cancelCharge(team); return null;
-    case 'place': return DEF[m.type] && m.type !== 'keep' ? placeBuilding(team, m.type, num(m.tx) | 0, num(m.ty) | 0) : null;
+    case 'place': return DEF[m.type] && m.type !== 'keep' && DEF[m.type].def !== 'mur' ? placeBuilding(team, m.type, num(m.tx) | 0, num(m.ty) | 0) : null;
+    case 'wall': return DEF[m.type] && DEF[m.type].def === 'mur' ? placeWall(team, m.type, num(m.x0) | 0, num(m.y0) | 0, num(m.x1) | 0, num(m.y1) | 0) : null;
     case 'recruit': return NEED[m.type] ? recruit(team, m.type) : null;
     case 'move': orderMove(team, unitsOf(team, m.ids), num(m.x), num(m.y)); return null;
     case 'attack': { const t = findTarget(m.k, m.id); if (t) orderAttack(team, unitsOf(team, m.ids), t); return null }
@@ -84,12 +85,12 @@ export function makeSnapshot(fell: number[]): Snapshot {
     bt: G.boats ? G.boats.list.map(b => [b.on ? 1 : 0, r1(b.x), r1(b.y), b.dir, b.looted ? 1 : 0]) : [],
     tm: G.teams.map(tm => ({ res: tm.res, stash: tm.stash, starving: !!tm.starving, keep: tm.keep.id, lord: tm.lord.id, out: !!tm.out })),
     ctrl: G.ctrl.map(c => [c.charging ? 1 : 0, r2(c.start)]),
-    u: G.units.map(u => [u.id, u.team, U_TYPES.indexOf(u.type), r1(u.x), r1(u.y), r2(u.face), Math.ceil(u.hp), u.maxhp, u.dead ? 1 : 0, r2(u.charge || 0), r2(u.lunge || 0), r2(Math.max(0, u.flash))]),
+    u: G.units.map(u => [u.id, u.team, U_TYPES.indexOf(u.type), r1(u.x), r1(u.y), r2(u.face), Math.ceil(u.hp), u.maxhp, u.dead ? 1 : 0, r2(u.charge || 0), r2(u.lunge || 0), r2(Math.max(0, u.flash)), u.up ? 1 : 0]),
     w: G.workers.map(w => [w.id, w.team, w.b ? w.b.id : 0, r1(w.x), r1(w.y), r2(w.face), Math.ceil(w.hp), w.maxhp, w.carry ? CARRY_TYPES.indexOf(w.carry.type) : 0,
       (w.working ? WF.working : 0) | (w.need ? WF.need : 0) | (w.idle ? WF.idle : 0) | (w.noStore === 'reserve' ? WF.noReserve : 0) | (w.noStore === 'grenier' ? WF.noGrenier : 0) | (w.noStore === 'armurerie' ? WF.noArmory : 0)
       | (w.state === 'toFetch' ? WF.fetch : 0) | (w.carry && w.carry.input ? WF.supply : 0) | (w.builder ? WF.builder : 0)]),
-    b: G.buildings.map(b => [b.id, b.team, B_TYPES.indexOf(b.type), b.tx, b.ty, Math.ceil(b.hp), b.maxhp, r2(b.grow || 0), b.respawn == null ? -1 : r1(b.respawn), r2(Math.max(0, b.flash)), b.build < 1 ? r2(b.build) : 1]),
-    a: G.arrows.map(a => [a.id, a.team, a.lord ? 1 : 0, r1(a.x), r1(a.y), r1(a.vx), r1(a.vy), r1(a.d), r1(a.md), (a as any).by || 0]),
+    b: G.buildings.map(b => [b.id, b.team, B_TYPES.indexOf(b.type), b.tx, b.ty, Math.ceil(b.hp), b.maxhp, r2(b.grow || 0), b.respawn == null ? -1 : r1(b.respawn), r2(Math.max(0, b.flash)), b.build < 1 ? r2(b.build) : 1, b.dir ?? -1]),
+    a: G.arrows.map(a => [a.id, a.team, a.lord ? 1 : 0, r1(a.x), r1(a.y), r1(a.vx), r1(a.vy), r1(a.d), r1(a.md), (a as any).by || 0, r2((a as any).hs || 0), r2((a as any).he || 0)]),
     fx, fell,
   };
 }
